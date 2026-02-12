@@ -58,7 +58,20 @@ public:
 
   void unlock() { osMutexRelease(m_mutex_id); }
 
+  /**
+   * @brief Check if the mutex was successfully created
+   * @return true if the mutex is valid and can be used
+   */
   bool valid() const noexcept { return m_mutex_id != nullptr; }
+  
+  /**
+   * @brief Boolean conversion operator for checking validity
+   * 
+   * Allows usage in conditional statements like:
+   *   if (mutex_obj) { ... }
+   * 
+   * @return true if the mutex is valid
+   */
   explicit operator bool() const noexcept { return valid(); }
 
 private:
