@@ -82,7 +82,8 @@ public:
       // ticks = (ms * tickFreq) / 1000
       uint32_t tick_freq = osKernelGetTickFreq();
       // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for osWaitForever)
-      if (ms >= (UINT32_MAX - 1) * 1000ULL / tick_freq) {
+      // Check: ms >= (UINT32_MAX - 1) * 1000 / tick_freq, rearranged to avoid overflow
+      if (ms / 1000 >= (UINT32_MAX - 1) / tick_freq) {
         ticks = UINT32_MAX - 1;
       } else {
         ticks = static_cast<uint32_t>((ms * tick_freq) / 1000);
