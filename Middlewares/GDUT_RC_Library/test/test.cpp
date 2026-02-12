@@ -1,6 +1,5 @@
+#include "bsp_gpio_pin.hpp"
+#include "bsp_timer.hpp"
 #include "bsp_type_traits.hpp"
-#include "gpio_pin.hpp"
 
-int main() {
-    return 0;
-}
+int main() { return 0; }

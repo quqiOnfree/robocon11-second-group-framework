@@ -18,21 +18,15 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "bsp_gpio_pin.hpp"
+#include "bsp_mutex.hpp"
+#include "bsp_thread.hpp"
 #include "bsp_type_traits.hpp"
-#include "cmsis_os.h"
-#include "gpio_pin.hpp"
-#include "stm32f407xx.h"
+#include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_gpio.h"
-
-osThreadId_t defaultTaskHandle;
-const osThreadAttr_t defaultTask_attributes = {
-    .name = "defaultTask",
-    .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
-};
+#include "stm32f4xx_hal_rcc.h"
 
 void SystemClock_Config(void);
-void StartDefaultTask(void *argument);
 
 /**
  * @brief  The application entry point.
@@ -43,16 +37,46 @@ int main(void) {
   SystemClock_Config();
   osKernelInitialize();
 
-  defaultTaskHandle =
-      osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+  __HAL_RCC_GPIOA_CLK_ENABLE();
 
-  constexpr GPIO_InitTypeDef led_init = {.Pin = GPIO_PIN_5,
-                                         .Mode = GPIO_MODE_OUTPUT_PP,
-                                         .Pull = GPIO_NOPULL,
-                                         .Speed = GPIO_SPEED_FREQ_LOW};
-  gdut::gpio_pin<gdut::gpio_port::A, led_init> led_pin;
-  led_pin.read();
-  led_pin.write(true);
+  gdut::gpio_pin<gdut::gpio_port::A,
+                 GPIO_InitTypeDef{.Pin = GPIO_PIN_5,
+                                  .Mode = GPIO_MODE_OUTPUT_PP,
+                                  .Pull = GPIO_NOPULL,
+                                  .Speed = GPIO_SPEED_FREQ_LOW}>
+      led;
+
+  gdut::thread<4 * 128> main_thread([&led]() {
+    gdut::mutex mutex;
+    int counter = 0;
+
+    gdut::thread<4 * 128> thread1([&mutex, &counter]() {
+      for (int i = 0; i < 1000; ++i) {
+        gdut::lock_guard lock(mutex);
+        ++counter;
+        osDelay(1);
+      }
+    });
+
+    gdut::thread<4 * 128> thread2([&mutex, &counter]() {
+      for (int i = 0; i < 1000; ++i) {
+        gdut::lock_guard lock(mutex);
+        ++counter;
+        osDelay(1);
+      }
+    });
+
+    thread1.join();
+    thread2.join();
+    if (counter == 2000) {
+      led.write(true);
+    } else {
+      led.write(false);
+    }
+
+    while (true) {
+    }
+  });
 
   osKernelStart();
 
@@ -95,12 +119,6 @@ void SystemClock_Config(void) {
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK) {
     Error_Handler();
-  }
-}
-
-void StartDefaultTask(void *argument) {
-  for (;;) {
-    osDelay(1);
   }
 }
 
