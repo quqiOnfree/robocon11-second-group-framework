@@ -1,0 +1,653 @@
+///\file
+
+/******************************************************************************
+The MIT License(MIT)
+
+Embedded Template Library.
+https://github.com/ETLCPP/etl
+https://www.etlcpp.com
+
+Copyright(c) 2025 John Wellbelove
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files(the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions :
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+******************************************************************************/
+
+#ifndef GDUT_CONST_MAP_INCLUDED
+#define GDUT_CONST_MAP_INCLUDED
+
+#include "platform.hpp"
+
+#if GDUT_NOT_USING_CPP11
+  #error NOT SUPPORTED FOR C++03 OR BELOW
+#endif
+
+#include "algorithm.hpp"
+#include "type_traits.hpp"
+#include "functional.hpp"
+#include "nth_type.hpp"
+#include "span.hpp"
+
+#include "private/comparator_is_transparent.hpp"
+
+///\defgroup const_map const_map
+///\ingroup containers
+
+namespace gdut
+{
+  template <typename TKey, typename TMapped, typename TKeyCompare>
+  class iconst_map
+  {
+  public:
+
+    using key_type        = TKey;
+    using value_type      = GDUT_OR_STD::pair<const TKey, TMapped>;
+    using mapped_type     = TMapped ;
+    using key_compare     = TKeyCompare;
+    using const_reference = const value_type&;
+    using const_pointer   = const value_type*;
+    using const_iterator  = const value_type*;
+    using size_type       = size_t;
+
+    //*********************************************************************
+    /// How to compare elements and keys.
+    //*********************************************************************
+    class value_compare
+    {
+    public:
+
+      // Compare two value types.
+      GDUT_CONSTEXPR14 bool operator ()(const value_type& element1, const value_type& element2) const GDUT_NOEXCEPT
+      {
+        return kcompare(element1.first, element2.first);
+      }
+
+      // Compare value type and key.
+      GDUT_CONSTEXPR14 bool operator ()(const value_type& element, const key_type& key) const GDUT_NOEXCEPT
+      {
+        return kcompare(element.first, key);
+      }
+
+      // Compare value types and key.
+      // Enabled for transparent comparators.
+      template <typename K, typename KC = TKeyCompare, gdut::enable_if_t<comparator_is_transparent<KC>::value, int> = 0>
+      GDUT_CONSTEXPR14 bool operator ()(const value_type& element, const K& key) const GDUT_NOEXCEPT
+      {
+        return kcompare(element.first, key);
+      }
+
+      // Compare key and value type.
+      GDUT_CONSTEXPR14 bool operator ()(const key_type& key, const value_type& element) const GDUT_NOEXCEPT
+      {
+        return kcompare(key, element.first);
+      }
+
+      // Compare key and value type.
+      // Enabled for transparent comparators.
+      template <typename K, typename KC = TKeyCompare, gdut::enable_if_t<comparator_is_transparent<KC>::value, int> = 0>
+      GDUT_CONSTEXPR14 bool operator ()(const K& key, const value_type& element) const GDUT_NOEXCEPT
+      {
+        return kcompare(key, element.first);
+      }
+
+      key_compare kcompare;
+    };
+
+    //*************************************************************************
+    /// Check that the elements are valid for a map.
+    /// The elements must be sorted and contain no duplicates.
+    /// \return <b>true</b> if the elements are valid for the map.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 bool is_valid() const GDUT_NOEXCEPT
+    {
+      return gdut::is_unique_sorted(begin(), end(), vcompare);
+    }
+
+    //*************************************************************************
+    ///\brief Returns a <code>const_iterator</code> to the beginning of the map.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 const_iterator begin() const GDUT_NOEXCEPT
+    {
+      return element_list;
+    }
+
+    //*************************************************************************
+    ///\brief Returns a <code>const_iterator</code> to the beginning of the map.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 const_iterator cbegin() const GDUT_NOEXCEPT
+    {
+      return element_list;
+    }
+
+    //*************************************************************************
+    ///\brief Returns a <code>const_iterator</code> to the end of the map.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 const_iterator end() const GDUT_NOEXCEPT
+    {
+      return element_list_end;
+    }
+
+    //*************************************************************************
+    ///\brief Returns a <code>const_iterator</code> to the end of the map.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 const_iterator cend() const GDUT_NOEXCEPT
+    {
+      return element_list_end;
+    }
+
+    //*************************************************************************
+    ///\brief Returns a <code>const_pointer</code> to the beginning of the map.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 const_pointer data() const GDUT_NOEXCEPT
+    {
+      return element_list;
+    }
+
+    //*************************************************************************
+    ///\brief Index operator.
+    ///\param key The key of the element to return.
+    ///\return A <code>const mapped_type&</code> to the mapped value at the index.
+    /// Undefined behaviour if the key is not in the map.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 const mapped_type& operator[](const key_type& key) const GDUT_NOEXCEPT
+    {
+      const_iterator itr = find(key);
+      
+      return itr->second;
+    }
+
+    //*************************************************************************
+    ///\brief Key index operator.
+    /// Enabled for transparent comparators.
+    ///\param key The key of the element to return.
+    ///\return A <code>const mapped_type&</code> to the mapped value at the key index.
+    /// Undefined behaviour if the key is not in the map.
+    //*************************************************************************
+    template <typename K, typename KC = TKeyCompare, gdut::enable_if_t<comparator_is_transparent<KC>::value, int> = 0>
+    GDUT_CONSTEXPR14 const mapped_type& operator[](const K& key) const GDUT_NOEXCEPT
+    {
+      const_iterator itr = find(key);
+
+      return itr->second;
+    }
+
+    //*************************************************************************
+    ///\brief Gets the mapped value at the key index.
+    ///\param key The key of the element to return.
+    ///\return A <code>const mapped_type&</code> to the mapped value at the index.
+    /// Undefined behaviour if the key is not in the map.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 const mapped_type& at(const key_type& key) const GDUT_NOEXCEPT
+    {
+      const_iterator itr = find(key);
+
+      return itr->second;
+    }
+
+    //*************************************************************************
+    ///\brief Gets the mapped value at the key index.
+    /// Enabled if the comparator is transparent.
+    ///\param key The key of the element to return.
+    ///\return A <code>const mapped_type&</code> to the mapped value at the index.
+    /// Undefined behaviour if the key is not in the map.
+    //*************************************************************************
+    template <typename K, typename KC = TKeyCompare, gdut::enable_if_t<comparator_is_transparent<KC>::value, int> = 0>
+    GDUT_CONSTEXPR14 const mapped_type& at(const K& key) const GDUT_NOEXCEPT
+    {
+      const_iterator itr = find(key);
+
+      return itr->second;
+    }
+
+    //*************************************************************************
+    ///\brief Gets a const_iterator to the mapped value at the key index.
+    ///\param key The key of the element to find.
+    ///\return A <code>const_iterator</code> to the mapped value at the index,
+    /// or end() if not found.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 const_iterator find(const key_type& key) const GDUT_NOEXCEPT
+    {
+      const_iterator itr = lower_bound(key);
+
+      if ((itr != end()) && (keys_are_equal(itr->first, key)))
+      {
+        return itr;
+      }
+
+      return end();
+    }
+
+    //*************************************************************************
+    ///\brief Gets a const_iterator to the mapped value at the key index.
+    /// Enabled if the comparator is transparent.
+    ///\param key The key of the element to find.
+    ///\return A <code>const_iterator</code> to the mapped value at the index,
+    /// or end() if not found.
+    //*************************************************************************
+    template <typename K, typename KC = TKeyCompare, gdut::enable_if_t<comparator_is_transparent<KC>::value, int> = 0>
+    GDUT_CONSTEXPR14 const_iterator find(const K& key) const GDUT_NOEXCEPT
+    {
+      const_iterator itr = lower_bound(key);
+
+      if ((itr != end()) && (keys_are_equal(itr->first, key)))
+      {
+        return itr;
+      }
+
+      return end();
+    }
+
+    //*************************************************************************
+    ///\brief Checks if the map contains an element with key.
+    ///\param key The key of the element to check.
+    ///\return <b>true</b> if the map contains an element with key.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 bool contains(const key_type& key) const GDUT_NOEXCEPT
+    {
+      return find(key) != end();
+    }
+
+    //*************************************************************************
+    ///\brief Checks if the map contains an element with key.
+    /// Enabled if the comparator is transparent.
+    ///\param key The key of the element to check.
+    ///\return <b>true</b> if the map contains an element with key.
+    //*************************************************************************
+    template <typename K, typename KC = TKeyCompare, gdut::enable_if_t<comparator_is_transparent<KC>::value, int> = 0>
+    GDUT_CONSTEXPR14 bool contains(const K& key) const GDUT_NOEXCEPT
+    {
+      return find(key) != end();
+    }
+
+    //*************************************************************************
+    ///\brief Counts the numbeer elements with key.
+    ///\param key The key of the element to count.
+    ///\return 0 or 1
+    //*************************************************************************
+    GDUT_CONSTEXPR14 size_type count(const key_type& key) const GDUT_NOEXCEPT
+    {
+      return contains(key) ? 1 : 0;
+    }
+      
+    //*************************************************************************
+    ///\brief Counts the numbeer elements with key.
+    /// Enabled if the comparator is transparent.
+    ///\param key The key of the element to count.
+    ///\return 0 or 1
+    //*************************************************************************
+    template <typename K, typename KC = TKeyCompare, gdut::enable_if_t<comparator_is_transparent<KC>::value, int> = 0>
+    GDUT_CONSTEXPR14 size_type count(const K& key) const GDUT_NOEXCEPT
+    {
+      return contains(key) ? 1 : 0;
+    }
+
+    //*************************************************************************
+    ///\brief Returns a range containing all elements with the key. 
+    /// The range is defined by a pair of two iterators, one to the 
+    /// first element that is not less than the key and second to the first 
+    /// element greater than the key.
+    ///\param key The key of the element
+    ///\return gdut::pair or std::pair containing a pair of iterators.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 GDUT_OR_STD::pair<const_iterator, const_iterator> equal_range(const key_type& key) const GDUT_NOEXCEPT
+    {
+      return gdut::equal_range(begin(), end(), key, vcompare);
+    }
+
+    //*************************************************************************
+    ///\brief Returns a range containing all elements with the key. 
+    /// The range is defined by a pair of two iterators, one to the 
+    /// first element that is not less than the key and second to the first 
+    /// element greater than the key.
+    /// Enabled if the comparator is transparent.
+    ///\param key The key of the element
+    ///\return gdut::pair or std::pair containing a pair of iterators.
+    //*************************************************************************
+    template <typename K, typename KC = TKeyCompare, gdut::enable_if_t<comparator_is_transparent<KC>::value, int> = 0>
+    GDUT_CONSTEXPR14 GDUT_OR_STD::pair<const_iterator, const_iterator> equal_range(const K& key) const GDUT_NOEXCEPT
+    {
+      return gdut::equal_range(begin(), end(), key, vcompare);
+    }
+
+    //*************************************************************************
+    ///\brief Returns a const_iterator to the first element that is not less than the key. 
+    /// Returns a const_iterator to the first element that is not less than the key.
+    ///\param key The key of the element
+    ///\return const_iterator to the element or end()
+    //*************************************************************************
+    GDUT_CONSTEXPR14 const_iterator lower_bound(const key_type& key) const GDUT_NOEXCEPT
+    {
+      return gdut::lower_bound(begin(), end(), key, vcompare);
+    }
+
+    //*************************************************************************
+    ///\brief Returns a const_iterator to the first element that is not less than the key. 
+    /// Returns a const_iterator to the first element that is not less than the key.
+    /// Enabled if the comparator is transparent.
+    ///\param key The key of the element
+    ///\return const_iterator to the element or end()
+    //*************************************************************************
+    template <typename K, typename KC = TKeyCompare, gdut::enable_if_t<comparator_is_transparent<KC>::value, int> = 0>
+    GDUT_CONSTEXPR14 const_iterator lower_bound(const K& key) const GDUT_NOEXCEPT
+    {
+      return gdut::lower_bound(begin(), end(), key, vcompare);
+    }
+
+    //*************************************************************************
+    ///\brief Returns a const_iterator to the first element that is greater than the key. 
+    /// Returns a const_iterator to the first element that is greater than the key.
+    ///\param key The key of the element
+    ///\return const_iterator to the element or end()
+    //*************************************************************************
+    GDUT_CONSTEXPR14 const_iterator upper_bound(const key_type& key) const GDUT_NOEXCEPT
+    {
+      return gdut::upper_bound(begin(), end(), key, vcompare);
+    }
+
+    //*************************************************************************
+    ///\brief Returns a const_iterator to the first element that is greater than the key. 
+    /// Returns a const_iterator to the first element that is greater than the key.
+    /// Enabled if the comparator is transparent.
+    ///\param key The key of the element
+    ///\return const_iterator to the element or end()
+    //*************************************************************************
+    template <typename K, typename KC = TKeyCompare, gdut::enable_if_t<comparator_is_transparent<KC>::value, int> = 0>
+    GDUT_CONSTEXPR14 const_iterator upper_bound(const K& key) const GDUT_NOEXCEPT
+    {
+      return gdut::upper_bound(begin(), end(), key, vcompare);
+    }
+
+    //*************************************************************************
+    /// Checks if the map is empty.
+    ///\return <b>true</b> if the map is empty.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 size_type empty() const GDUT_NOEXCEPT
+    {
+      return size() == 0U;
+    }
+
+    //*************************************************************************
+    /// Checks if the map is full.
+    ///\return <b>true</b> if the map is full.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 size_type full() const GDUT_NOEXCEPT
+    {
+      return (max_elements != 0) && (size() == max_elements);
+    }
+
+    //*************************************************************************
+    /// Gets the size of the map.
+    ///\return The size of the map.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 size_type size() const GDUT_NOEXCEPT
+    {
+      return size_type(element_list_end - element_list);
+    }
+
+    //*************************************************************************
+    /// Gets the maximum size of the map.
+    ///\return The maximum size of the map.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 size_type max_size() const GDUT_NOEXCEPT
+    {
+      return max_elements;
+    }
+
+    //*************************************************************************
+    /// Gets the capacity of the map.
+    /// This is always equal to max_size().
+    ///\return The capacity of the map.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 size_type capacity() const GDUT_NOEXCEPT
+    {
+      return max_elements;
+    }
+
+    //*************************************************************************
+    /// How to compare two key elements.
+    ///\return An instance of the key_compare type.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 key_compare key_comp() const GDUT_NOEXCEPT
+    {
+      return vcompare.kcompare;
+    }
+
+    //*************************************************************************
+    /// How to compare two value elements.
+    ///\return An instance of the value_compare type.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 value_compare value_comp() const GDUT_NOEXCEPT
+    {
+      return vcompare;
+    }
+
+  protected:
+
+    //*************************************************************************
+    /// Constructor
+    //*************************************************************************
+    template <typename... TElements>
+    GDUT_CONSTEXPR14 explicit iconst_map(const value_type* element_list_, size_type size_, size_type max_elements_) GDUT_NOEXCEPT
+      : element_list(element_list_)
+      , element_list_end{element_list_ + size_}
+      , max_elements(max_elements_)
+    {
+    }
+
+  private:
+
+    //*********************************************************************
+    /// Check to see if the keys are equal.
+    //*********************************************************************
+    GDUT_CONSTEXPR14 bool keys_are_equal(const key_type& key1, const key_type& key2) const GDUT_NOEXCEPT
+    {
+      return !key_compare()(key1, key2) && !key_compare()(key2, key1);
+    }
+
+    //*********************************************************************
+    /// Check to see if the keys are equal.
+    /// Enabled if the comparator is transparent.
+    //*********************************************************************
+    template <typename K1, typename K2, typename KC = TKeyCompare, gdut::enable_if_t<comparator_is_transparent<KC>::value, int> = 0>
+    GDUT_CONSTEXPR14 bool keys_are_equal(const K1& key1, const K2& key2) const GDUT_NOEXCEPT
+    {
+      return !key_compare()(key1, key2) && !key_compare()(key2, key1);
+    }
+
+    value_compare vcompare;
+
+    const value_type* element_list;
+    const value_type* element_list_end;
+    size_type         max_elements;
+  };
+
+  //*********************************************************************
+  /// Map type designed for constexpr.
+  //*********************************************************************
+  template <typename TKey, typename TMapped, size_t Size, typename TKeyCompare = gdut::less<TKey>>
+  class const_map : public iconst_map<TKey, TMapped, TKeyCompare>
+  {
+  public:
+
+    using base_t = iconst_map<TKey, TMapped, TKeyCompare>;
+
+    using key_type        = typename base_t::key_type;
+    using value_type      = typename base_t::value_type;
+    using mapped_type     = typename base_t::mapped_type ;
+    using key_compare     = typename base_t::key_compare;
+    using const_reference = typename base_t::const_reference;
+    using const_pointer   = typename base_t::const_pointer;
+    using const_iterator  = typename base_t::const_iterator;
+    using size_type       = typename base_t::size_type;
+
+    static_assert((gdut::is_default_constructible<key_type>::value),    "key_type must be default constructible");
+    static_assert((gdut::is_default_constructible<mapped_type>::value), "mapped_type must be default constructible");
+
+    //*************************************************************************
+    ///\brief Construct a const_map from a variadic list of elements.
+    /// Static asserts if the elements are not of type <code>value_type</code>.
+    /// Static asserts if the number of elements is greater than the capacity of the const_map.
+    //*************************************************************************
+    template <typename... TElements>
+    GDUT_CONSTEXPR14 explicit const_map(TElements&&... elements) GDUT_NOEXCEPT
+      : iconst_map<TKey, TMapped, TKeyCompare>(element_list, sizeof...(elements), Size)
+      , element_list{gdut::forward<TElements>(elements)...}
+    {
+      static_assert((gdut::are_all_same<value_type, gdut::decay_t<TElements>...>::value), "All elements must be value_type");
+      static_assert(sizeof...(elements) <= Size,                                        "Number of elements exceeds capacity");
+    }
+
+  private:
+
+    value_type element_list[Size];
+  };
+
+  //*************************************************************************
+  /// Template deduction guides.
+  //*************************************************************************
+#if GDUT_USING_CPP17
+  template <typename... TElements>
+  const_map(TElements...) -> const_map<typename gdut::nth_type_t<0, TElements...>::first_type, 
+                                       typename gdut::nth_type_t<0, TElements...>::second_type, 
+                                       sizeof...(TElements)>;
+#endif
+
+  //*********************************************************************
+  /// Map type designed for constexpr.
+  //*********************************************************************
+  template <typename TKey, typename TMapped, typename TKeyCompare = gdut::less<TKey>>
+  class const_map_ext : public iconst_map<TKey, TMapped, TKeyCompare>
+  {
+  public:
+
+    using base_t = iconst_map<TKey, TMapped, TKeyCompare>;
+
+    using key_type        = typename base_t::key_type;
+    using value_type      = typename base_t::value_type;
+    using mapped_type     = typename base_t::mapped_type ;
+    using key_compare     = typename base_t::key_compare;
+    using const_reference = typename base_t::const_reference;
+    using const_pointer   = typename base_t::const_pointer;
+    using const_iterator  = typename base_t::const_iterator;
+    using size_type       = typename base_t::size_type;
+
+    static_assert((gdut::is_default_constructible<key_type>::value),    "key_type must be default constructible");
+    static_assert((gdut::is_default_constructible<mapped_type>::value), "mapped_type must be default constructible");
+
+    //*************************************************************************
+    ///\brief Default construct a const_map.
+    //*************************************************************************
+    GDUT_CONSTEXPR14 const_map_ext() GDUT_NOEXCEPT
+      : iconst_map<TKey, TMapped, TKeyCompare>(nullptr, 0, 0)
+    {
+    }
+
+    //*************************************************************************
+    ///\brief Construct a const_map from a variadic list of elements.
+    //*************************************************************************
+    template <size_type Size>
+    GDUT_CONSTEXPR14 explicit const_map_ext(const gdut::span<const value_type, Size>& sp) GDUT_NOEXCEPT
+      : iconst_map<TKey, TMapped, TKeyCompare>(sp.data(), Size, Size)
+    {
+    }
+
+    //*************************************************************************
+    ///\brief Construct a const_map from an array.
+    //*************************************************************************
+    template <size_type Size>
+    GDUT_CONSTEXPR14 explicit const_map_ext(const value_type(&begin_)[Size]) GDUT_NOEXCEPT
+      : iconst_map<TKey, TMapped, TKeyCompare>(begin_, Size, Size)
+    {
+    }
+  };
+
+  //*************************************************************************
+  /// Template deduction guides.
+  //*************************************************************************
+#if GDUT_USING_CPP17
+  template <typename TElements, size_t Size>
+  const_map_ext(const gdut::span<TElements, Size>&) -> const_map_ext<typename TElements::first_type, typename TElements::second_type>;
+
+  template <typename TElements, size_t Size>
+  const_map_ext(const TElements(&)[Size]) -> const_map_ext<typename TElements::first_type, typename TElements::second_type>;
+#endif
+
+  //*************************************************************************
+  /// Equality test.
+  //*************************************************************************
+  template <typename TKey, typename TMapped, typename TKeyCompare>
+  GDUT_CONSTEXPR14 bool operator ==(const gdut::iconst_map<TKey, TMapped, TKeyCompare>& lhs,
+                                   const gdut::iconst_map<TKey, TMapped, TKeyCompare>& rhs) GDUT_NOEXCEPT
+  {
+    return (lhs.size() == rhs.size()) && gdut::equal(lhs.begin(), lhs.end(), rhs.begin());
+  }
+
+  //*************************************************************************
+  /// Inequality test.
+  //*************************************************************************
+  template <typename TKey, typename TMapped, typename TKeyCompare>
+  GDUT_CONSTEXPR14 bool operator !=(const gdut::iconst_map<TKey, TMapped, TKeyCompare>& lhs,
+                                   const gdut::iconst_map<TKey, TMapped, TKeyCompare>& rhs) GDUT_NOEXCEPT
+  {
+    return !(lhs == rhs);
+  }
+
+  //*************************************************************************
+  /// Less-than.
+  //*************************************************************************
+  template <typename TKey, typename TMapped, typename TKeyCompare>
+  GDUT_CONSTEXPR14 bool operator <(const gdut::iconst_map<TKey, TMapped, TKeyCompare>& lhs,
+                                  const gdut::iconst_map<TKey, TMapped, TKeyCompare>& rhs) GDUT_NOEXCEPT
+  {
+    return gdut::lexicographical_compare(lhs.begin(), lhs.end(), 
+                                        rhs.begin(), rhs.end(), 
+                                        lhs.value_comp());
+  }
+
+  //*************************************************************************
+  /// Greater-than.
+  //*************************************************************************
+  template <typename TKey, typename TMapped, typename TKeyCompare>
+  GDUT_CONSTEXPR14 bool operator >(const gdut::iconst_map<TKey, TMapped, TKeyCompare>& lhs,
+                                  const gdut::iconst_map<TKey, TMapped, TKeyCompare>& rhs) GDUT_NOEXCEPT
+  {
+    return (rhs < lhs);
+  }
+
+  //*************************************************************************
+  /// Less-than-equal.
+  //*************************************************************************
+  template <typename TKey, typename TMapped, typename TKeyCompare>
+  GDUT_CONSTEXPR14 bool operator <=(const gdut::iconst_map<TKey, TMapped, TKeyCompare>& lhs,
+                                   const gdut::iconst_map<TKey, TMapped, TKeyCompare>& rhs) GDUT_NOEXCEPT
+  {
+    return !(rhs < lhs);
+  }
+
+  //*************************************************************************
+  /// Greater-than-equal.
+  //*************************************************************************
+  template <typename TKey, typename TMapped, typename TKeyCompare>
+  GDUT_CONSTEXPR14 bool operator >=(const gdut::iconst_map<TKey, TMapped, TKeyCompare>& lhs,
+                                   const gdut::iconst_map<TKey, TMapped, TKeyCompare>& rhs) GDUT_NOEXCEPT
+  {
+    return !(lhs < rhs);
+  }
+}
+
+#endif

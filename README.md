@@ -7,7 +7,7 @@
 - **目标设备**: STM32F407VET6
 - **构建系统**: CMake + Ninja
 - **编程语言**: C++
-- **依赖库**: FreeRTOS、STM32 HAL Driver、ETL（Embedded Template Library）
+- **依赖库**: FreeRTOS、STM32 HAL Driver、GDUT 内部库定义
 
 ## 🚀 快速开始
 
@@ -117,7 +117,7 @@ clang-format -i <file_path>
 - **代码风格**: Modern C++ (C++17+)
   - 使用 STL 容器而非原生数组
   - 优先使用智能指针 (`std::unique_ptr`、`std::shared_ptr`)
-  - 利用 ETL 库进行嵌入式开发
+  - 利用 GDUT 组内库（`GDUT_RC_Library`）进行嵌入式开发
 
 - **文件组织**:
   - 头文件 (.h): `Core/Inc/`
@@ -127,22 +127,9 @@ clang-format -i <file_path>
 
 ## 📚 重要库说明
 
-### ETL (Embedded Template Library)
+### GDUT 内部库（GDUT_RC_Library）
 
-本项目使用 **ETL 库** 提供高效的容器和算法实现，特别适合嵌入式系统：
-
-```cpp
-#include <etl/vector.h>
-#include <etl/deque.h>
-#include <etl/pool.h>
-
-// 使用固定大小的向量（栈分配，无动态内存）
-etl::vector<int, 100> my_vector;
-my_vector.push_back(42);
-```
-
-- 📖 [ETL 文档](https://www.etlcpp.com/)
-- 💡 优势: 低开销、实时性好、无堆碎片
+本项目使用组内维护的 `GDUT_RC_Library` 作为主要的轻量级库实现，提供常用的数据结构、驱动封装与工具接口，便于在竞赛期间快速迭代和定制。该库位于 `Middlewares/GDUT_RC_Library`，并与项目紧密集成。
 
 ### FreeRTOS
 
@@ -153,10 +140,10 @@ my_vector.push_back(42);
 #include "task.h"
 
 void my_task(void* pvParameters) {
-    while (1) {
-        // 任务代码
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
+  while (1) {
+    // 任务代码
+    vTaskDelay(pdMS_TO_TICKS(100));
+  }
 }
 ```
 
@@ -181,7 +168,8 @@ void my_task(void* pvParameters) {
 │   ├── CMSIS/                  # ARM CMSIS 核心库
 │   └── STM32F4xx_HAL_Driver/   # STM32 HAL 驱动
 ├── Middlewares/
-│   └── Third_Party/            # 第三方库（FreeRTOS、ETL）
+│   ├── GDUT_RC_Library/        # GDUT 内部库定义
+│   └── Third_Party/            # 第三方库（FreeRTOS）
 ├── cmake/                      # CMake 工具链文件
 ├── build/                      # 构建输出目录（自动生成）
 ├── 代码规范.md                  # 详细的代码规范文档
@@ -200,7 +188,7 @@ void my_task(void* pvParameters) {
 - [STM32F407 数据手册](https://www.st.com/resource/en/datasheet/stm32f407vg.pdf)
 - [STM32CubeMX](https://www.st.com/en/development-tools/stm32cubemx.html) - 设备配置工具
 - [FreeRTOS 官方网站](https://www.freertos.org/)
-- [ETL - Embedded Template Library](https://www.etlcpp.com/)
+
 
 ## 💬 团队协作
 

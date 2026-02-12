@@ -18,7 +18,11 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "bsp_type_traits.hpp"
 #include "cmsis_os.h"
+#include "gpio_pin.hpp"
+#include "stm32f407xx.h"
+#include "stm32f4xx_hal_gpio.h"
 
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
@@ -41,6 +45,17 @@ int main(void)
   osKernelInitialize();
 
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+
+  constexpr GPIO_InitTypeDef led_init = {
+    .Pin = GPIO_PIN_5,
+    .Mode = GPIO_MODE_OUTPUT_PP,
+    .Pull = GPIO_NOPULL,
+    .Speed = GPIO_SPEED_FREQ_LOW
+  };
+  gdut::gpio_pin<gdut::gpio_port::A, led_init> led_pin;
+  led_pin.read();
+  led_pin.write(true);
 
   osKernelStart();
 

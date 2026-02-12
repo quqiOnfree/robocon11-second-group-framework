@@ -1,0 +1,406 @@
+/******************************************************************************
+The MIT License(MIT)
+
+Embedded Template Library.
+https://github.com/ETLCPP/etl
+https://www.etlcpp.com
+
+Copyright(c) 2017 John Wellbelove
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files(the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions :
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+******************************************************************************/
+
+#ifndef GDUT_SCHEDULER_INCLUDED
+#define GDUT_SCHEDULER_INCLUDED
+
+#include "platform.hpp"
+#include "vector.hpp"
+#include "nullptr.hpp"
+#include "error_handler.hpp"
+#include "exception.hpp"
+#include "task.hpp"
+#include "type_traits.hpp"
+#include "function.hpp"
+
+#include <stdint.h>
+
+namespace gdut
+{
+  //***************************************************************************
+  /// Base exception class for scheduler.
+  //***************************************************************************
+  class scheduler_exception : public gdut::exception
+  {
+  public:
+
+    scheduler_exception(string_type reason_, string_type file_name_, numeric_type line_number_)
+      : gdut::exception(reason_, file_name_, line_number_)
+    {
+    }
+  };
+
+  //***************************************************************************
+  /// 'No tasks' exception.
+  //***************************************************************************
+  class scheduler_no_tasks_exception : public gdut::scheduler_exception
+  {
+  public:
+
+    scheduler_no_tasks_exception(string_type file_name_, numeric_type line_number_)
+      : gdut::scheduler_exception(GDUT_ERROR_TEXT("scheduler:no tasks", GDUT_SCHEDULER_FILE_ID"A"), file_name_, line_number_)
+    {
+    }
+  };
+
+  //***************************************************************************
+  /// 'Null tasks' exception.
+  //***************************************************************************
+  class scheduler_null_task_exception : public gdut::scheduler_exception
+  {
+  public:
+
+    scheduler_null_task_exception(string_type file_name_, numeric_type line_number_)
+      : gdut::scheduler_exception(GDUT_ERROR_TEXT("scheduler:null task", GDUT_SCHEDULER_FILE_ID"B"), file_name_, line_number_)
+    {
+    }
+  };
+
+  //***************************************************************************
+  /// 'Too many tasks' exception.
+  //***************************************************************************
+  class scheduler_too_many_tasks_exception : public gdut::scheduler_exception
+  {
+  public:
+
+    scheduler_too_many_tasks_exception(string_type file_name_, numeric_type line_number_)
+      : gdut::scheduler_exception(GDUT_ERROR_TEXT("scheduler:too many tasks", GDUT_SCHEDULER_FILE_ID"C"), file_name_, line_number_)
+    {
+    }
+  };
+
+  //***************************************************************************
+  /// Sequential Single.
+  /// A policy the scheduler can use to decide what to do next.
+  /// Only calls the task to process work once, if it has work to do.
+  //***************************************************************************
+  struct scheduler_policy_sequential_single
+  {
+    bool schedule_tasks(gdut::ivector<gdut::task*>& task_list)
+    {
+      bool idle = true;
+
+      for (size_t index = 0UL; index < task_list.size(); ++index)
+      {
+        gdut::task& task = *(task_list[index]);
+
+        if (task.task_request_work() > 0)
+        {
+          task.task_process_work();
+          idle = false;
+        }
+      }
+
+      return idle;
+    }
+  };
+
+  /// Typedef for backwards compatibility with miss-spelt struct name.
+  GDUT_DEPRECATED_REASON("Misspelt class name") typedef scheduler_policy_sequential_single scheduler_policy_sequencial_single;
+
+  //***************************************************************************
+  /// Sequential Multiple.
+  /// A policy the scheduler can use to decide what to do next.
+  /// Calls the task to process work until it reports that it has no more.
+  //***************************************************************************
+  struct scheduler_policy_sequential_multiple
+  {
+    bool schedule_tasks(gdut::ivector<gdut::task*>& task_list)
+    {
+      bool idle = true;
+
+      for (size_t index = 0UL; index < task_list.size(); ++index)
+      {
+        gdut::task& task = *(task_list[index]);
+
+        while (task.task_request_work() > 0)
+        {
+          task.task_process_work();
+          idle = false;
+        }
+      }
+
+      return idle;
+    }
+  };
+
+  /// Typedef for backwards compatibility with miss-spelt struct name.
+  GDUT_DEPRECATED typedef scheduler_policy_sequential_multiple scheduler_policy_sequencial_multiple;
+
+  //***************************************************************************
+  /// Highest Priority.
+  /// A policy the scheduler can use to decide what to do next.
+  /// Calls the highest priority task that has work.
+  //***************************************************************************
+  struct scheduler_policy_highest_priority
+  {
+    bool schedule_tasks(gdut::ivector<gdut::task*>& task_list)
+    {
+      bool idle = true;
+
+      size_t index = 0UL;
+      while (index < task_list.size())
+      {
+        gdut::task& task = *(task_list[index]);
+
+        if (task.task_request_work() > 0)
+        {
+          task.task_process_work();
+          idle = false;
+          break;
+        }
+        else
+        {
+          ++index;
+        }
+      }
+
+      return idle;
+    }
+  };
+
+  //***************************************************************************
+  /// Most Work.
+  /// A policy the scheduler can use to decide what to do next.
+  /// Calls the task that has the most work.
+  /// Starts looking from the task with the highest priority.
+  //***************************************************************************
+  struct scheduler_policy_most_work
+  {
+    bool schedule_tasks(gdut::ivector<gdut::task*>& task_list)
+    {
+      bool idle = true;
+
+      size_t most_index = 0UL;
+      uint32_t most_work = 0UL;
+
+      for (size_t index = 0UL; index < task_list.size(); ++index)
+      {
+        gdut::task& task = *(task_list[index]);
+
+        uint32_t n_work = task.task_request_work();
+
+        if (n_work > most_work)
+        {
+          most_index = index;
+          most_work = n_work;
+          idle = false;
+        }
+      }
+
+      if (!idle)
+      {
+        task_list[most_index]->task_process_work();
+      }
+
+      return idle;
+    }
+  };
+
+  //***************************************************************************
+  /// Scheduler base.
+  //***************************************************************************
+  class ischeduler
+  {
+  public:
+
+    //*******************************************
+    // Virtuals.
+    //*******************************************
+    virtual void start() = 0;
+
+    virtual ~ischeduler()
+    {
+    }
+
+    //*******************************************
+    /// Set the idle callback.
+    //*******************************************
+    void set_idle_callback(gdut::ifunction<void>& callback)
+    {
+      p_idle_callback = &callback;
+    }
+
+    //*******************************************
+    /// Set the watchdog callback.
+    //*******************************************
+    void set_watchdog_callback(gdut::ifunction<void>& callback)
+    {
+      p_watchdog_callback = &callback;
+    }
+
+    //*******************************************
+    /// Set the running state for the scheduler.
+    //*******************************************
+    void set_scheduler_running(bool scheduler_running_)
+    {
+      scheduler_running = scheduler_running_;
+    }
+
+    //*******************************************
+    /// Get the running state for the scheduler.
+    //*******************************************
+    bool scheduler_is_running() const
+    {
+      return scheduler_running;
+    }
+
+    //*******************************************
+    /// Force the scheduler to exit.
+    //*******************************************
+    void exit_scheduler()
+    {
+      scheduler_exit = true;
+    }
+
+    //*******************************************
+    /// Add a task.
+    /// Add to the task list in priority order.
+    //*******************************************
+    void add_task(gdut::task& task)
+    {
+      GDUT_ASSERT(!task_list.full(), GDUT_ERROR(gdut::scheduler_too_many_tasks_exception));
+
+      if (!task_list.full())
+      {
+        typename task_list_t::iterator itask = gdut::upper_bound(task_list.begin(),
+                                                                   task_list.end(),
+                                                                   task.get_task_priority(),
+                                                                   compare_priority());
+
+        task_list.insert(itask, &task);
+
+        task.on_task_added();
+      }
+    }
+
+    //*******************************************
+    /// Add a task list.
+    /// Adds to the tasks to the internal task list in priority order.
+    /// Input order is ignored.
+    //*******************************************
+    template <typename TSize>
+    void add_task_list(gdut::task** p_tasks, TSize size)
+    {
+      for (TSize i = 0; i < size; ++i)
+      {
+        GDUT_ASSERT((p_tasks[i] != GDUT_NULLPTR), GDUT_ERROR(gdut::scheduler_null_task_exception));
+        add_task(*(p_tasks[i]));
+      }
+    }
+
+  protected:
+
+    //*******************************************
+    /// Constructor.
+    //*******************************************
+    ischeduler(gdut::ivector<gdut::task*>& task_list_)
+      : scheduler_running(false),
+        scheduler_exit(false),
+        p_idle_callback(GDUT_NULLPTR),
+        p_watchdog_callback(GDUT_NULLPTR),
+        task_list(task_list_)
+    {
+    }
+
+    bool scheduler_running;
+    bool scheduler_exit;
+    gdut::ifunction<void>* p_idle_callback;
+    gdut::ifunction<void>* p_watchdog_callback;
+
+  private:
+
+    //*******************************************
+    // Used to order tasks in descending priority.
+    //*******************************************
+    struct compare_priority
+    {
+      bool operator()(gdut::task_priority_t priority, gdut::task* ptask) const
+      {
+        return priority > ptask->get_task_priority();
+      }
+    };
+
+    typedef gdut::ivector<gdut::task*> task_list_t;
+    task_list_t& task_list;
+  };
+
+  //***************************************************************************
+  /// Scheduler.
+  //***************************************************************************
+  template <typename TSchedulerPolicy, size_t MAX_TASKS_>
+  class scheduler : public gdut::ischeduler, protected TSchedulerPolicy
+  {
+  public:
+
+    enum
+    {
+      MAX_TASKS = MAX_TASKS_,
+    };
+
+    scheduler()
+      : ischeduler(task_list)
+    {
+    }
+
+    //*******************************************
+    /// Start the scheduler.
+    //*******************************************
+    void start()
+    {
+      GDUT_ASSERT(task_list.size() > 0, GDUT_ERROR(gdut::scheduler_no_tasks_exception));
+
+      scheduler_running = true;
+
+      while (!scheduler_exit)
+      {
+        if (scheduler_running)
+        {
+          bool idle = TSchedulerPolicy::schedule_tasks(task_list);
+
+          if (p_watchdog_callback)
+          {
+            (*p_watchdog_callback)();
+          }
+
+          if (idle && p_idle_callback)
+          {
+            (*p_idle_callback)();
+          }
+        }
+      }
+    }
+
+  private:
+
+    typedef gdut::vector<gdut::task*, MAX_TASKS> task_list_t;
+    task_list_t task_list;
+  };
+}
+
+#endif

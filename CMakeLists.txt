@@ -14,6 +14,7 @@ set(CMAKE_C_EXTENSIONS ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Define the build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -30,7 +31,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
-# Enable CMake support for ASM and C languages
+# Enable CMake support for ASM, C++ and C languages
 enable_language(C CXX ASM)
 
 # Create an executable object type
@@ -39,8 +40,8 @@ add_executable(${CMAKE_PROJECT_NAME})
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
 
-# Add etl library
-add_subdirectory(Middlewares/Third_Party/etl)
+# Add GDUT RC Library
+add_subdirectory(Middlewares/GDUT_RC_Library)
 
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -60,10 +61,6 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
-    -DETL_NO_STL=1
-    -DETL_NO_EXCEPTION=1
-    -DETL_NO_RTTI=1
-    -DETL_CPP23_SUPPORTED=1
 )
 
 # Remove wrong libob.a library dependency when using cpp files
@@ -72,6 +69,6 @@ list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
-    etl::etl
+    GDUT_RC_Library
     # Add user defined libraries
 )

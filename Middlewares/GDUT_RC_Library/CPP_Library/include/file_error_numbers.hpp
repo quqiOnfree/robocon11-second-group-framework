@@ -1,0 +1,114 @@
+///\file
+
+/******************************************************************************
+The MIT License(MIT)
+
+Embedded Template Library.
+https://github.com/ETLCPP/etl
+https://www.etlcpp.com
+
+Copyright(c) 2020 John Wellbelove
+
+Permission is hereby granted" free of charge" to any person obtaining a copy
+of this software and associated documentation files(the "Software")" to deal
+in the Software without restriction" including without limitation the rights
+to use" copy" modify" merge" publish" distribute" sublicense" and / or sell
+copies of the Software" and to permit persons to whom the Software is
+furnished to do so" subject to the following conditions :
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS"" WITHOUT WARRANTY OF ANY KIND" EXPRESS OR
+IMPLIED" INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY"
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM" DAMAGES OR OTHER
+LIABILITY" WHETHER IN AN ACTION OF CONTRACT" TORT OR OTHERWISE" ARISING FROM"
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+******************************************************************************/
+
+#ifndef GDUT_FILE_ERROR_NUMBERS
+#define GDUT_FILE_ERROR_NUMBERS
+
+#define GDUT_DEQUE_FILE_ID "1"
+#define GDUT_FLAT_MAP_FILE_ID "2"
+#define GDUT_FLAT_MULTIMAP_FILE_ID "3"
+#define GDUT_FLAT_MULTISET_FILE_ID "4"
+#define GDUT_FLAT_SET_FILE_ID "5"
+#define GDUT_FORWARD_LIST_FILE_ID "6"
+#define GDUT_LIST_FILE_ID "7"
+#define GDUT_MAP_FILE_ID "8"
+#define GDUT_MULTIMAP_FILE_ID "9"
+#define GDUT_MULTISET_FILE_ID "10"
+#define GDUT_POOL_FILE_ID "11"
+#define GDUT_PRIORITY_QUEUE_FILE_ID "12"
+#define GDUT_QUEUE_FILE_ID "13"
+#define GDUT_SET_FILE_ID "14"
+#define GDUT_STACK_FILE_ID "15"
+#define GDUT_UNORDERED_MAP_FILE_ID "16"
+#define GDUT_VECTOR_FILE_ID "17"
+#define GDUT_OBSERVER_FILE_ID "18"
+#define GDUT_IHASH_FILE_ID "19"
+#define GDUT_INTRUSIVE_FORWARD_LIST_FILE_ID "20"
+#define GDUT_INTRUSIVE_LIST_FILE_ID "21"
+#define GDUT_INTRUSIVE_LINKS_FILE_ID "22"
+#define GDUT_UNORDERED_SET_FILE_ID "23"
+#define GDUT_VARIANT_FILE_ID "24"
+#define GDUT_UNORDERED_MULTIMAP_FILE_ID "25"
+#define GDUT_UNORDERED_MULTISET_FILE_ID "26"
+#define GDUT_BASIC_STRING_FILE_ID "27"
+#define GDUT_INTRUSIVE_STACK_FILE_ID "28"
+#define GDUT_INTRUSIVE_QUEUE_FILE_ID "29"
+#define GDUT_REFERENCE_FLAT_MAP_FILE_ID "30"
+#define GDUT_REFERENCE_FLAT_MULTIMAP_FILE_ID "31"
+#define GDUT_REFERENCE_FLAT_SET_FILE_ID "32"
+#define GDUT_REFERENCE_FLAT_MULTISET_FILE_ID "33"
+#define GDUT_FSM_FILE_ID "34"
+#define GDUT_MESSAGE_ROUTER_FILE_ID "35"
+#define GDUT_SCHEDULER_FILE_ID "36"
+#define GDUT_TASK_FILE_ID "37"
+#define GDUT_MESSAGE_FILE_ID "38"
+#define GDUT_MESSAGE_BUS_FILE_ID "39"
+#define GDUT_VARIANT_POOL_FILE_ID "40"
+#define GDUT_ARRAY_VIEW_FILE_ID "41"
+#define GDUT_STRING_VIEW_FILE_ID "42"
+#define GDUT_CALLBACK_TIMER_FILE_ID "43"
+#define GDUT_MESSAGE_TIMER_FILE_ID "44"
+#define GDUT_TYPE_LOOKUP_FILE_ID "45"
+#define GDUT_QUEUE_SPSC_ISR_FILE_ID "46"
+#define GDUT_QUEUE_SPSC_ATOMIC_FILE_ID "47"
+#define GDUT_QUEUE_MPMC_MUTEX_FILE_ID "48"
+#define GDUT_TYPE_SELECT_FILE_ID "49"
+#define GDUT_BINARY_FILE_ID "50"
+#define GDUT_DELEGATE_FILE_ID "51"
+#define GDUT_BITSET_FILE_ID "52"
+#define GDUT_INDIRECT_VECTOR_FILE_ID "53"
+#define GDUT_QUEUE_SPSC_LOCKED_FILE_ID "54"
+#define GDUT_MESSAGE_PACKET_FILE_ID "55"
+#define GDUT_CIRCULAR_BUFFER_FILE_ID "56"
+#define GDUT_MULTI_LOOP_FILE_ID "57"
+#define GDUT_REFERENCE_COUNTER_MESSAGE_POOL_FILE_ID "58"
+#define GDUT_QUEUE_SPSC_LOCKABLE_FILE_ID "59"
+#define GDUT_MESSAGE_ROUTER_REGISTRY_FILE_ID "60"
+#define GDUT_ARRAY_WRAPPER_FILE_ID "61"
+#define GDUT_MEM_CAST_FILE_ID "62"
+#define GDUT_SINGLETON_FILE_ID "63"
+#define GDUT_SUCCESSOR_FILE_ID "64"
+#define GDUT_BIT_STREAM_FILE_ID "65"
+#define GDUT_BYTE_STREAM_FILE_ID "66"
+#define GDUT_BIP_BUFFER_SPSC_ATOMIC_FILE_ID "67"
+#define GDUT_REFERENCE_COUNTED_OBJECT_FILE_ID "68"
+#define GDUT_TO_ARITHMETIC_FILE_ID "69"
+#define GDUT_EXPECTED_FILE_ID "70"
+#define GDUT_ALIGNMENT_FILE_ID "71"
+#define GDUT_BASE64_FILE_ID "72"
+#define GDUT_SINGLETON_BASE_FILE_ID "73"
+#define GDUT_UNALIGNED_TYPE_FILE_ID "74"
+#define GDUT_SPAN_FILE_ID "75"
+#define GDUT_ALGORITHM_FILE_ID "76"
+#define GDUT_NOT_NULL_FILE_ID "77"
+#define GDUT_SIGNAL_FILE_ID "78"
+#define GDUT_FORMAT_FILE_ID "79"
+#define GDUT_INPLACE_FUNCTION_FILE_ID "80"
+#endif

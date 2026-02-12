@@ -3,9 +3,9 @@ cmake_minimum_required(VERSION 3.22)
 enable_language(C CXX ASM)
 # STM32CubeMX generated symbols (macros)
 set(MX_Defines_Syms 
-	USE_HAL_DRIVER 
-	STM32F407xx 
-	STM32_THREAD_SAFE_STRATEGY=4
+    USE_HAL_DRIVER 
+    STM32F407xx 
+    STM32_THREAD_SAFE_STRATEGY=4
     $<$<CONFIG:Debug>:DEBUG>
 )
 
@@ -75,7 +75,6 @@ set(MX_LINK_LIBS
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
     FreeRTOS
-	
 )
 # Interface library for includes and symbols
 add_library(stm32cubemx INTERFACE)
