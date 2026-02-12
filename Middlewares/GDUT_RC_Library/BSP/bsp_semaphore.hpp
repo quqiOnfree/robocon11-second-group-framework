@@ -75,16 +75,21 @@ public:
     } else {
       // Convert to milliseconds to avoid truncation
       auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count();
-      // Convert milliseconds to ticks (tickFreq is in Hz)
-      // ticks = (ms * tickFreq) / 1000
-      uint32_t tick_freq = osKernelGetTickFreq();
-      // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for osWaitForever)
-      // Calculate max_ms to avoid overflow: max_ms = (UINT32_MAX - 1) * 1000 / tick_freq
-      uint64_t max_ms = static_cast<uint64_t>(UINT32_MAX - 1) * 1000ULL / tick_freq;
-      if (static_cast<uint64_t>(ms) >= max_ms) {
-        ticks = UINT32_MAX - 1;
+      // Handle negative or zero durations
+      if (ms <= 0) {
+        ticks = 0;
       } else {
-        ticks = static_cast<uint32_t>((static_cast<uint64_t>(ms) * tick_freq) / 1000);
+        // Convert milliseconds to ticks (tickFreq is in Hz)
+        // ticks = (ms * tickFreq) / 1000
+        uint32_t tick_freq = osKernelGetTickFreq();
+        // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for osWaitForever)
+        // Calculate max_ms to avoid overflow: max_ms = (UINT32_MAX - 1) * 1000 / tick_freq
+        uint64_t max_ms = static_cast<uint64_t>(UINT32_MAX - 1) * 1000ULL / tick_freq;
+        if (static_cast<uint64_t>(ms) >= max_ms) {
+          ticks = UINT32_MAX - 1;
+        } else {
+          ticks = static_cast<uint32_t>((static_cast<uint64_t>(ms) * tick_freq) / 1000);
+        }
       }
     }
     
