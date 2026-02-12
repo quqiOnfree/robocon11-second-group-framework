@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cmsis_os2.h>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <utility>
@@ -26,7 +27,7 @@ namespace gdut {
 template <std::size_t LeastMaxValue> class counting_semaphore {
 public:
   static constexpr std::size_t max() noexcept {
-    return std::numeric_limits<std::size_t>::max();
+    return LeastMaxValue;
   }
 
   constexpr explicit counting_semaphore(std::size_t desired) {
@@ -61,19 +62,56 @@ public:
     return osSemaphoreRelease(m_semaphore_id);
   }
 
+  /**
+   * @brief Acquire the semaphore
+   * 
+   * @param timeout Maximum time to wait for the semaphore.
+   *                - Use std::chrono::duration<Rep, Period>::max() for infinite wait
+   *                - Use std::chrono::seconds::zero() for no wait (try once)
+   *                - Precision: milliseconds (sub-millisecond durations are truncated)
+   * 
+   * @return osOK if successful
+   *         osErrorParameter if timeout is negative
+   *         osErrorTimeout if timeout expired
+   *         osError if semaphore is invalid or other error
+   */
   template <typename Rep, typename Period>
   osStatus_t acquire(const std::chrono::duration<Rep, Period> &timeout =
                          std::chrono::duration<Rep, Period>::max()) {
     if (m_semaphore_id == nullptr) {
       return osError;
     }
-    return osSemaphoreAcquire(
-        m_semaphore_id,
-        timeout != std::chrono::duration<Rep, Period>::max()
-            ? std::chrono::duration_cast<std::chrono::seconds>(timeout)
-                      .count() *
-                  osKernelGetTickFreq()
-            : osWaitForever);
+    
+    uint32_t ticks;
+    if (timeout == std::chrono::duration<Rep, Period>::max()) {
+      ticks = osWaitForever;
+    } else {
+      // Convert to milliseconds (sub-millisecond precision is truncated)
+      auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count();
+      // Handle negative durations (invalid state)
+      if (ms < 0) {
+        return osErrorParameter;
+      }
+      
+      // Handle zero or positive durations
+      if (ms == 0) {
+        ticks = 0;
+      } else {
+        // Convert milliseconds to ticks (tickFreq is in Hz)
+        // ticks = (ms * tickFreq) / 1000
+        uint32_t tick_freq = osKernelGetTickFreq();
+        // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for osWaitForever)
+        // Calculate max_ms to avoid overflow: max_ms = (UINT32_MAX - 1) * 1000 / tick_freq
+        uint64_t max_ms = static_cast<uint64_t>(UINT32_MAX - 1) * 1000ULL / tick_freq;
+        if (static_cast<uint64_t>(ms) >= max_ms) {
+          ticks = UINT32_MAX - 1;
+        } else {
+          ticks = static_cast<uint32_t>((static_cast<uint64_t>(ms) * tick_freq) / 1000);
+        }
+      }
+    }
+    
+    return osSemaphoreAcquire(m_semaphore_id, ticks);
   }
 
   bool try_acquire() noexcept {
