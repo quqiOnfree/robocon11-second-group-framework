@@ -52,11 +52,11 @@ public:
     }
   }
 
-  void lock() { osMutexAcquire(m_mutex_id, osWaitForever); }
+  osStatus_t lock() { return osMutexAcquire(m_mutex_id, osWaitForever); }
 
   bool try_lock() { return osMutexAcquire(m_mutex_id, 0) == osOK; }
 
-  void unlock() { osMutexRelease(m_mutex_id); }
+  osStatus_t unlock() { return osMutexRelease(m_mutex_id); }
 
   /**
    * @brief Check if the mutex was successfully created
