@@ -10,6 +10,19 @@
 
 namespace gdut {
 
+/**
+ * @brief Counting semaphore based on CMSIS-RTOS2
+ * 
+ * This class provides a C++-style counting semaphore wrapper.
+ * Features:
+ * - Standard semaphore operations (acquire, release, try_acquire)
+ * - Timeout support with std::chrono
+ * - Move semantics supported
+ * 
+ * Thread Safety: All methods are thread-safe.
+ * 
+ * @tparam LeastMaxValue Maximum value the semaphore can reach
+ */
 template <std::size_t LeastMaxValue> class counting_semaphore {
 public:
   static constexpr std::size_t max() noexcept {

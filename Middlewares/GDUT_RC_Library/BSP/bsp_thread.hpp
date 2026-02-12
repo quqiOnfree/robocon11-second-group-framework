@@ -9,6 +9,27 @@
 
 namespace gdut {
 
+/**
+ * @brief RAII wrapper for CMSIS-RTOS2 threads
+ * 
+ * This class provides a C++-style thread wrapper similar to std::thread.
+ * Features:
+ * - Automatic resource cleanup (RAII)
+ * - Join semantics with semaphore-based synchronization
+ * - Move semantics supported
+ * 
+ * Thread Safety:
+ * - join() can be called from any thread but only once
+ * - terminate() can be called from any thread but should not be called
+ *   while another thread is waiting in join()
+ * 
+ * Usage:
+ *   gdut::thread<512> t([]{ do_work(); });
+ *   t.join();  // Wait for thread to complete
+ * 
+ * @tparam StackSize Size of the thread stack in bytes
+ * @tparam Priority Thread priority (default: osPriorityNormal)
+ */
 template <size_t StackSize, osPriority_t Priority = osPriorityNormal>
 class thread {
 public:

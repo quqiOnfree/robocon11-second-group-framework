@@ -10,6 +10,28 @@
 
 namespace gdut {
 
+/**
+ * @brief Memory pool allocator based on CMSIS-RTOS2
+ * 
+ * This class provides a fixed-size memory pool allocator.
+ * Note: This is NOT a standard C++ allocator. It provides
+ * raw memory allocation without calling constructors/destructors.
+ * 
+ * Features:
+ * - Fixed-size blocks (sizeof(Ty))
+ * - Thread-safe allocation
+ * - Timeout support
+ * - Move semantics supported
+ * 
+ * Thread Safety: All methods are thread-safe.
+ * 
+ * Important: The caller is responsible for:
+ * - Calling constructors after allocate()
+ * - Calling destructors before deallocate()
+ * 
+ * @tparam Ty The type of objects to allocate
+ * @tparam MaxSize Maximum number of objects in the pool
+ */
 template <typename Ty, std::size_t MaxSize> class allocator {
 public:
   using value_type = Ty;
