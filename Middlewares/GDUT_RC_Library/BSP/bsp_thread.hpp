@@ -74,6 +74,10 @@ public:
       osThreadTerminate(m_handle);
       m_handle = nullptr;
     }
+    if (m_sem != nullptr) {
+      osSemaphoreDelete(m_sem);
+      m_sem = nullptr;
+    }
   }
 
   thread(const thread &) = delete;

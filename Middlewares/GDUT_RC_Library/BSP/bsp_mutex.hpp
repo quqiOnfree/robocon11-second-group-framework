@@ -18,9 +18,8 @@ public:
   mutex(const mutex &) = delete;
   mutex &operator=(const mutex &) = delete;
 
-  mutex(mutex &&other) noexcept {
-    m_mutex_id = std::exchange(other.m_mutex_id, nullptr);
-  }
+  mutex(mutex &&other) noexcept
+      : m_mutex_id(std::exchange(other.m_mutex_id, nullptr)) {}
   mutex &operator=(mutex &&other) noexcept {
     if (this != std::addressof(other)) {
       if (m_mutex_id != nullptr) {
@@ -31,7 +30,11 @@ public:
     return *this;
   }
 
-  ~mutex() noexcept { osMutexDelete(m_mutex_id); }
+  ~mutex() noexcept {
+    if (m_mutex_id != nullptr) {
+      osMutexDelete(m_mutex_id);
+    }
+  }
 
   void lock() { osMutexAcquire(m_mutex_id, osWaitForever); }
 

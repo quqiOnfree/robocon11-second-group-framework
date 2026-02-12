@@ -1,5 +1,5 @@
-#ifndef BSP_SEMAPHONE_HPP
-#define BSP_SEMAPHONE_HPP
+#ifndef BSP_SEMAPHORE_HPP
+#define BSP_SEMAPHORE_HPP
 
 #include <chrono>
 #include <cmsis_os2.h>
@@ -86,4 +86,4 @@ using binary_semaphore = counting_semaphore<1>;
 
 } // namespace gdut
 
-#endif // BSP_SEMAPHONE_HPP
+#endif // BSP_SEMAPHORE_HPP

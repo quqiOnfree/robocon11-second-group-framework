@@ -34,7 +34,7 @@ public:
                       static_cast<GPIO_PinState>(state));
   }
 
-  bool read() const {
+  bool read() const noexcept {
     return HAL_GPIO_ReadPin(get_gpio_port_ptr(tag_type::port),
                             tag_type::init_struct.Pin);
   }
