@@ -8,11 +8,37 @@
 
 namespace gdut {
 
+/**
+ * @brief GPIO pin tag for compile-time configuration
+ * @tparam Port The GPIO port (A-I)
+ * @tparam InitStruct The HAL GPIO initialization structure
+ */
 template <gpio_port Port, GPIO_InitTypeDef InitStruct> struct gpio_pin_tag {
   static constexpr gpio_port port = Port;
   static constexpr GPIO_InitTypeDef init_struct = InitStruct;
 };
 
+/**
+ * @brief RAII wrapper for HAL GPIO pin
+ * 
+ * This class provides compile-time configured GPIO pin management.
+ * The pin is initialized in constructor and de-initialized in destructor.
+ * 
+ * Features:
+ * - Compile-time configuration via template parameters
+ * - RAII resource management
+ * - Type-safe port and pin selection
+ * - Non-copyable (hardware resource)
+ * 
+ * Usage:
+ *   gdut::gpio_pin<gdut::gpio_port::A, 
+ *                  GPIO_InitTypeDef{.Pin = GPIO_PIN_5,
+ *                                   .Mode = GPIO_MODE_OUTPUT_PP}> led;
+ *   led.write(true);  // Turn on
+ * 
+ * @tparam Port The GPIO port (A-I)
+ * @tparam InitStruct The HAL GPIO initialization structure
+ */
 template <gpio_port Port, GPIO_InitTypeDef InitStruct>
 class gpio_pin : private uncopyable {
 public:
@@ -34,7 +60,7 @@ public:
                       static_cast<GPIO_PinState>(state));
   }
 
-  bool read() const {
+  bool read() const noexcept {
     return HAL_GPIO_ReadPin(get_gpio_port_ptr(tag_type::port),
                             tag_type::init_struct.Pin);
   }

@@ -7,6 +7,17 @@
 
 namespace gdut {
 
+/**
+ * @brief RAII wrapper for CMSIS-RTOS2 mutex
+ * 
+ * This class provides a C++-style mutex wrapper around CMSIS-RTOS2 osMutex.
+ * Features:
+ * - Recursive mutex with priority inheritance
+ * - Robust mutex (ownership tracking)
+ * - Move semantics supported
+ * 
+ * Thread Safety: All methods are thread-safe.
+ */
 class mutex {
 public:
   mutex() : m_mutex_id(NULL) {
@@ -18,9 +29,8 @@ public:
   mutex(const mutex &) = delete;
   mutex &operator=(const mutex &) = delete;
 
-  mutex(mutex &&other) noexcept {
-    m_mutex_id = std::exchange(other.m_mutex_id, nullptr);
-  }
+  mutex(mutex &&other) noexcept
+      : m_mutex_id(std::exchange(other.m_mutex_id, nullptr)) {}
   mutex &operator=(mutex &&other) noexcept {
     if (this != std::addressof(other)) {
       if (m_mutex_id != nullptr) {
@@ -31,7 +41,11 @@ public:
     return *this;
   }
 
-  ~mutex() noexcept { osMutexDelete(m_mutex_id); }
+  ~mutex() noexcept {
+    if (m_mutex_id != nullptr) {
+      osMutexDelete(m_mutex_id);
+    }
+  }
 
   void lock() { osMutexAcquire(m_mutex_id, osWaitForever); }
 
@@ -43,6 +57,9 @@ private:
   osMutexId_t m_mutex_id;
 };
 
+/**
+ * @brief Tag types for lock construction strategies
+ */
 struct defer_lock_t {
   explicit defer_lock_t() = default;
 };
@@ -56,6 +73,20 @@ struct adopt_lock_t {
 };
 inline constexpr adopt_lock_t adopt_lock{};
 
+/**
+ * @brief RAII lock guard for automatic mutex locking/unlocking
+ * 
+ * Similar to std::lock_guard. Locks the mutex in constructor,
+ * unlocks in destructor. Non-copyable and non-movable.
+ * 
+ * Usage:
+ *   {
+ *     gdut::lock_guard lock(my_mutex);
+ *     // Critical section protected by mutex
+ *   } // Automatically unlocks
+ * 
+ * @tparam Mutex The mutex type to lock
+ */
 template <typename Mutex> class lock_guard {
 public:
   explicit lock_guard(Mutex &mtx) : m_mtx(mtx) { m_mtx.lock(); }
@@ -76,6 +107,23 @@ private:
   Mutex &m_mtx;
 };
 
+/**
+ * @brief Movable RAII lock with deferred and try-lock support
+ * 
+ * Similar to std::unique_lock. Provides more flexibility than lock_guard:
+ * - Can be unlocked before destructor
+ * - Supports deferred locking
+ * - Supports try-lock
+ * - Move semantics supported
+ * 
+ * Usage:
+ *   gdut::unique_lock lock(my_mutex);  // Locks immediately
+ *   // or
+ *   gdut::unique_lock lock(my_mutex, gdut::defer_lock);
+ *   lock.lock();  // Lock later
+ * 
+ * @tparam Mutex The mutex type to lock
+ */
 template <typename Mutex> class unique_lock {
 public:
   unique_lock() noexcept = default;

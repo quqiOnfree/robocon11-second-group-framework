@@ -75,6 +75,7 @@ int main(void) {
     }
 
     while (true) {
+      osDelay(1000);
     }
   });
 

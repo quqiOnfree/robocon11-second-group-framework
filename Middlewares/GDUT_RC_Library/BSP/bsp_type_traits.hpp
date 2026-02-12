@@ -5,6 +5,9 @@
 
 namespace gdut {
 
+/**
+ * @brief Type-safe GPIO port enumeration
+ */
 enum class gpio_port : uint8_t { A = 1, B, C, D, E, F, G, H, I };
 
 [[nodiscard]] constexpr GPIO_TypeDef *get_gpio_port_ptr(uint32_t port) {

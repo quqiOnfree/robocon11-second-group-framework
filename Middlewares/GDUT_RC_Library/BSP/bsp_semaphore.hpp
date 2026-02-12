@@ -1,5 +1,5 @@
-#ifndef BSP_SEMAPHONE_HPP
-#define BSP_SEMAPHONE_HPP
+#ifndef BSP_SEMAPHORE_HPP
+#define BSP_SEMAPHORE_HPP
 
 #include <chrono>
 #include <cmsis_os2.h>
@@ -10,6 +10,19 @@
 
 namespace gdut {
 
+/**
+ * @brief Counting semaphore based on CMSIS-RTOS2
+ * 
+ * This class provides a C++-style counting semaphore wrapper.
+ * Features:
+ * - Standard semaphore operations (acquire, release, try_acquire)
+ * - Timeout support with std::chrono
+ * - Move semantics supported
+ * 
+ * Thread Safety: All methods are thread-safe.
+ * 
+ * @tparam LeastMaxValue Maximum value the semaphore can reach
+ */
 template <std::size_t LeastMaxValue> class counting_semaphore {
 public:
   static constexpr std::size_t max() noexcept {
@@ -86,4 +99,4 @@ using binary_semaphore = counting_semaphore<1>;
 
 } // namespace gdut
 
-#endif // BSP_SEMAPHONE_HPP
+#endif // BSP_SEMAPHORE_HPP
