@@ -3,6 +3,7 @@
 
 #include <cmsis_os2.h>
 #include <cstddef>
+#include <memory>
 #include <stdlib.h>
 #include <utility>
 
@@ -83,7 +84,7 @@ public:
         m_sem(std::exchange(other.m_sem, nullptr)) {}
 
   thread &operator=(thread &&other) noexcept {
-    if (this != &other) {
+    if (this != std::addressof(other)) {
       terminate();
       if (m_sem)
         osSemaphoreDelete(m_sem);

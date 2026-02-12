@@ -54,7 +54,7 @@ int main(void) {
       for (int i = 0; i < 1000; ++i) {
         gdut::lock_guard lock(mutex);
         ++counter;
-        osDelay(1);
+        osDelay(10);
       }
     });
 
@@ -62,7 +62,7 @@ int main(void) {
       for (int i = 0; i < 1000; ++i) {
         gdut::lock_guard lock(mutex);
         ++counter;
-        osDelay(1);
+        osDelay(10);
       }
     });
 

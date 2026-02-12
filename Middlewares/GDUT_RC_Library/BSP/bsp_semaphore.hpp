@@ -1,0 +1,89 @@
+#ifndef BSP_SEMAPHONE_HPP
+#define BSP_SEMAPHONE_HPP
+
+#include <chrono>
+#include <cmsis_os2.h>
+#include <cstddef>
+#include <limits>
+#include <memory>
+#include <utility>
+
+namespace gdut {
+
+template <std::size_t LeastMaxValue> class counting_semaphore {
+public:
+  static constexpr std::size_t max() noexcept {
+    return std::numeric_limits<std::size_t>::max();
+  }
+
+  constexpr explicit counting_semaphore(std::size_t desired) {
+    m_semaphore_id = osSemaphoreNew(LeastMaxValue, desired, nullptr);
+  }
+
+  ~counting_semaphore() noexcept {
+    if (m_semaphore_id != nullptr) {
+      osSemaphoreDelete(m_semaphore_id);
+    }
+  }
+
+  counting_semaphore(const counting_semaphore &) = delete;
+  counting_semaphore &operator=(const counting_semaphore &) = delete;
+
+  counting_semaphore(counting_semaphore &&other) noexcept
+      : m_semaphore_id(std::exchange(other.m_semaphore_id, nullptr)) {}
+  counting_semaphore &operator=(counting_semaphore &&other) noexcept {
+    if (this != std::addressof(other)) {
+      if (m_semaphore_id != nullptr) {
+        osSemaphoreDelete(m_semaphore_id);
+      }
+      m_semaphore_id = std::exchange(other.m_semaphore_id, nullptr);
+    }
+    return *this;
+  }
+
+  osStatus_t release() {
+    if (m_semaphore_id == nullptr) {
+      return osError;
+    }
+    return osSemaphoreRelease(m_semaphore_id);
+  }
+
+  template <typename Rep, typename Period>
+  osStatus_t acquire(const std::chrono::duration<Rep, Period> &timeout =
+                         std::chrono::duration<Rep, Period>::max()) {
+    if (m_semaphore_id == nullptr) {
+      return osError;
+    }
+    return osSemaphoreAcquire(
+        m_semaphore_id,
+        timeout != std::chrono::duration<Rep, Period>::max()
+            ? std::chrono::duration_cast<std::chrono::seconds>(timeout)
+                      .count() *
+                  osKernelGetTickFreq()
+            : osWaitForever);
+  }
+
+  bool try_acquire() noexcept {
+    if (m_semaphore_id == nullptr) {
+      return false;
+    }
+    return acquire(std::chrono::seconds::zero()) == osOK;
+  }
+
+  template <class Rep, class Period>
+  bool try_acquire_for(const std::chrono::duration<Rep, Period> &rel_time) {
+    if (m_semaphore_id == nullptr) {
+      return false;
+    }
+    return acquire(rel_time) == osOK;
+  }
+
+private:
+  osSemaphoreId_t m_semaphore_id;
+};
+
+using binary_semaphore = counting_semaphore<1>;
+
+} // namespace gdut
+
+#endif // BSP_SEMAPHONE_HPP
