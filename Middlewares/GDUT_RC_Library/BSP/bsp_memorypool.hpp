@@ -90,7 +90,7 @@ public:
     if (timeout == std::chrono::duration<Rep, Period>::max()) {
       ticks = osWaitForever;
     } else {
-      // Convert to milliseconds to avoid truncation
+      // Convert to milliseconds (sub-millisecond precision is truncated)
       auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count();
       // Handle negative durations (invalid state)
       if (ms < 0) {
