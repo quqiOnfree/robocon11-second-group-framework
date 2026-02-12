@@ -31,33 +31,31 @@ SOFTWARE.
 #ifndef GDUT_COMBINATIONS_INCLUDED
 #define GDUT_COMBINATIONS_INCLUDED
 
-#include "platform.hpp"
-#include "permutations.hpp"
 #include "factorial.hpp"
+#include "permutations.hpp"
+#include "platform.hpp"
 
 ///\defgroup combinations combinations
 /// combinations<N, K> : Calculates K combinations from N.
 ///\ingroup maths
 
-namespace gdut
-{
-  //***************************************************************************
-  ///\ingroup combinations
-  /// Calculates combinations.
-  //***************************************************************************
-  template <size_t Value, size_t KV>
-  struct combinations
-  {
-    static GDUT_CONSTANT size_t value = gdut::permutations<Value, KV>::value / gdut::factorial<KV>::value;
-  };
+namespace gdut {
+//***************************************************************************
+///\ingroup combinations
+/// Calculates combinations.
+//***************************************************************************
+template <size_t Value, size_t KV> struct combinations {
+  static GDUT_CONSTANT size_t value =
+      gdut::permutations<Value, KV>::value / gdut::factorial<KV>::value;
+};
 
-  template <size_t Value, size_t KV>
-  GDUT_CONSTANT size_t combinations<Value, KV>::value;
+template <size_t Value, size_t KV>
+GDUT_CONSTANT size_t combinations<Value, KV>::value;
 
 #if GDUT_USING_CPP17
-  template <size_t Value, size_t KV>
-  inline constexpr size_t combinations_v = combinations<Value, KV>::value;
+template <size_t Value, size_t KV>
+inline constexpr size_t combinations_v = combinations<Value, KV>::value;
 #endif
-}
+} // namespace gdut
 
 #endif

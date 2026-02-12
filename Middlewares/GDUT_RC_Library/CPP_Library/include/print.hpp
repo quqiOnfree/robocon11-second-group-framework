@@ -37,80 +37,54 @@ SOFTWARE.
 
 #if GDUT_USING_CPP11
 
-// to be implemented in a concrete project, typically printing to a serial console
-// type int here is the convention from putchar(), actually storing char
+// to be implemented in a concrete project, typically printing to a serial
+// console type int here is the convention from putchar(), actually storing char
 extern "C" void etl_putchar(int c);
 
-namespace gdut
-{
-  namespace private_print
-  {
-    using char_type = gdut::private_format::char_type;
+namespace gdut {
+namespace private_print {
+using char_type = gdut::private_format::char_type;
 
-    // No-op iterator that forwards all assignments to etl_putchar
-    class print_iterator
-    {
-    public:
-      class print_to
-      {
-      public:
-        print_to& operator=(char_type c)
-        {
-          etl_putchar(static_cast<int>(c));
-          return *this;
-        }
-      };
+// No-op iterator that forwards all assignments to etl_putchar
+class print_iterator {
+public:
+  class print_to {
+  public:
+    print_to &operator=(char_type c) {
+      etl_putchar(static_cast<int>(c));
+      return *this;
+    }
+  };
 
-      print_iterator()
-      {
-      }
+  print_iterator() {}
 
-      print_iterator(const print_iterator&)
-      {
-      }
+  print_iterator(const print_iterator &) {}
 
-      print_iterator& operator=(const print_iterator&)
-      {
-        return *this;
-      }
+  print_iterator &operator=(const print_iterator &) { return *this; }
 
-      print_to operator*()
-      {
-        return print_to();
-      }
+  print_to operator*() { return print_to(); }
 
-      print_iterator& operator++()
-      {
-        return *this;
-      }
+  print_iterator &operator++() { return *this; }
 
-      print_iterator operator++(int)
-      {
-        return *this;
-      }
-    };
-  }  // namespace private_print
+  print_iterator operator++(int) { return *this; }
+};
+} // namespace private_print
 
-  template <class... Args>
-  void print(gdut::format_string<Args...> fmt, Args&&... args)
-  {
-    private_print::print_iterator it;
-    (void)format_to(it, gdut::move(fmt), gdut::forward<Args>(args)...);
-  }
+template <class... Args>
+void print(gdut::format_string<Args...> fmt, Args &&...args) {
+  private_print::print_iterator it;
+  (void)format_to(it, gdut::move(fmt), gdut::forward<Args>(args)...);
+}
 
-  inline void println()
-  {
-    etl_putchar(static_cast<int>('\n'));
-  }
+inline void println() { etl_putchar(static_cast<int>('\n')); }
 
-  template <class... Args>
-  void println(gdut::format_string<Args...> fmt, Args&&... args)
-  {
-    private_print::print_iterator it;
-    (void)format_to(it, gdut::move(fmt), gdut::forward<Args>(args)...);
-    println();
-  }
-}  // namespace gdut
+template <class... Args>
+void println(gdut::format_string<Args...> fmt, Args &&...args) {
+  private_print::print_iterator it;
+  (void)format_to(it, gdut::move(fmt), gdut::forward<Args>(args)...);
+  println();
+}
+} // namespace gdut
 
 #endif
 

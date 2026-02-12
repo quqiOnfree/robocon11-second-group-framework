@@ -32,17 +32,17 @@ SOFTWARE.
 #include "platform.hpp"
 
 #if GDUT_HAS_ATOMIC
-  #if (GDUT_USING_CPP11 && (GDUT_USING_STL || defined(GDUT_IN_UNIT_TEST))) 
-    #include "atomic/atomic_std.hpp"
-  #elif defined(GDUT_COMPILER_ARM5)
-    #include "atomic/atomic_arm.hpp"
-  #elif defined(GDUT_COMPILER_ARM6)
-    #include "atomic/atomic_arm.hpp"
-  #elif defined(GDUT_COMPILER_GCC)
-    #include "atomic/atomic_gcc_sync.hpp"
-  #elif defined(GDUT_COMPILER_CLANG)
-    #include "atomic/atomic_clang_sync.hpp"
-  #endif
+#if (GDUT_USING_CPP11 && (GDUT_USING_STL || defined(GDUT_IN_UNIT_TEST)))
+#include "atomic/atomic_std.hpp"
+#elif defined(GDUT_COMPILER_ARM5)
+#include "atomic/atomic_arm.hpp"
+#elif defined(GDUT_COMPILER_ARM6)
+#include "atomic/atomic_arm.hpp"
+#elif defined(GDUT_COMPILER_GCC)
+#include "atomic/atomic_gcc_sync.hpp"
+#elif defined(GDUT_COMPILER_CLANG)
+#include "atomic/atomic_clang_sync.hpp"
+#endif
 #endif
 
 #endif

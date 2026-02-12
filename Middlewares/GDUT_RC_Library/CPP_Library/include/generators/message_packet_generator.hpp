@@ -65,332 +65,275 @@ cog.outl("//********************************************************************
 
 #include "platform.hpp"
 
-#include "message.hpp"
-#include "error_handler.hpp"
-#include "static_assert.hpp"
-#include "largest.hpp"
 #include "alignment.hpp"
+#include "error_handler.hpp"
+#include "largest.hpp"
+#include "message.hpp"
+#include "static_assert.hpp"
 #include "utility.hpp"
 
 #include <stdint.h>
 
-namespace gdut
-{
+namespace gdut {
 #if GDUT_USING_CPP17 && !defined(GDUT_MESSAGE_PACKET_FORCE_CPP03_IMPLEMENTATION)
-  //***************************************************************************
-  // The definition for all message types.
-  //***************************************************************************
-  template <typename... TMessageTypes>
-  class message_packet
-  {
+//***************************************************************************
+// The definition for all message types.
+//***************************************************************************
+template <typename... TMessageTypes> class message_packet {
 
-  private:
+private:
+  template <typename T>
+  static constexpr bool IsMessagePacket =
+      gdut::is_same_v<gdut::remove_const_t<gdut::remove_reference_t<T>>,
+                      gdut::message_packet<TMessageTypes...>>;
 
-    template <typename T>
-    static constexpr bool IsMessagePacket = gdut::is_same_v< gdut::remove_const_t<gdut::remove_reference_t<T>>, gdut::message_packet<TMessageTypes...>>;
+  template <typename T>
+  static constexpr bool IsInMessageList =
+      gdut::is_one_of_v<gdut::remove_const_t<gdut::remove_reference_t<T>>,
+                        TMessageTypes...>;
 
-    template <typename T>
-    static constexpr bool IsInMessageList = gdut::is_one_of_v<gdut::remove_const_t<gdut::remove_reference_t<T>>, TMessageTypes...>;
+  template <typename T>
+  static constexpr bool IsIMessage =
+      gdut::is_same_v<remove_const_t<gdut::remove_reference_t<T>>,
+                      gdut::imessage>;
 
-    template <typename T>
-    static constexpr bool IsIMessage = gdut::is_same_v<remove_const_t<gdut::remove_reference_t<T>>, gdut::imessage>;
-
-  public:
-
-    //********************************************
+public:
+  //********************************************
 #include "private/diagnostic_uninitialized_push.hpp"
-    message_packet()
-      : valid(false)
-    {
-    }
+  message_packet() : valid(false) {}
 #include "private/diagnostic_pop.hpp"
 
-    //********************************************
-    ///
-    //********************************************
+  //********************************************
+  ///
+  //********************************************
 #include "private/diagnostic_uninitialized_push.hpp"
-    template <typename T, typename = typename gdut::enable_if<IsIMessage<T> || IsInMessageList<T>, int>::type>
-    explicit message_packet(T&& msg)
-      : valid(true)
-    {
-      if constexpr (IsIMessage<T>)
-      {
-        if (accepts(msg))
-        {
-          add_new_message(gdut::forward<T>(msg));
-          valid = true;
-        }
-        else
-        {
-          valid = false;
-        }
+  template <typename T, typename = typename gdut::enable_if<
+                            IsIMessage<T> || IsInMessageList<T>, int>::type>
+  explicit message_packet(T &&msg) : valid(true) {
+    if constexpr (IsIMessage<T>) {
+      if (accepts(msg)) {
+        add_new_message(gdut::forward<T>(msg));
+        valid = true;
+      } else {
+        valid = false;
+      }
 
-        GDUT_ASSERT(valid, GDUT_ERROR(unhandled_message_exception));
-      }
-      else if constexpr (IsInMessageList<T>)
-      {
-        add_new_message_type<T>(gdut::forward<T>(msg));
-      }
-      else
-      {
-        GDUT_STATIC_ASSERT(IsInMessageList<T>, "Message not in packet type list");
-      }
+      GDUT_ASSERT(valid, GDUT_ERROR(unhandled_message_exception));
+    } else if constexpr (IsInMessageList<T>) {
+      add_new_message_type<T>(gdut::forward<T>(msg));
+    } else {
+      GDUT_STATIC_ASSERT(IsInMessageList<T>, "Message not in packet type list");
     }
+  }
 #include "private/diagnostic_pop.hpp"
 
-    //**********************************************
-    message_packet(const message_packet& other)
-    {
-      valid = other.is_valid();
+  //**********************************************
+  message_packet(const message_packet &other) {
+    valid = other.is_valid();
 
-      if (valid)
-      {
-        add_new_message(other.get());
-      }
+    if (valid) {
+      add_new_message(other.get());
     }
+  }
 
 #if GDUT_USING_CPP11
-    //**********************************************
-    message_packet(message_packet&& other)
-    {
-      valid = other.is_valid();
+  //**********************************************
+  message_packet(message_packet &&other) {
+    valid = other.is_valid();
 
-      if (valid)
-      {
-        add_new_message(gdut::move(other.get()));
-      }
+    if (valid) {
+      add_new_message(gdut::move(other.get()));
     }
+  }
 #endif
 
-    //**********************************************
-    void copy(const message_packet& other)
-    {
-      valid = other.is_valid();
+  //**********************************************
+  void copy(const message_packet &other) {
+    valid = other.is_valid();
 
-      if (valid)
-      {
-        add_new_message(other.get());
-      }
+    if (valid) {
+      add_new_message(other.get());
     }
+  }
 
-    //**********************************************
-    void copy(message_packet&& other)
-    {
-      valid = other.is_valid();
+  //**********************************************
+  void copy(message_packet &&other) {
+    valid = other.is_valid();
 
-      if (valid)
-      {
-        add_new_message(gdut::move(other.get()));
-      }
+    if (valid) {
+      add_new_message(gdut::move(other.get()));
     }
+  }
 
-    //**********************************************
+  //**********************************************
 #include "private/diagnostic_uninitialized_push.hpp"
-    message_packet& operator =(const message_packet& rhs)
-    {
-      delete_current_message();
-      valid = rhs.is_valid();
-      if (valid)
-      {
-        add_new_message(rhs.get());
-      }
-
-      return *this;
+  message_packet &operator=(const message_packet &rhs) {
+    delete_current_message();
+    valid = rhs.is_valid();
+    if (valid) {
+      add_new_message(rhs.get());
     }
+
+    return *this;
+  }
 #include "private/diagnostic_pop.hpp"
 
-    //**********************************************
+  //**********************************************
 #include "private/diagnostic_uninitialized_push.hpp"
-    message_packet& operator =(message_packet&& rhs)
-    {
-      delete_current_message();
-      valid = rhs.is_valid();
-      if (valid)
-      {
-        add_new_message(gdut::move(rhs.get()));
-      }
-
-      return *this;
+  message_packet &operator=(message_packet &&rhs) {
+    delete_current_message();
+    valid = rhs.is_valid();
+    if (valid) {
+      add_new_message(gdut::move(rhs.get()));
     }
+
+    return *this;
+  }
 #include "private/diagnostic_pop.hpp"
 
-    //********************************************
-    ~message_packet()
-    {
-      delete_current_message();
-    }
+  //********************************************
+  ~message_packet() { delete_current_message(); }
 
-    //********************************************
-    gdut::imessage& get() GDUT_NOEXCEPT
-    {
-      return *static_cast<gdut::imessage*>(data);
-    }
+  //********************************************
+  gdut::imessage &get() GDUT_NOEXCEPT {
+    return *static_cast<gdut::imessage *>(data);
+  }
 
-    //********************************************
-    const gdut::imessage& get() const GDUT_NOEXCEPT
-    {
-      return *static_cast<const gdut::imessage*>(data);
-    }
+  //********************************************
+  const gdut::imessage &get() const GDUT_NOEXCEPT {
+    return *static_cast<const gdut::imessage *>(data);
+  }
 
-    //********************************************
-    bool is_valid() const
-    {
-      return valid;
-    }
+  //********************************************
+  bool is_valid() const { return valid; }
 
-    //**********************************************
-    static GDUT_CONSTEXPR bool accepts(gdut::message_id_t id)
-    {
-      return (accepts_message<TMessageTypes::ID>(id) || ...);
-    }
+  //**********************************************
+  static GDUT_CONSTEXPR bool accepts(gdut::message_id_t id) {
+    return (accepts_message<TMessageTypes::ID>(id) || ...);
+  }
 
-    //**********************************************
-    static GDUT_CONSTEXPR bool accepts(const gdut::imessage& msg)
-    {
-      return accepts(msg.get_message_id());
-    }
+  //**********************************************
+  static GDUT_CONSTEXPR bool accepts(const gdut::imessage &msg) {
+    return accepts(msg.get_message_id());
+  }
 
-    //**********************************************
-    template <gdut::message_id_t Id>
-    static GDUT_CONSTEXPR bool accepts()
-    {
-      return (accepts_message<TMessageTypes::ID, Id>() || ...);
-    }
+  //**********************************************
+  template <gdut::message_id_t Id> static GDUT_CONSTEXPR bool accepts() {
+    return (accepts_message<TMessageTypes::ID, Id>() || ...);
+  }
 
-    //**********************************************
-    template <typename TMessage>
-    static GDUT_CONSTEXPR
-      typename gdut::enable_if<gdut::is_base_of<gdut::imessage, TMessage>::value, bool>::type
-      accepts()
-    {
-      return accepts<TMessage::ID>();
-    }
+  //**********************************************
+  template <typename TMessage>
+  static GDUT_CONSTEXPR typename gdut::enable_if<
+      gdut::is_base_of<gdut::imessage, TMessage>::value, bool>::type
+  accepts() {
+    return accepts<TMessage::ID>();
+  }
 
-    enum
-    {
-      SIZE = gdut::largest<TMessageTypes...>::size,
-      ALIGNMENT = gdut::largest<TMessageTypes...>::alignment
-    };
+  enum {
+    SIZE = gdut::largest<TMessageTypes...>::size,
+    ALIGNMENT = gdut::largest<TMessageTypes...>::alignment
+  };
 
-  private:
+private:
+  //**********************************************
+  template <gdut::message_id_t Id1, gdut::message_id_t Id2>
+  static bool accepts_message() {
+    return Id1 == Id2;
+  }
 
-    //**********************************************
-    template <gdut::message_id_t Id1, gdut::message_id_t Id2>
-    static bool accepts_message()
-    {
-      return Id1 == Id2;
-    }
+  //**********************************************
+  template <gdut::message_id_t Id1>
+  static bool accepts_message(gdut::message_id_t id2) {
+    return Id1 == id2;
+  }
 
-    //**********************************************
-    template <gdut::message_id_t Id1>
-    static bool accepts_message(gdut::message_id_t id2)
-    {
-      return Id1 == id2;
-    }
-
-    //********************************************
+  //********************************************
 #include "private/diagnostic_uninitialized_push.hpp"
-    void delete_current_message()
-    {
-      if (valid)
-      {
-        gdut::imessage* pmsg = static_cast<gdut::imessage*>(data);
+  void delete_current_message() {
+    if (valid) {
+      gdut::imessage *pmsg = static_cast<gdut::imessage *>(data);
 
 #if GDUT_HAS_VIRTUAL_MESSAGES
-        pmsg->~imessage();
+      pmsg->~imessage();
 #else
-        delete_message(pmsg);
+      delete_message(pmsg);
 #endif
-      }
     }
+  }
 #include "private/diagnostic_pop.hpp"
 
 #if !GDUT_HAS_VIRTUAL_MESSAGES
-    //********************************************
-    void delete_message(gdut::imessage* pmsg)
-    {
-      (delete_message_type<TMessageTypes>(pmsg) || ...);
-    }
+  //********************************************
+  void delete_message(gdut::imessage *pmsg) {
+    (delete_message_type<TMessageTypes>(pmsg) || ...);
+  }
 
-    //********************************************
-    template <typename TType>
-    bool delete_message_type(gdut::imessage* pmsg)
-    {
-      if (TType::ID == pmsg->get_message_id())
-      {
-        TType* p = static_cast<TType*>(pmsg);
-        p->~TType();
-        return true;
-      }
-      else
-      {
-        return false;
-      }
+  //********************************************
+  template <typename TType> bool delete_message_type(gdut::imessage *pmsg) {
+    if (TType::ID == pmsg->get_message_id()) {
+      TType *p = static_cast<TType *>(pmsg);
+      p->~TType();
+      return true;
+    } else {
+      return false;
     }
+  }
 #endif
 
-    //********************************************
-    void add_new_message(const gdut::imessage& msg)
-    {
-      (add_new_message_type<TMessageTypes>(msg) || ...);
-    }
+  //********************************************
+  void add_new_message(const gdut::imessage &msg) {
+    (add_new_message_type<TMessageTypes>(msg) || ...);
+  }
 
-    //********************************************
-    void add_new_message(gdut::imessage&& msg)
-    {
-      (add_new_message_type<TMessageTypes>(gdut::move(msg)) || ...);
-    }
+  //********************************************
+  void add_new_message(gdut::imessage &&msg) {
+    (add_new_message_type<TMessageTypes>(gdut::move(msg)) || ...);
+  }
 
 #include "private/diagnostic_uninitialized_push.hpp"
-    //********************************************
-    /// Only enabled for types that are in the typelist.
-    //********************************************
-    template <typename TMessage>
-    gdut::enable_if_t<gdut::is_one_of_v<gdut::remove_const_t<gdut::remove_reference_t<TMessage>>, TMessageTypes...>, void>
-      add_new_message_type(TMessage&& msg)
-    {
-      void* p = data;
-      new (p) gdut::remove_reference_t<TMessage>((gdut::forward<TMessage>(msg)));
-    }
+  //********************************************
+  /// Only enabled for types that are in the typelist.
+  //********************************************
+  template <typename TMessage>
+  gdut::enable_if_t<gdut::is_one_of_v<gdut::remove_const_t<
+                                          gdut::remove_reference_t<TMessage>>,
+                                      TMessageTypes...>,
+                    void>
+  add_new_message_type(TMessage &&msg) {
+    void *p = data;
+    new (p) gdut::remove_reference_t<TMessage>((gdut::forward<TMessage>(msg)));
+  }
 #include "private/diagnostic_pop.hpp"
 
 #include "private/diagnostic_uninitialized_push.hpp"
-    //********************************************
-    template <typename TType>
-    bool add_new_message_type(const gdut::imessage& msg)
-    {
-      if (TType::ID == msg.get_message_id())
-      {
-        void* p = data;
-        new (p) TType(static_cast<const TType&>(msg));
-        return true;
-      }
-      else
-      {
-        return false;
-      }
+  //********************************************
+  template <typename TType>
+  bool add_new_message_type(const gdut::imessage &msg) {
+    if (TType::ID == msg.get_message_id()) {
+      void *p = data;
+      new (p) TType(static_cast<const TType &>(msg));
+      return true;
+    } else {
+      return false;
     }
+  }
 #include "private/diagnostic_pop.hpp"
 
-    //********************************************
-    template <typename TType>
-    bool add_new_message_type(gdut::imessage&& msg)
-    {
-      if (TType::ID == msg.get_message_id())
-      {
-        void* p = data;
-        new (p) TType(static_cast<TType&&>(msg));
-        return true;
-      }
-      else
-      {
-        return false;
-      }
+  //********************************************
+  template <typename TType> bool add_new_message_type(gdut::imessage &&msg) {
+    if (TType::ID == msg.get_message_id()) {
+      void *p = data;
+      new (p) TType(static_cast<TType &&>(msg));
+      return true;
+    } else {
+      return false;
     }
+  }
 
-    typename gdut::aligned_storage<SIZE, ALIGNMENT>::type data;
-    bool valid;
-  };
+  typename gdut::aligned_storage<SIZE, ALIGNMENT>::type data;
+  bool valid;
+};
 
 #else
 
@@ -753,7 +696,7 @@ namespace gdut
     cog.outl("};")
 
     ####################################
-    # All of the other specialisations.
+#All of the other specialisations.
     ####################################
     for n in range(int(Handlers) - 1, 0, -1):
         cog.outl("")
@@ -1059,6 +1002,6 @@ namespace gdut
   ]]]*/
   /*[[[end]]]*/
 #endif
-}
+} // namespace gdut
 
 #endif

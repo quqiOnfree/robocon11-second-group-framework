@@ -33,13 +33,12 @@ SOFTWARE.
 
 ///\ingroup string
 
-#include "platform.hpp"
 #include "basic_format_spec.hpp"
+#include "platform.hpp"
 #include "string.hpp"
 
-namespace gdut
-{
-  typedef gdut::basic_format_spec<gdut::istring> format_spec;
+namespace gdut {
+typedef gdut::basic_format_spec<gdut::istring> format_spec;
 }
 
 #endif

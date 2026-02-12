@@ -29,52 +29,54 @@ SOFTWARE.
 #ifndef GDUT_INDEX_OF_TYPE_INCLUDED
 #define GDUT_INDEX_OF_TYPE_INCLUDED
 
+#include "integral_limits.hpp"
 #include "platform.hpp"
 #include "static_assert.hpp"
-#include "integral_limits.hpp"
 
-namespace gdut
-{
+namespace gdut {
 #if GDUT_USING_CPP11
 
-  //***************************************************************************
-  /// Defines a no-position constant.
-  //***************************************************************************
-  static GDUT_CONSTANT size_t index_of_type_npos = gdut::integral_limits<size_t>::max;
+//***************************************************************************
+/// Defines a no-position constant.
+//***************************************************************************
+static GDUT_CONSTANT size_t index_of_type_npos =
+    gdut::integral_limits<size_t>::max;
 
-  //***************************************************************************
-  /// Finds the index of a type in a variadic type parameter.
-  //***************************************************************************
-  template <typename T, typename... TTypes>
-  struct index_of_type;
+//***************************************************************************
+/// Finds the index of a type in a variadic type parameter.
+//***************************************************************************
+template <typename T, typename... TTypes> struct index_of_type;
 
-  //***************************************************************************
-  /// Finds the index of a type in a variadic type parameter.
-  //***************************************************************************
-  template <typename T, typename T1, typename... TRest>
-  struct index_of_type<T, T1, TRest...> : public gdut::integral_constant<size_t, gdut::is_same<T, T1>::value ? 0 :
-                                                                                             (gdut::index_of_type<T, TRest...>::value == gdut::index_of_type_npos ? gdut::index_of_type_npos : 
-                                                                                              gdut::index_of_type<T, TRest...>::value + 1)>
-  {
-  };
+//***************************************************************************
+/// Finds the index of a type in a variadic type parameter.
+//***************************************************************************
+template <typename T, typename T1, typename... TRest>
+struct index_of_type<T, T1, TRest...>
+    : public gdut::integral_constant<
+          size_t, gdut::is_same<T, T1>::value
+                      ? 0
+                      : (gdut::index_of_type<T, TRest...>::value ==
+                                 gdut::index_of_type_npos
+                             ? gdut::index_of_type_npos
+                             : gdut::index_of_type<T, TRest...>::value + 1)> {};
 
-  //***************************************************************************
-  /// Finds the index of a type in a variadic type parameter.
-  /// No types left.
-  //***************************************************************************
-  template <typename T>
-  struct index_of_type<T> : public gdut::integral_constant<size_t, gdut::index_of_type_npos>
-  {
-  };
+//***************************************************************************
+/// Finds the index of a type in a variadic type parameter.
+/// No types left.
+//***************************************************************************
+template <typename T>
+struct index_of_type<T>
+    : public gdut::integral_constant<size_t, gdut::index_of_type_npos> {};
 
 #if GDUT_USING_CPP17
-  //***************************************************************************
-  /// Finds the index of a type in a variadic type parameter.
-  //***************************************************************************
-  template <typename T, typename... TTypes>
-  inline constexpr size_t index_of_type_v = gdut::index_of_type<T, TTypes...>::value;
+//***************************************************************************
+/// Finds the index of a type in a variadic type parameter.
+//***************************************************************************
+template <typename T, typename... TTypes>
+inline constexpr size_t index_of_type_v =
+    gdut::index_of_type<T, TTypes...>::value;
 #endif
 #endif
-}
+} // namespace gdut
 
 #endif

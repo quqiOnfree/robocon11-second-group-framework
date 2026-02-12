@@ -31,11 +31,11 @@ SOFTWARE.
 #ifndef GDUT_PACKET_INCLUDED
 #define GDUT_PACKET_INCLUDED
 
+#include "alignment.hpp"
+#include "placement_new.hpp"
 #include "platform.hpp"
 #include "static_assert.hpp"
-#include "alignment.hpp"
 #include "utility.hpp"
-#include "placement_new.hpp"
 
 //*****************************************************************************
 ///\defgroup packet packet
@@ -43,123 +43,109 @@ SOFTWARE.
 ///\ingroup containers
 //*****************************************************************************
 
-namespace gdut
-{
-  //***************************************************************************
-  /// A template class that can store any types derived from TBase that conform
-  /// to the size and alignment requirements.
-  ///\ingroup packet
-  //***************************************************************************
-  template <typename TBase, size_t SIZE, size_t ALIGNMENT>
-  class packet
-  {
-  public:
-
-    typedef TBase base_t;
+namespace gdut {
+//***************************************************************************
+/// A template class that can store any types derived from TBase that conform
+/// to the size and alignment requirements.
+///\ingroup packet
+//***************************************************************************
+template <typename TBase, size_t SIZE, size_t ALIGNMENT> class packet {
+public:
+  typedef TBase base_t;
 
 #if GDUT_USING_CPP11
-    //***************************************************************************
-    /// Constructor that static asserts any types that do not conform to the max size and alignment.
-    //***************************************************************************
-    template <typename T>
-    explicit packet(T&& value)
-    {
-      typedef typename gdut::types<T>::type type;
+  //***************************************************************************
+  /// Constructor that static asserts any types that do not conform to the max
+  /// size and alignment.
+  //***************************************************************************
+  template <typename T> explicit packet(T &&value) {
+    typedef typename gdut::types<T>::type type;
 
-      GDUT_STATIC_ASSERT((gdut::is_base_of<TBase, type>::value), "Unsupported type");
-      GDUT_STATIC_ASSERT(sizeof(type) <= SIZE, "Unsupported size");
-      GDUT_STATIC_ASSERT(gdut::alignment_of<type>::value <= ALIGNMENT, "Unsupported alignment");
+    GDUT_STATIC_ASSERT((gdut::is_base_of<TBase, type>::value),
+                       "Unsupported type");
+    GDUT_STATIC_ASSERT(sizeof(type) <= SIZE, "Unsupported size");
+    GDUT_STATIC_ASSERT(gdut::alignment_of<type>::value <= ALIGNMENT,
+                       "Unsupported alignment");
 
-      ::new (static_cast<type*>(data)) type(gdut::forward<T>(value));
-    }
+    ::new (static_cast<type *>(data)) type(gdut::forward<T>(value));
+  }
 #else
-    //***************************************************************************
-    /// Constructor that static asserts any types that do not conform to the max size and alignment.
-    //***************************************************************************
-    template <typename T>
-    explicit packet(const T& value)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_base_of<TBase, T>::value), "Unsupported type");
-      GDUT_STATIC_ASSERT(sizeof(T) <= SIZE, "Unsupported size");
-      GDUT_STATIC_ASSERT(gdut::alignment_of<T>::value <= ALIGNMENT, "Unsupported alignment");
+  //***************************************************************************
+  /// Constructor that static asserts any types that do not conform to the max
+  /// size and alignment.
+  //***************************************************************************
+  template <typename T> explicit packet(const T &value) {
+    GDUT_STATIC_ASSERT((gdut::is_base_of<TBase, T>::value), "Unsupported type");
+    GDUT_STATIC_ASSERT(sizeof(T) <= SIZE, "Unsupported size");
+    GDUT_STATIC_ASSERT(gdut::alignment_of<T>::value <= ALIGNMENT,
+                       "Unsupported alignment");
 
-      ::new (static_cast<T*>(data)) T(value);
-    }
+    ::new (static_cast<T *>(data)) T(value);
+  }
 #endif
 
-    //***************************************************************************
-    /// Destructor
-    //***************************************************************************
-    ~packet()
-    {
-      static_cast<TBase*>(data)->~TBase();
-    }
+  //***************************************************************************
+  /// Destructor
+  //***************************************************************************
+  ~packet() { static_cast<TBase *>(data)->~TBase(); }
 
 #if GDUT_USING_CPP11
-    //***************************************************************************
-    /// Assignment operator for type.
-    ///\param value The value to assign.
-    //***************************************************************************
-    template <typename T>
-    packet& operator =(T&& value)
-    {
-      typedef typename gdut::types<T>::type type;
+  //***************************************************************************
+  /// Assignment operator for type.
+  ///\param value The value to assign.
+  //***************************************************************************
+  template <typename T> packet &operator=(T &&value) {
+    typedef typename gdut::types<T>::type type;
 
-      GDUT_STATIC_ASSERT((gdut::is_base_of<TBase, type>::value), "Unsupported type");
-      GDUT_STATIC_ASSERT(sizeof(type) <= SIZE, "Unsupported size");
-      GDUT_STATIC_ASSERT(gdut::alignment_of<type>::value <= ALIGNMENT, "Unsupported alignment");
+    GDUT_STATIC_ASSERT((gdut::is_base_of<TBase, type>::value),
+                       "Unsupported type");
+    GDUT_STATIC_ASSERT(sizeof(type) <= SIZE, "Unsupported size");
+    GDUT_STATIC_ASSERT(gdut::alignment_of<type>::value <= ALIGNMENT,
+                       "Unsupported alignment");
 
-      static_cast<TBase*>(data)->~TBase();
-      ::new (static_cast<type*>(data)) type(gdut::forward<T>(value));
+    static_cast<TBase *>(data)->~TBase();
+    ::new (static_cast<type *>(data)) type(gdut::forward<T>(value));
 
-      return *this;
-    }
+    return *this;
+  }
 #else
-    //***************************************************************************
-    /// Assignment operator for type.
-    ///\param value The value to assign.
-    //***************************************************************************
-    template <typename T>
-    packet& operator =(const T& value)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_base_of<TBase, T>::value), "Unsupported type");
-      GDUT_STATIC_ASSERT(sizeof(T) <= SIZE, "Unsupported size");
-      GDUT_STATIC_ASSERT(gdut::alignment_of<T>::value <= ALIGNMENT, "Unsupported alignment");
+  //***************************************************************************
+  /// Assignment operator for type.
+  ///\param value The value to assign.
+  //***************************************************************************
+  template <typename T> packet &operator=(const T &value) {
+    GDUT_STATIC_ASSERT((gdut::is_base_of<TBase, T>::value), "Unsupported type");
+    GDUT_STATIC_ASSERT(sizeof(T) <= SIZE, "Unsupported size");
+    GDUT_STATIC_ASSERT(gdut::alignment_of<T>::value <= ALIGNMENT,
+                       "Unsupported alignment");
 
-      static_cast<TBase*>(data)->~TBase();
-      ::new (static_cast<T*>(data)) T(value);
+    static_cast<TBase *>(data)->~TBase();
+    ::new (static_cast<T *>(data)) T(value);
 
-      return *this;
-    }
+    return *this;
+  }
 #endif
 
-    //***************************************************************************
-    /// Get access to the contained object.
-    //***************************************************************************
-    TBase& get()
-    {
-      return *static_cast<TBase*>(data);
-    }
+  //***************************************************************************
+  /// Get access to the contained object.
+  //***************************************************************************
+  TBase &get() { return *static_cast<TBase *>(data); }
 
-    //***************************************************************************
-    /// Get access to the contained object.
-    //***************************************************************************
-    const TBase& get() const
-    {
-      return *static_cast<const TBase*>(data);
-    }
+  //***************************************************************************
+  /// Get access to the contained object.
+  //***************************************************************************
+  const TBase &get() const { return *static_cast<const TBase *>(data); }
 
-  private:
+private:
+  packet(const packet &other);
+  packet &operator=(const packet &other);
 
-    packet(const packet& other);
-    packet& operator =(const packet& other);
-
-    //***************************************************************************
-    /// The internal storage.
-    /// Aligned on a suitable boundary, which should be good for all types.
-    //***************************************************************************
-    typename gdut::aligned_storage<SIZE, ALIGNMENT>::type data;
-  };
-}
+  //***************************************************************************
+  /// The internal storage.
+  /// Aligned on a suitable boundary, which should be good for all types.
+  //***************************************************************************
+  typename gdut::aligned_storage<SIZE, ALIGNMENT>::type data;
+};
+} // namespace gdut
 
 #endif

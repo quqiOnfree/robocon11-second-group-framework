@@ -31,82 +31,73 @@ SOFTWARE.
 #ifndef GDUT_COMPARE_INCLUDED
 #define GDUT_COMPARE_INCLUDED
 
-#include "platform.hpp"
-#include "parameter_type.hpp"
 #include "functional.hpp"
+#include "parameter_type.hpp"
+#include "platform.hpp"
 
 //*****************************************************************************
 ///\defgroup compare compare
 /// Comparisons only using less than operator
 ///\ingroup utilities
 //*****************************************************************************
-namespace gdut
-{
-  //***************************************************************************
-  /// Defines <=, >, >=, ==, !=, <=> in terms of <
-  /// Default implementation of TLess is gdut::less
-  //***************************************************************************
-  template <typename T, typename TLess = gdut::less<T> >
-  struct compare
-  {
-    enum cmp_result
-    {
-      Less    = -1,
-      Equal   = 0,
-      Greater = 1
-    };
+namespace gdut {
+//***************************************************************************
+/// Defines <=, >, >=, ==, !=, <=> in terms of <
+/// Default implementation of TLess is gdut::less
+//***************************************************************************
+template <typename T, typename TLess = gdut::less<T>> struct compare {
+  enum cmp_result { Less = -1, Equal = 0, Greater = 1 };
 
-    typedef typename gdut::parameter_type<T>::type first_argument_type;
-    typedef typename gdut::parameter_type<T>::type second_argument_type;
+  typedef typename gdut::parameter_type<T>::type first_argument_type;
+  typedef typename gdut::parameter_type<T>::type second_argument_type;
 
-    static GDUT_CONSTEXPR bool lt(first_argument_type lhs, second_argument_type rhs)
-    {
-      return TLess()(lhs, rhs);
-    }
-
-    static GDUT_CONSTEXPR bool gt(first_argument_type lhs, second_argument_type rhs)
-    {
-      return TLess()(rhs, lhs);
-    }
-
-    static GDUT_CONSTEXPR bool lte(first_argument_type lhs, second_argument_type rhs)
-    {
-      return !gt(lhs, rhs);
-    }
-
-    static GDUT_CONSTEXPR bool gte(first_argument_type lhs, second_argument_type rhs)
-    {
-      return !lt(lhs, rhs);
-    }
-
-    static GDUT_CONSTEXPR bool eq(first_argument_type lhs, second_argument_type rhs)
-    {
-      return gte(lhs, rhs) && lte(lhs, rhs);
-    }
-
-    static GDUT_CONSTEXPR bool ne(first_argument_type lhs, second_argument_type rhs)
-    {
-      return !eq(lhs, rhs);
-    }
-
-    static GDUT_CONSTEXPR cmp_result cmp(first_argument_type lhs, second_argument_type rhs)
-    {
-      return lt(lhs, rhs) ? Less : gt(lhs, rhs) ? Greater : Equal;
-    }
-  };
-
-  //***************************************************************************
-  /// Default implementation of TLess is gdut::less
-  //***************************************************************************
-#if GDUT_USING_CPP11
-  template <typename T, typename TLess = gdut::less<T> >
-#else
-  template <typename T, typename TLess>
-#endif
-  GDUT_CONSTEXPR14 int three_way_compare(const T& lhs, const T& rhs)
-  {
-    return gdut::compare<T>::cmp(lhs, rhs);
+  static GDUT_CONSTEXPR bool lt(first_argument_type lhs,
+                                second_argument_type rhs) {
+    return TLess()(lhs, rhs);
   }
+
+  static GDUT_CONSTEXPR bool gt(first_argument_type lhs,
+                                second_argument_type rhs) {
+    return TLess()(rhs, lhs);
+  }
+
+  static GDUT_CONSTEXPR bool lte(first_argument_type lhs,
+                                 second_argument_type rhs) {
+    return !gt(lhs, rhs);
+  }
+
+  static GDUT_CONSTEXPR bool gte(first_argument_type lhs,
+                                 second_argument_type rhs) {
+    return !lt(lhs, rhs);
+  }
+
+  static GDUT_CONSTEXPR bool eq(first_argument_type lhs,
+                                second_argument_type rhs) {
+    return gte(lhs, rhs) && lte(lhs, rhs);
+  }
+
+  static GDUT_CONSTEXPR bool ne(first_argument_type lhs,
+                                second_argument_type rhs) {
+    return !eq(lhs, rhs);
+  }
+
+  static GDUT_CONSTEXPR cmp_result cmp(first_argument_type lhs,
+                                       second_argument_type rhs) {
+    return lt(lhs, rhs) ? Less : gt(lhs, rhs) ? Greater : Equal;
+  }
+};
+
+//***************************************************************************
+/// Default implementation of TLess is gdut::less
+//***************************************************************************
+#if GDUT_USING_CPP11
+template <typename T, typename TLess = gdut::less<T>>
+#else
+template <typename T, typename TLess>
+#endif
+GDUT_CONSTEXPR14 int three_way_compare(const T &lhs, const T &rhs) {
+  return gdut::compare<T>::cmp(lhs, rhs);
 }
+} // namespace gdut
 
 #endif

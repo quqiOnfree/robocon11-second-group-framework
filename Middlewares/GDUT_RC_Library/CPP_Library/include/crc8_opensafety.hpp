@@ -34,43 +34,39 @@ SOFTWARE.
 #include "platform.hpp"
 #include "private/crc_implementation.hpp"
 
-namespace gdut
-{
+namespace gdut {
 #if GDUT_USING_CPP11 && !defined(GDUT_CRC_FORCE_CPP03_IMPLEMENTATION)
-  template <size_t Table_Size>
-  using crc8_opensafety_t = gdut::crc_type<gdut::private_crc::crc8_opensafety_parameters, Table_Size>;
+template <size_t Table_Size>
+using crc8_opensafety_t =
+    gdut::crc_type<gdut::private_crc::crc8_opensafety_parameters, Table_Size>;
 #else
-  template <size_t Table_Size>
-  class crc8_opensafety_t : public gdut::crc_type<gdut::private_crc::crc8_opensafety_parameters, Table_Size>
-  {
-  public:
+template <size_t Table_Size>
+class crc8_opensafety_t
+    : public gdut::crc_type<gdut::private_crc::crc8_opensafety_parameters,
+                            Table_Size> {
+public:
+  //*************************************************************************
+  /// Default constructor.
+  //*************************************************************************
+  crc8_opensafety_t() { this->reset(); }
 
-    //*************************************************************************
-    /// Default constructor.
-    //*************************************************************************
-    crc8_opensafety_t()
-    {
-      this->reset();
-    }
-
-    //*************************************************************************
-    /// Constructor from range.
-    /// \param begin Start of the range.
-    /// \param end   End of the range.
-    //*************************************************************************
-    template<typename TIterator>
-    crc8_opensafety_t(TIterator begin, const TIterator end)
-    {
-      this->reset();
-      this->add(begin, end);
-    }
-  };
+  //*************************************************************************
+  /// Constructor from range.
+  /// \param begin Start of the range.
+  /// \param end   End of the range.
+  //*************************************************************************
+  template <typename TIterator>
+  crc8_opensafety_t(TIterator begin, const TIterator end) {
+    this->reset();
+    this->add(begin, end);
+  }
+};
 #endif
 
-  typedef crc8_opensafety_t<256U> crc8_opensafety_t256;
-  typedef crc8_opensafety_t<16U>  crc8_opensafety_t16;
-  typedef crc8_opensafety_t<4U>   crc8_opensafety_t4;
-  typedef crc8_opensafety_t256    crc8_opensafety;
-}
+typedef crc8_opensafety_t<256U> crc8_opensafety_t256;
+typedef crc8_opensafety_t<16U> crc8_opensafety_t16;
+typedef crc8_opensafety_t<4U> crc8_opensafety_t4;
+typedef crc8_opensafety_t256 crc8_opensafety;
+} // namespace gdut
 
 #endif

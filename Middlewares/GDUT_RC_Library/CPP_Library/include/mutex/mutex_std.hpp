@@ -33,13 +33,12 @@ SOFTWARE.
 
 #include <mutex>
 
-namespace gdut
-{
-  //***************************************************************************
-  ///\ingroup mutex
-  ///\brief This mutex class is implemented using std::mutex.
-  //***************************************************************************
-  using mutex = std::mutex;
-}
+namespace gdut {
+//***************************************************************************
+///\ingroup mutex
+///\brief This mutex class is implemented using std::mutex.
+//***************************************************************************
+using mutex = std::mutex;
+} // namespace gdut
 
 #endif

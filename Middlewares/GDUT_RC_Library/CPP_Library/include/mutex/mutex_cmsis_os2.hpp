@@ -33,50 +33,33 @@ SOFTWARE.
 
 #include <cmsis_os2.h>
 
-namespace gdut
-{
-  //***************************************************************************
-  ///\ingroup mutex
-  ///\brief This mutex class is implemented using CMSIS's RTOS2 mutexes
-  //***************************************************************************
-  class mutex
-  {
-  public:
+namespace gdut {
+//***************************************************************************
+///\ingroup mutex
+///\brief This mutex class is implemented using CMSIS's RTOS2 mutexes
+//***************************************************************************
+class mutex {
+public:
+  mutex() : id(NULL) {
+    osMutexAttr_t attr = {
+        "GDUT", osMutexRecursive | osMutexPrioInherit | osMutexRobust, 0, 0};
+    id = osMutexNew(&attr);
+  }
 
-    mutex()
-      : id(NULL)
-    {
-      osMutexAttr_t attr = { "ETL", osMutexRecursive | osMutexPrioInherit | osMutexRobust, 0, 0 };
-      id = osMutexNew(&attr);
-    }
+  ~mutex() { osMutexDelete(id); }
 
-    ~mutex()
-    {
-      osMutexDelete(id);
-    }
+  void lock() { osMutexAcquire(id, osWaitForever); }
 
-    void lock()
-    {
-      osMutexAcquire(id, osWaitForever);
-    }
+  bool try_lock() { return osMutexAcquire(id, 0) == osOK; }
 
-    bool try_lock()
-    {
-      return osMutexAcquire(id, 0) == osOK;
-    }
+  void unlock() { osMutexRelease(id); }
 
-    void unlock()
-    {
-      osMutexRelease(id);
-    }
+private:
+  mutex(const mutex &) GDUT_DELETE;
+  mutex &operator=(const mutex &) GDUT_DELETE;
 
-  private:
-
-    mutex(const mutex&) GDUT_DELETE;
-    mutex& operator=(const mutex&) GDUT_DELETE;
-
-    osMutexId_t id;
-  };
-}
+  osMutexId_t id;
+};
+} // namespace gdut
 
 #endif

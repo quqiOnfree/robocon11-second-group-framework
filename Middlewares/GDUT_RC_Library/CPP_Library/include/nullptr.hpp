@@ -35,33 +35,29 @@ SOFTWARE.
 
 #include <stddef.h>
 
-namespace gdut
-{
+namespace gdut {
 #if GDUT_CPP11_NOT_SUPPORTED
-  class nullptr_t
-  {
-  public:
-    template <class T>
-    inline operator T*() const { return 0; }
+class nullptr_t {
+public:
+  template <class T> inline operator T *() const { return 0; }
 
-    template <class C, class T>
-    inline operator T C::* () const { return 0; }
-    
-    inline bool operator==(nullptr_t) const { return true; }
-    inline bool operator!=(nullptr_t) const { return false; }
-  private:
-    void operator&() const GDUT_DELETE; // cannot take the address of GDUT_NULLPTR
-  };
-  
-  static const nullptr_t _nullptr = nullptr_t();
+  template <class C, class T> inline operator T C::*() const { return 0; }
 
-  #define GDUT_NULLPTR (gdut::_nullptr)
+  inline bool operator==(nullptr_t) const { return true; }
+  inline bool operator!=(nullptr_t) const { return false; }
+
+private:
+  void operator&() const GDUT_DELETE; // cannot take the address of GDUT_NULLPTR
+};
+
+static const nullptr_t _nullptr = nullptr_t();
+
+#define GDUT_NULLPTR (gdut::_nullptr)
 #else
-  // Use the new style nullptr.
-  typedef decltype(nullptr) nullptr_t;
-  #define GDUT_NULLPTR nullptr
+// Use the new style nullptr.
+typedef decltype(nullptr) nullptr_t;
+#define GDUT_NULLPTR nullptr
 #endif
-}
+} // namespace gdut
 
 #endif
-

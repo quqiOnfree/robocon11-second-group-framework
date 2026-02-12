@@ -36,51 +36,58 @@ SOFTWARE.
 #undef GDUT_OR_STD14
 
 #if GDUT_NOT_USING_STL && !defined(GDUT_IN_UNIT_TEST)
-  // If we're not using the STL and we are not unit testing, then use the ETL's definitions under the gdut namespace
-  #define GDUT_OR_STD gdut
-  #define GDUT_USING_STD_NAMESPACE 0
-  #define GDUT_USING_GDUT_NAMESPACE 1
+// If we're not using the STL and we are not unit testing, then use the ETL's
+// definitions under the gdut namespace
+#define GDUT_OR_STD gdut
+#define GDUT_USING_STD_NAMESPACE 0
+#define GDUT_USING_GDUT_NAMESPACE 1
 #else
-  // We will use the STL's definitions under the std namespace
-  #define GDUT_OR_STD std
-  #define GDUT_USING_STD_NAMESPACE 1
-  #define GDUT_USING_GDUT_NAMESPACE 0
+// We will use the STL's definitions under the std namespace
+#define GDUT_OR_STD std
+#define GDUT_USING_STD_NAMESPACE 1
+#define GDUT_USING_GDUT_NAMESPACE 0
 #endif
 
-#if (GDUT_NOT_USING_STL && !defined(GDUT_IN_UNIT_TEST)) || GDUT_CPP11_NOT_SUPPORTED
-  // If we're not using the STL and we are not unit testing or C++11 is not supported, then use the ETL's definitions under the gdut namespace
-  #define GDUT_OR_STD11 gdut
-  #define GDUT_USING_STD11_NAMESPACE 0
-  #define GDUT_USING_ETL11_NAMESPACE 1
+#if (GDUT_NOT_USING_STL && !defined(GDUT_IN_UNIT_TEST)) ||                     \
+    GDUT_CPP11_NOT_SUPPORTED
+// If we're not using the STL and we are not unit testing or C++11 is not
+// supported, then use the ETL's definitions under the gdut namespace
+#define GDUT_OR_STD11 gdut
+#define GDUT_USING_STD11_NAMESPACE 0
+#define GDUT_USING_ETL11_NAMESPACE 1
 #else
-  // We will use the STL's definitions under the std namespace
-  #define GDUT_OR_STD11 std
-  #define GDUT_USING_STD11_NAMESPACE 1
-  #define GDUT_USING_ETL11_NAMESPACE 0
+// We will use the STL's definitions under the std namespace
+#define GDUT_OR_STD11 std
+#define GDUT_USING_STD11_NAMESPACE 1
+#define GDUT_USING_ETL11_NAMESPACE 0
 #endif
 
-#if (GDUT_NOT_USING_STL && !defined(GDUT_IN_UNIT_TEST)) || GDUT_CPP14_NOT_SUPPORTED
-  // If we're not using the STL and we are not unit testing or C++14 is not supported, then use the ETL's definitions under the gdut namespace
-  #define GDUT_OR_STD14 gdut
-  #define GDUT_USING_STD14_NAMESPACE 0
-  #define GDUT_USING_ETL14_NAMESPACE 1
+#if (GDUT_NOT_USING_STL && !defined(GDUT_IN_UNIT_TEST)) ||                     \
+    GDUT_CPP14_NOT_SUPPORTED
+// If we're not using the STL and we are not unit testing or C++14 is not
+// supported, then use the ETL's definitions under the gdut namespace
+#define GDUT_OR_STD14 gdut
+#define GDUT_USING_STD14_NAMESPACE 0
+#define GDUT_USING_ETL14_NAMESPACE 1
 #else
-  // We will use the STL's definitions under the std namespace
-  #define GDUT_OR_STD14 std
-  #define GDUT_USING_STD14_NAMESPACE 1
-  #define GDUT_USING_ETL14_NAMESPACE 0
+// We will use the STL's definitions under the std namespace
+#define GDUT_OR_STD14 std
+#define GDUT_USING_STD14_NAMESPACE 1
+#define GDUT_USING_ETL14_NAMESPACE 0
 #endif
 
-#if (GDUT_NOT_USING_STL && !defined(GDUT_IN_UNIT_TEST)) || GDUT_CPP17_NOT_SUPPORTED
-  // If we're not using the STL and we are not unit testing or C++17 is not supported, then use the ETL's definitions under the gdut namespace
-  #define GDUT_OR_STD17 gdut
-  #define GDUT_USING_STD17_NAMESPACE 0
-  #define GDUT_USING_ETL17_NAMESPACE 1
+#if (GDUT_NOT_USING_STL && !defined(GDUT_IN_UNIT_TEST)) ||                     \
+    GDUT_CPP17_NOT_SUPPORTED
+// If we're not using the STL and we are not unit testing or C++17 is not
+// supported, then use the ETL's definitions under the gdut namespace
+#define GDUT_OR_STD17 gdut
+#define GDUT_USING_STD17_NAMESPACE 0
+#define GDUT_USING_ETL17_NAMESPACE 1
 #else
-  // We will use the STL's definitions under the std namespace
-  #define GDUT_OR_STD17 std
-  #define GDUT_USING_STD17_NAMESPACE 1
-  #define GDUT_USING_ETL17_NAMESPACE 0
+// We will use the STL's definitions under the std namespace
+#define GDUT_OR_STD17 std
+#define GDUT_USING_STD17_NAMESPACE 1
+#define GDUT_USING_ETL17_NAMESPACE 0
 #endif
 
 #endif

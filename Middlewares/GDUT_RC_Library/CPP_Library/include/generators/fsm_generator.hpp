@@ -63,961 +63,867 @@ cog.outl("//********************************************************************
 #ifndef GDUT_FSM_INCLUDED
 #define GDUT_FSM_INCLUDED
 
-#include "platform.hpp"
 #include "array.hpp"
-#include "nullptr.hpp"
 #include "error_handler.hpp"
 #include "exception.hpp"
-#include "user_type.hpp"
-#include "message_router.hpp"
 #include "integral_limits.hpp"
 #include "largest.hpp"
+#include "message_router.hpp"
+#include "nullptr.hpp"
+#include "platform.hpp"
+#include "user_type.hpp"
 #if GDUT_USING_CPP11
-  #include "tuple.hpp"
+#include "tuple.hpp"
 #endif
 
 #include <stdint.h>
 
 #include "private/minmax_push.hpp"
 
-namespace gdut
-{
-  class fsm;
-  class hfsm;
+namespace gdut {
+class fsm;
+class hfsm;
 
-  /// Allow alternative type for state id.
+/// Allow alternative type for state id.
 #if !defined(GDUT_FSM_STATE_ID_TYPE)
-  typedef uint_least8_t fsm_state_id_t;
+typedef uint_least8_t fsm_state_id_t;
 #else
-  typedef GDUT_FSM_STATE_ID_TYPE fsm_state_id_t;
+typedef GDUT_FSM_STATE_ID_TYPE fsm_state_id_t;
 #endif
 
-  // For internal FSM use.
-  typedef typename gdut::larger_type<gdut::message_id_t>::type fsm_internal_id_t;
+// For internal FSM use.
+typedef typename gdut::larger_type<gdut::message_id_t>::type fsm_internal_id_t;
 
-#if GDUT_USING_CPP17 && !defined(GDUT_FSM_FORCE_CPP03_IMPLEMENTATION) // For C++17 and above
+#if GDUT_USING_CPP17 &&                                                        \
+    !defined(GDUT_FSM_FORCE_CPP03_IMPLEMENTATION) // For C++17 and above
+template <typename, typename, gdut::fsm_state_id_t, typename...>
+class fsm_state;
+#else
+/*[[[cog
+import cog
+cog.outl("template <typename, typename, gdut::fsm_state_id_t,")
+cog.out("          ")
+for n in range(1, int(Handlers)):
+  cog.out("typename, ")
+  if n % 4 == 0:
+      cog.outl("")
+      cog.out("          ")
+cog.outl("typename>")
+cog.outl("class fsm_state;")
+]]]*/
+/*[[[end]]]*/
+#endif
+
+//***************************************************************************
+/// Base exception class for FSM.
+//***************************************************************************
+class fsm_exception : public gdut::exception {
+public:
+  fsm_exception(string_type reason_, string_type file_name_,
+                numeric_type line_number_)
+      : gdut::exception(reason_, file_name_, line_number_) {}
+};
+
+//***************************************************************************
+/// Exception for null state pointer.
+//***************************************************************************
+class fsm_null_state_exception : public gdut::fsm_exception {
+public:
+  fsm_null_state_exception(string_type file_name_, numeric_type line_number_)
+      : gdut::fsm_exception(
+            GDUT_ERROR_TEXT("fsm:null state", GDUT_FSM_FILE_ID "A"), file_name_,
+            line_number_) {}
+};
+
+//***************************************************************************
+/// Exception for invalid state id.
+//***************************************************************************
+class fsm_state_id_exception : public gdut::fsm_exception {
+public:
+  fsm_state_id_exception(string_type file_name_, numeric_type line_number_)
+      : gdut::fsm_exception(
+            GDUT_ERROR_TEXT("fsm:state id", GDUT_FSM_FILE_ID "B"), file_name_,
+            line_number_) {}
+};
+
+//***************************************************************************
+/// Exception for incompatible state list.
+//***************************************************************************
+class fsm_state_list_exception : public gdut::fsm_exception {
+public:
+  fsm_state_list_exception(string_type file_name_, numeric_type line_number_)
+      : gdut::fsm_exception(
+            GDUT_ERROR_TEXT("fsm:state list", GDUT_FSM_FILE_ID "C"), file_name_,
+            line_number_) {}
+};
+
+//***************************************************************************
+/// Exception for incompatible order state list.
+//***************************************************************************
+class fsm_state_list_order_exception : public gdut::fsm_exception {
+public:
+  fsm_state_list_order_exception(string_type file_name_,
+                                 numeric_type line_number_)
+      : gdut::fsm_exception(
+            GDUT_ERROR_TEXT("fsm:state list order", GDUT_FSM_FILE_ID "D"),
+            file_name_, line_number_) {}
+};
+
+//***************************************************************************
+/// Exception for message received but not started.
+//***************************************************************************
+class fsm_not_started : public gdut::fsm_exception {
+public:
+  fsm_not_started(string_type file_name_, numeric_type line_number_)
+      : gdut::fsm_exception(
+            GDUT_ERROR_TEXT("fsm:not started", GDUT_FSM_FILE_ID "F"),
+            file_name_, line_number_) {}
+};
+
+//***************************************************************************
+/// Exception for call to receive/start/etc. while receive/start/etc. is already
+/// happening. A call like that could result in an infinite loop or landing in
+/// an incorrect state.
+//***************************************************************************
+class fsm_reentrant_transition_forbidden : public gdut::fsm_exception {
+public:
+  fsm_reentrant_transition_forbidden(string_type file_name_,
+                                     numeric_type line_number_)
+      : gdut::fsm_exception(
+            GDUT_ERROR_TEXT(
+                "fsm:reentrant calls to start/receive/etc. forbidden",
+                GDUT_FSM_FILE_ID "G"),
+            file_name_, line_number_) {}
+};
+
+namespace private_fsm {
+template <typename T = void> class ifsm_state_helper {
+public:
+  // Pass this whenever no state change is desired.
+  // The highest unsigned value of fsm_state_id_t.
+  static GDUT_CONSTANT fsm_state_id_t No_State_Change =
+      gdut::integral_limits<fsm_state_id_t>::max;
+
+  // Pass this when this event also needs to be passed to the parent.
+  static GDUT_CONSTANT fsm_state_id_t Pass_To_Parent = No_State_Change - 1U;
+
+  // Pass this when this event should trigger a self transition.
+  static GDUT_CONSTANT fsm_state_id_t Self_Transition = No_State_Change - 2U;
+};
+
+template <typename T>
+GDUT_CONSTANT fsm_state_id_t ifsm_state_helper<T>::No_State_Change;
+
+template <typename T>
+GDUT_CONSTANT fsm_state_id_t ifsm_state_helper<T>::Pass_To_Parent;
+
+template <typename T>
+GDUT_CONSTANT fsm_state_id_t ifsm_state_helper<T>::Self_Transition;
+
+// Compile-time: TState::ID must equal its index in the type list (0..N-1)
+template <size_t Id, typename...> struct check_ids : gdut::true_type {};
+
+template <size_t Id, typename TState0, typename... TRest>
+struct check_ids<Id, TState0, TRest...>
+    : gdut::integral_constant<
+          bool, (TState0::STATE_ID == Id) &&
+                    private_fsm::check_ids<Id + 1, TRest...>::value> {};
+
+//***************************************************************************
+/// RAII detection mechanism to catch reentrant calls to methods that might
+/// transition the state machine to a different state.
+/// This is not a mutex.
+//***************************************************************************
+class fsm_reentrancy_guard {
+public:
+  //*******************************************
+  /// Constructor.
+  /// Checks if another method has locked reentrancy.
+  //*******************************************
+  fsm_reentrancy_guard(bool &transition_guard_flag)
+      : is_locked(transition_guard_flag) {
+    GDUT_ASSERT(!is_locked,
+                GDUT_ERROR(gdut::fsm_reentrant_transition_forbidden));
+    is_locked = true;
+  }
+
+  //*******************************************
+  /// Destructor.
+  /// Releases lock on reentrancy.
+  //*******************************************
+  ~fsm_reentrancy_guard() GDUT_NOEXCEPT { is_locked = false; }
+
+private:
+  // Reference to the flag signifying a lock on the state machine.
+  bool &is_locked;
+
+  // Copy & move semantics disabled since this is a guard.
+  fsm_reentrancy_guard(fsm_reentrancy_guard const &) GDUT_DELETE;
+  fsm_reentrancy_guard &operator=(fsm_reentrancy_guard const &) GDUT_DELETE;
+#if GDUT_USING_CPP11
+  fsm_reentrancy_guard(fsm_reentrancy_guard &&) GDUT_DELETE;
+  fsm_reentrancy_guard &operator=(fsm_reentrancy_guard &&) GDUT_DELETE;
+#endif
+};
+} // namespace private_fsm
+
+class ifsm_state;
+
+#if GDUT_USING_CPP11
+//***************************************************************************
+/// A class to store FSM states.
+//***************************************************************************
+template <typename... TStates> class fsm_state_pack {
+public:
+  friend class gdut::fsm;
+
+  GDUT_STATIC_ASSERT((private_fsm::check_ids<0, TStates...>::value),
+                     "State IDs must be 0..N-1 and in order");
+  GDUT_STATIC_ASSERT(sizeof...(TStates) > 0, "At least one state is required");
+  GDUT_STATIC_ASSERT(sizeof...(TStates) <
+                         private_fsm::ifsm_state_helper<>::No_State_Change,
+                     "State IDs mst be less than ifsm_state::No_State_Change");
+
+  //*********************************
+  // The number of states.
+  //*********************************
+  static GDUT_CONSTEXPR size_t size() { return sizeof...(TStates); }
+
+  //*********************************
+  /// Gets a reference to the state.
+  //*********************************
+  template <typename TState> TState &get() {
+    return gdut::get<TState>(storage);
+  }
+
+  //*********************************
+  /// Gets a const reference to the state.
+  //*********************************
+  template <typename TState> const TState &get() const {
+    return gdut::get<TState>(storage);
+  }
+
+private:
+  //*********************************
+  /// Gets a pointer to the state list.
+  //*********************************
+  gdut::ifsm_state **get_state_list() { return &states[0]; }
+
+  /// A tuple to store the states.
+  gdut::tuple<TStates...> storage{};
+
+  /// Pointers to the states.
+  gdut::ifsm_state *states[sizeof...(TStates)]{&gdut::get<TStates>(storage)...};
+};
+#endif
+
+//***************************************************************************
+/// Interface class for FSM states.
+//***************************************************************************
+class ifsm_state : public private_fsm::ifsm_state_helper<> {
+public:
+  /// Allows ifsm_state functions to be private.
+  friend class gdut::fsm;
+  friend class gdut::hfsm;
+
+  using private_fsm::ifsm_state_helper<>::No_State_Change;
+  using private_fsm::ifsm_state_helper<>::Pass_To_Parent;
+  using private_fsm::ifsm_state_helper<>::Self_Transition;
+
+#if GDUT_USING_CPP17 &&                                                        \
+    !defined(GDUT_FSM_FORCE_CPP03_IMPLEMENTATION) // For C++17 and above
   template <typename, typename, gdut::fsm_state_id_t, typename...>
-  class fsm_state;
+  friend class fsm_state;
 #else
   /*[[[cog
   import cog
-  cog.outl("template <typename, typename, gdut::fsm_state_id_t,")
-  cog.out("          ")
+  cog.outl("  template <typename, typename, gdut::fsm_state_id_t,")
+  cog.out("            ")
   for n in range(1, int(Handlers)):
     cog.out("typename, ")
     if n % 4 == 0:
         cog.outl("")
-        cog.out("          ")
+        cog.out("            ")
   cog.outl("typename>")
-  cog.outl("class fsm_state;")
   ]]]*/
   /*[[[end]]]*/
+  friend class gdut::fsm_state;
 #endif
 
-  //***************************************************************************
-  /// Base exception class for FSM.
-  //***************************************************************************
-  class fsm_exception : public gdut::exception
-  {
-  public:
+  //*******************************************
+  /// Gets the id for this state.
+  //*******************************************
+  gdut::fsm_state_id_t get_state_id() const { return state_id; }
 
-    fsm_exception(string_type reason_, string_type file_name_, numeric_type line_number_)
-      : gdut::exception(reason_, file_name_, line_number_)
-    {
+  //*******************************************
+  /// Adds a child to this state.
+  /// Only of use when part of an HFSM.
+  //*******************************************
+  void add_child_state(gdut::ifsm_state &state) {
+    GDUT_ASSERT(state.p_parent == GDUT_NULLPTR,
+                GDUT_ERROR(gdut::fsm_null_state_exception));
+    state.p_parent = this;
+
+    if (p_default_child == GDUT_NULLPTR) {
+      p_default_child = &state;
     }
-  };
-
-  //***************************************************************************
-  /// Exception for null state pointer.
-  //***************************************************************************
-  class fsm_null_state_exception : public gdut::fsm_exception
-  {
-  public:
-
-    fsm_null_state_exception(string_type file_name_, numeric_type line_number_)
-      : gdut::fsm_exception(GDUT_ERROR_TEXT("fsm:null state", GDUT_FSM_FILE_ID"A"), file_name_, line_number_)
-    {
-    }
-  };
-
-  //***************************************************************************
-  /// Exception for invalid state id.
-  //***************************************************************************
-  class fsm_state_id_exception : public gdut::fsm_exception
-  {
-  public:
-
-    fsm_state_id_exception(string_type file_name_, numeric_type line_number_)
-      : gdut::fsm_exception(GDUT_ERROR_TEXT("fsm:state id", GDUT_FSM_FILE_ID"B"), file_name_, line_number_)
-    {
-    }
-  };
-
-  //***************************************************************************
-  /// Exception for incompatible state list.
-  //***************************************************************************
-  class fsm_state_list_exception : public gdut::fsm_exception
-  {
-  public:
-
-    fsm_state_list_exception(string_type file_name_, numeric_type line_number_)
-      : gdut::fsm_exception(GDUT_ERROR_TEXT("fsm:state list", GDUT_FSM_FILE_ID"C"), file_name_, line_number_)
-    {
-    }
-  };
-
-  //***************************************************************************
-  /// Exception for incompatible order state list.
-  //***************************************************************************
-  class fsm_state_list_order_exception : public gdut::fsm_exception
-  {
-  public:
-
-    fsm_state_list_order_exception(string_type file_name_, numeric_type line_number_)
-      : gdut::fsm_exception(GDUT_ERROR_TEXT("fsm:state list order", GDUT_FSM_FILE_ID"D"), file_name_, line_number_)
-    {
-    }
-  };
-
-  //***************************************************************************
-  /// Exception for message received but not started.
-  //***************************************************************************
-  class fsm_not_started : public gdut::fsm_exception
-  {
-  public:
-    fsm_not_started(string_type file_name_, numeric_type line_number_)
-      : gdut::fsm_exception(GDUT_ERROR_TEXT("fsm:not started", GDUT_FSM_FILE_ID"F"), file_name_, line_number_)
-    {
-    }
-  };
-
-  //***************************************************************************
-  /// Exception for call to receive/start/etc. while receive/start/etc. is already happening.
-  /// A call like that could result in an infinite loop or landing in an incorrect state.
-  //***************************************************************************
-  class fsm_reentrant_transition_forbidden : public gdut::fsm_exception
-  {
-  public:
-    fsm_reentrant_transition_forbidden(string_type file_name_, numeric_type line_number_)
-      : gdut::fsm_exception(GDUT_ERROR_TEXT("fsm:reentrant calls to start/receive/etc. forbidden", GDUT_FSM_FILE_ID"G"), file_name_, line_number_)
-    {
-    }
-  };
-
-  namespace private_fsm
-  {
-    template <typename T = void>
-    class ifsm_state_helper
-    {
-    public:
-
-      // Pass this whenever no state change is desired.
-      // The highest unsigned value of fsm_state_id_t.
-      static GDUT_CONSTANT fsm_state_id_t No_State_Change = gdut::integral_limits<fsm_state_id_t>::max;
-      
-      // Pass this when this event also needs to be passed to the parent.
-      static GDUT_CONSTANT fsm_state_id_t Pass_To_Parent = No_State_Change - 1U;
-
-      // Pass this when this event should trigger a self transition.
-      static GDUT_CONSTANT fsm_state_id_t Self_Transition = No_State_Change - 2U;
-    };
-
-    template <typename T>
-    GDUT_CONSTANT fsm_state_id_t ifsm_state_helper<T>::No_State_Change;
-
-    template <typename T>
-    GDUT_CONSTANT fsm_state_id_t ifsm_state_helper<T>::Pass_To_Parent;
-
-    template <typename T>
-    GDUT_CONSTANT fsm_state_id_t ifsm_state_helper<T>::Self_Transition;
-
-    // Compile-time: TState::ID must equal its index in the type list (0..N-1)
-    template <size_t Id, typename...> struct check_ids : gdut::true_type 
-    {
-    };
-
-    template <size_t Id, typename TState0, typename... TRest>
-    struct check_ids<Id, TState0, TRest...>
-      : gdut::integral_constant<bool, (TState0::STATE_ID == Id) && private_fsm::check_ids<Id + 1, TRest...>::value> 
-    {
-    };   
-
-    //***************************************************************************
-    /// RAII detection mechanism to catch reentrant calls to methods that might
-    /// transition the state machine to a different state.
-    /// This is not a mutex.
-    //***************************************************************************
-    class fsm_reentrancy_guard
-    {
-    public:
-      //*******************************************
-      /// Constructor.
-      /// Checks if another method has locked reentrancy.
-      //*******************************************
-      fsm_reentrancy_guard(bool& transition_guard_flag)
-        : is_locked(transition_guard_flag)
-      {
-        GDUT_ASSERT(!is_locked, GDUT_ERROR(gdut::fsm_reentrant_transition_forbidden));
-        is_locked = true;
-      }
-
-      //*******************************************
-      /// Destructor.
-      /// Releases lock on reentrancy.
-      //*******************************************
-      ~fsm_reentrancy_guard() GDUT_NOEXCEPT
-      {
-        is_locked = false;
-      }
-      
-    private:
-      // Reference to the flag signifying a lock on the state machine.
-      bool& is_locked;
-      
-      // Copy & move semantics disabled since this is a guard.
-      fsm_reentrancy_guard(fsm_reentrancy_guard const&) GDUT_DELETE;
-      fsm_reentrancy_guard& operator= (fsm_reentrancy_guard const&) GDUT_DELETE;
-#if GDUT_USING_CPP11
-      fsm_reentrancy_guard(fsm_reentrancy_guard&&) GDUT_DELETE;
-      fsm_reentrancy_guard& operator= (fsm_reentrancy_guard&&) GDUT_DELETE;
-#endif
-    };
   }
 
-  class ifsm_state;
+  //*******************************************
+  /// Adds a list of child states.
+  /// Only of use when part of an HFSM.
+  //*******************************************
+  template <typename TSize>
+  void set_child_states(gdut::ifsm_state **state_list, TSize size) {
+    p_active_child = GDUT_NULLPTR;
+    p_default_child = GDUT_NULLPTR;
+
+    for (TSize i = 0; i < size; ++i) {
+      GDUT_ASSERT(state_list[i] != GDUT_NULLPTR,
+                  GDUT_ERROR(gdut::fsm_null_state_exception));
+      add_child_state(*state_list[i]);
+    }
+  }
+
+protected:
+  //*******************************************
+  /// Constructor.
+  //*******************************************
+  ifsm_state(gdut::fsm_state_id_t state_id_)
+      : state_id(state_id_), p_context(GDUT_NULLPTR), p_parent(GDUT_NULLPTR),
+        p_active_child(GDUT_NULLPTR), p_default_child(GDUT_NULLPTR) {}
+
+  //*******************************************
+  /// Destructor.
+  //*******************************************
+  virtual ~ifsm_state() {}
+
+  //*******************************************
+  gdut::fsm &get_fsm_context() const { return *p_context; }
+
+private:
+  virtual fsm_state_id_t process_event(const gdut::imessage &message) = 0;
+
+  virtual fsm_state_id_t on_enter_state() {
+    return No_State_Change;
+  }                               // By default, do nothing.
+  virtual void on_exit_state() {} // By default, do nothing.
+
+  //*******************************************
+  void set_fsm_context(gdut::fsm &context) { p_context = &context; }
+
+  // The state id.
+  const gdut::fsm_state_id_t state_id;
+
+  // A pointer to the FSM context.
+  gdut::fsm *p_context;
+
+  // A pointer to the parent.
+  ifsm_state *p_parent;
+
+  // A pointer to the active child.
+  ifsm_state *p_active_child;
+
+  // A pointer to the default active child.
+  ifsm_state *p_default_child;
+
+  // Disabled.
+  ifsm_state(const ifsm_state &) GDUT_DELETE;
+  ifsm_state &operator=(const ifsm_state &) GDUT_DELETE;
+};
+
+//***************************************************************************
+/// The FSM class.
+//***************************************************************************
+class fsm : public gdut::imessage_router {
+public:
+  friend class gdut::hfsm;
+  using imessage_router::receive;
+
+  //*******************************************
+  /// Constructor.
+  //*******************************************
+  fsm(gdut::message_router_id_t id)
+      : imessage_router(id), p_state(GDUT_NULLPTR), state_list(GDUT_NULLPTR),
+        number_of_states(0U), is_processing_state_change(false) {}
+
+  //*******************************************
+  /// Set the states for the FSM
+  /// From a pointer to gdut::ifsm_state and size.
+  //*******************************************
+  template <typename TSize>
+  void set_states(gdut::ifsm_state **p_states, TSize size) {
+    state_list = p_states;
+    number_of_states = gdut::fsm_state_id_t(size);
+
+    GDUT_ASSERT(number_of_states > 0,
+                GDUT_ERROR(gdut::fsm_state_list_exception));
+    GDUT_ASSERT(number_of_states < ifsm_state::No_State_Change,
+                GDUT_ERROR(gdut::fsm_state_list_exception));
+
+    for (gdut::fsm_state_id_t i = 0; i < size; ++i) {
+      GDUT_ASSERT(state_list[i] != GDUT_NULLPTR,
+                  GDUT_ERROR(gdut::fsm_null_state_exception));
+      GDUT_ASSERT(state_list[i]->get_state_id() == i,
+                  GDUT_ERROR(gdut::fsm_state_list_order_exception));
+      state_list[i]->set_fsm_context(*this);
+    }
+  }
 
 #if GDUT_USING_CPP11
-  //***************************************************************************
-  /// A class to store FSM states.
-  //***************************************************************************
+  //*******************************************
+  /// Set the states for the FSM
+  /// From an gdut::fsm_state_pack.
+  //*******************************************
   template <typename... TStates>
-  class fsm_state_pack 
-  {
-  public:
+  void set_states(gdut::fsm_state_pack<TStates...> &state_pack) {
+    state_list = state_pack.get_state_list();
+    number_of_states = gdut::fsm_state_id_t(state_pack.size());
 
-    friend class gdut::fsm;
-
-    GDUT_STATIC_ASSERT((private_fsm::check_ids<0, TStates...>::value), "State IDs must be 0..N-1 and in order");
-    GDUT_STATIC_ASSERT(sizeof...(TStates) > 0, "At least one state is required");
-    GDUT_STATIC_ASSERT(sizeof...(TStates) < private_fsm::ifsm_state_helper<>::No_State_Change, "State IDs mst be less than ifsm_state::No_State_Change");
-
-    //*********************************
-    // The number of states.
-    //*********************************
-    static GDUT_CONSTEXPR size_t size()
-    {
-      return sizeof...(TStates);
+    for (gdut::fsm_state_id_t i = 0; i < number_of_states; ++i) {
+      state_list[i]->set_fsm_context(*this);
     }
-
-    //*********************************
-    /// Gets a reference to the state.
-    //*********************************
-    template <typename TState>
-    TState& get() 
-    { 
-      return gdut::get<TState>(storage); 
-    }
-
-    //*********************************
-    /// Gets a const reference to the state.
-    //*********************************
-    template <typename TState>
-    const TState& get() const 
-    { 
-      return gdut::get<TState>(storage); 
-    }
-
-  private:
-
-    //*********************************
-    /// Gets a pointer to the state list.
-    //*********************************
-    gdut::ifsm_state** get_state_list()
-    {
-      return &states[0];
-    }
-
-    /// A tuple to store the states.
-    gdut::tuple<TStates...> storage{};
-
-    /// Pointers to the states.
-    gdut::ifsm_state* states[sizeof...(TStates)]{ &gdut::get<TStates>(storage)... };
-  };
+  }
 #endif
 
-  //***************************************************************************
-  /// Interface class for FSM states.
-  //***************************************************************************
-  class ifsm_state : public private_fsm::ifsm_state_helper<>
-  {
-  public:
+  //*******************************************
+  /// Starts the FSM.
+  /// Can only be called once.
+  /// Subsequent calls will do nothing.
+  ///\param call_on_enter_state If true will call on_enter_state() for the first
+  ///state. Default = true.
+  //*******************************************
+  virtual void start(bool call_on_enter_state = true) {
+    private_fsm::fsm_reentrancy_guard transition_lock(
+        is_processing_state_change);
 
-    /// Allows ifsm_state functions to be private.
-    friend class gdut::fsm;
-    friend class gdut::hfsm;
+    // Can only be started once.
+    if (!is_started()) {
+      p_state = state_list[0];
+      GDUT_ASSERT(p_state != GDUT_NULLPTR,
+                  GDUT_ERROR(gdut::fsm_null_state_exception));
 
-    using private_fsm::ifsm_state_helper<>::No_State_Change;
-    using private_fsm::ifsm_state_helper<>::Pass_To_Parent;
-    using private_fsm::ifsm_state_helper<>::Self_Transition;
+      if (call_on_enter_state) {
+        gdut::fsm_state_id_t next_state_id;
+        gdut::ifsm_state *p_last_state;
 
-#if GDUT_USING_CPP17 && !defined(GDUT_FSM_FORCE_CPP03_IMPLEMENTATION) // For C++17 and above
-    template <typename, typename, gdut::fsm_state_id_t, typename...>
-    friend class fsm_state;
-#else
-    /*[[[cog
-    import cog
-    cog.outl("  template <typename, typename, gdut::fsm_state_id_t,")
-    cog.out("            ")
-    for n in range(1, int(Handlers)):
-      cog.out("typename, ")
-      if n % 4 == 0:
-          cog.outl("")
-          cog.out("            ")
-    cog.outl("typename>")
-    ]]]*/
-    /*[[[end]]]*/
-    friend class gdut::fsm_state;
-#endif
-
-    //*******************************************
-    /// Gets the id for this state.
-    //*******************************************
-    gdut::fsm_state_id_t get_state_id() const
-    {
-      return state_id;
-    }
-
-    //*******************************************
-    /// Adds a child to this state.
-    /// Only of use when part of an HFSM.
-    //*******************************************
-    void add_child_state(gdut::ifsm_state& state)
-    {
-      GDUT_ASSERT(state.p_parent == GDUT_NULLPTR, GDUT_ERROR(gdut::fsm_null_state_exception));
-      state.p_parent = this;
-
-      if (p_default_child == GDUT_NULLPTR)
-      {
-        p_default_child = &state;
+        do {
+          p_last_state = p_state;
+          next_state_id = p_state->on_enter_state();
+          if (next_state_id != ifsm_state::No_State_Change) {
+            GDUT_ASSERT(next_state_id < number_of_states,
+                        GDUT_ERROR(gdut::fsm_state_id_exception));
+            p_state = state_list[next_state_id];
+          }
+        } while (p_last_state != p_state);
       }
     }
+  }
 
-    //*******************************************
-    /// Adds a list of child states.
-    /// Only of use when part of an HFSM.
-    //*******************************************
-    template <typename TSize>
-    void set_child_states(gdut::ifsm_state** state_list, TSize size)
-    {
-      p_active_child = GDUT_NULLPTR;
-      p_default_child = GDUT_NULLPTR;
+  //*******************************************
+  /// Top level message handler for the FSM.
+  //*******************************************
+  void receive(const gdut::imessage &message) GDUT_OVERRIDE {
+    private_fsm::fsm_reentrancy_guard transition_lock(
+        is_processing_state_change);
 
-      for (TSize i = 0; i < size; ++i)
-      {
-        GDUT_ASSERT(state_list[i] != GDUT_NULLPTR, GDUT_ERROR(gdut::fsm_null_state_exception));
-        add_child_state(*state_list[i]);
-      }
+    if (is_started()) {
+      gdut::fsm_state_id_t next_state_id = p_state->process_event(message);
+
+      process_state_change(next_state_id);
+    } else {
+      GDUT_ASSERT_FAIL(GDUT_ERROR(gdut::fsm_not_started));
+    }
+  }
+
+  //*******************************************
+  /// Invoke a state transition.
+  //*******************************************
+  gdut::fsm_state_id_t transition_to(gdut::fsm_state_id_t new_state_id) {
+    private_fsm::fsm_reentrancy_guard transition_lock(
+        is_processing_state_change);
+
+    if (is_started()) {
+      return process_state_change(new_state_id);
+    } else {
+      return ifsm_state::No_State_Change;
+    }
+  }
+
+  using imessage_router::accepts;
+
+  //*******************************************
+  /// Does this FSM accept the message id?
+  /// Yes, it accepts everything!
+  //*******************************************
+  bool accepts(gdut::message_id_t) const GDUT_OVERRIDE { return true; }
+
+  //*******************************************
+  /// Gets the current state id.
+  //*******************************************
+  gdut::fsm_state_id_t get_state_id() const {
+    GDUT_ASSERT(p_state != GDUT_NULLPTR,
+                GDUT_ERROR(gdut::fsm_null_state_exception));
+    return p_state->get_state_id();
+  }
+
+  //*******************************************
+  /// Gets a reference to the current state interface.
+  //*******************************************
+  ifsm_state &get_state() {
+    GDUT_ASSERT(p_state != GDUT_NULLPTR,
+                GDUT_ERROR(gdut::fsm_null_state_exception));
+    return *p_state;
+  }
+
+  //*******************************************
+  /// Gets a const reference to the current state interface.
+  //*******************************************
+  const ifsm_state &get_state() const {
+    GDUT_ASSERT(p_state != GDUT_NULLPTR,
+                GDUT_ERROR(gdut::fsm_null_state_exception));
+    return *p_state;
+  }
+
+  //*******************************************
+  /// Checks if the FSM has been started.
+  //*******************************************
+  bool is_started() const { return p_state != GDUT_NULLPTR; }
+
+  //*******************************************
+  /// Reset the FSM to pre-started state.
+  ///\param call_on_exit_state If true will call on_exit_state() for the current
+  ///state. Default = false.
+  //*******************************************
+  virtual void reset(bool call_on_exit_state = false) {
+    private_fsm::fsm_reentrancy_guard transition_lock(
+        is_processing_state_change);
+
+    if (is_started() && call_on_exit_state) {
+      p_state->on_exit_state();
     }
 
-  protected:
+    p_state = GDUT_NULLPTR;
+  }
 
-    //*******************************************
-    /// Constructor.
-    //*******************************************
-    ifsm_state(gdut::fsm_state_id_t state_id_)
-      : state_id(state_id_),
-      p_context(GDUT_NULLPTR),
-      p_parent(GDUT_NULLPTR),
-      p_active_child(GDUT_NULLPTR),
-      p_default_child(GDUT_NULLPTR)
-    {
+  //********************************************
+  GDUT_DEPRECATED bool is_null_router() const GDUT_OVERRIDE { return false; }
+
+  //********************************************
+  bool is_producer() const GDUT_OVERRIDE { return true; }
+
+  //********************************************
+  bool is_consumer() const GDUT_OVERRIDE { return true; }
+
+private:
+  //********************************************
+  bool have_changed_state(gdut::fsm_state_id_t next_state_id) const {
+    return (next_state_id != p_state->get_state_id()) &&
+           (next_state_id != ifsm_state::No_State_Change) &&
+           (next_state_id != ifsm_state::Self_Transition);
+  }
+
+  //********************************************
+  bool is_self_transition(gdut::fsm_state_id_t next_state_id) const {
+    return (next_state_id == ifsm_state::Self_Transition);
+  }
+
+  //*******************************************
+  /// Core function to process a state change.
+  //*******************************************
+  virtual gdut::fsm_state_id_t
+  process_state_change(gdut::fsm_state_id_t next_state_id) {
+    if (is_self_transition(next_state_id)) {
+      p_state->on_exit_state();
+      next_state_id = p_state->on_enter_state();
     }
 
-    //*******************************************
-    /// Destructor.
-    //*******************************************
-    virtual ~ifsm_state()
-    {
-    }
+    if (have_changed_state(next_state_id)) {
+      GDUT_ASSERT_OR_RETURN_VALUE(next_state_id < number_of_states,
+                                  GDUT_ERROR(gdut::fsm_state_id_exception),
+                                  p_state->get_state_id());
+      gdut::ifsm_state *p_next_state = state_list[next_state_id];
 
-    //*******************************************
-    gdut::fsm& get_fsm_context() const
-    {
-      return *p_context;
-    }
-
-  private:
-
-    virtual fsm_state_id_t process_event(const gdut::imessage& message) = 0;
-
-    virtual fsm_state_id_t on_enter_state() { return No_State_Change; } // By default, do nothing.
-    virtual void on_exit_state() {}  // By default, do nothing.
-
-    //*******************************************
-    void set_fsm_context(gdut::fsm& context)
-    {
-      p_context = &context;
-    }
-
-    // The state id.
-    const gdut::fsm_state_id_t state_id;
-
-    // A pointer to the FSM context.
-    gdut::fsm* p_context;
-
-    // A pointer to the parent.
-    ifsm_state* p_parent;
-
-    // A pointer to the active child.
-    ifsm_state* p_active_child;
-
-    // A pointer to the default active child.
-    ifsm_state* p_default_child;
-
-    // Disabled.
-    ifsm_state(const ifsm_state&) GDUT_DELETE;
-    ifsm_state& operator =(const ifsm_state&) GDUT_DELETE;
-  };
-
-  //***************************************************************************
-  /// The FSM class.
-  //***************************************************************************
-  class fsm : public gdut::imessage_router
-  {
-  public:
-
-    friend class gdut::hfsm;
-    using imessage_router::receive;
-
-    //*******************************************
-    /// Constructor.
-    //*******************************************
-    fsm(gdut::message_router_id_t id)
-      : imessage_router(id)
-      , p_state(GDUT_NULLPTR)
-      , state_list(GDUT_NULLPTR)
-      , number_of_states(0U)
-      , is_processing_state_change(false)
-    {
-    }
-
-    //*******************************************
-    /// Set the states for the FSM
-    /// From a pointer to gdut::ifsm_state and size.
-    //*******************************************
-    template <typename TSize>
-    void set_states(gdut::ifsm_state** p_states, TSize size)
-    {
-      state_list = p_states;
-      number_of_states = gdut::fsm_state_id_t(size);
-
-      GDUT_ASSERT(number_of_states > 0, GDUT_ERROR(gdut::fsm_state_list_exception));
-      GDUT_ASSERT(number_of_states < ifsm_state::No_State_Change, GDUT_ERROR(gdut::fsm_state_list_exception));
-
-      for (gdut::fsm_state_id_t i = 0; i < size; ++i)
-      {
-        GDUT_ASSERT(state_list[i] != GDUT_NULLPTR, GDUT_ERROR(gdut::fsm_null_state_exception));
-        GDUT_ASSERT(state_list[i]->get_state_id() == i, GDUT_ERROR(gdut::fsm_state_list_order_exception));
-        state_list[i]->set_fsm_context(*this);
-      }
-    }
-
-#if GDUT_USING_CPP11
-    //*******************************************
-    /// Set the states for the FSM
-    /// From an gdut::fsm_state_pack.
-    //*******************************************
-    template <typename... TStates>
-    void set_states(gdut::fsm_state_pack<TStates...>& state_pack)
-    {
-      state_list = state_pack.get_state_list();
-      number_of_states = gdut::fsm_state_id_t(state_pack.size());
-
-      for (gdut::fsm_state_id_t i = 0; i < number_of_states; ++i)
-      {
-        state_list[i]->set_fsm_context(*this);
-      }
-    }
-#endif
-
-    //*******************************************
-    /// Starts the FSM.
-    /// Can only be called once.
-    /// Subsequent calls will do nothing.
-    ///\param call_on_enter_state If true will call on_enter_state() for the first state. Default = true.
-    //*******************************************
-    virtual void start(bool call_on_enter_state = true)
-    {
-      private_fsm::fsm_reentrancy_guard transition_lock(is_processing_state_change);
-
-      // Can only be started once.
-      if (!is_started())
-      {
-        p_state = state_list[0];
-        GDUT_ASSERT(p_state != GDUT_NULLPTR, GDUT_ERROR(gdut::fsm_null_state_exception));
-
-        if (call_on_enter_state)
-        {
-          gdut::fsm_state_id_t next_state_id;
-          gdut::ifsm_state* p_last_state;
-
-          do
-          {
-            p_last_state = p_state;
-            next_state_id = p_state->on_enter_state();
-            if (next_state_id != ifsm_state::No_State_Change)
-            {
-              GDUT_ASSERT(next_state_id < number_of_states, GDUT_ERROR(gdut::fsm_state_id_exception));
-              p_state = state_list[next_state_id];
-            }
-          } while (p_last_state != p_state);
-        }
-      }
-    }
-
-    //*******************************************
-    /// Top level message handler for the FSM.
-    //*******************************************
-    void receive(const gdut::imessage& message) GDUT_OVERRIDE
-    {
-      private_fsm::fsm_reentrancy_guard transition_lock(is_processing_state_change);
-
-      if (is_started())
-      {
-        gdut::fsm_state_id_t next_state_id = p_state->process_event(message);
-
-        process_state_change(next_state_id); 
-      }
-      else
-      {
-        GDUT_ASSERT_FAIL(GDUT_ERROR(gdut::fsm_not_started));
-      }
-    }
-
-    //*******************************************
-    /// Invoke a state transition.
-    //*******************************************
-    gdut::fsm_state_id_t transition_to(gdut::fsm_state_id_t new_state_id)
-    {
-      private_fsm::fsm_reentrancy_guard transition_lock(is_processing_state_change);
-
-      if (is_started())
-      {
-        return process_state_change(new_state_id);
-      }
-      else
-      {
-        return ifsm_state::No_State_Change;
-      }
-    }
-
-    using imessage_router::accepts;
-
-    //*******************************************
-    /// Does this FSM accept the message id?
-    /// Yes, it accepts everything!
-    //*******************************************
-    bool accepts(gdut::message_id_t) const GDUT_OVERRIDE
-    {
-      return true;
-    }
-
-    //*******************************************
-    /// Gets the current state id.
-    //*******************************************
-    gdut::fsm_state_id_t get_state_id() const
-    {
-      GDUT_ASSERT(p_state != GDUT_NULLPTR, GDUT_ERROR(gdut::fsm_null_state_exception));
-      return p_state->get_state_id();
-    }
-
-    //*******************************************
-    /// Gets a reference to the current state interface.
-    //*******************************************
-    ifsm_state& get_state()
-    {
-      GDUT_ASSERT(p_state != GDUT_NULLPTR, GDUT_ERROR(gdut::fsm_null_state_exception));
-      return *p_state;
-    }
-
-    //*******************************************
-    /// Gets a const reference to the current state interface.
-    //*******************************************
-    const ifsm_state& get_state() const
-    {
-      GDUT_ASSERT(p_state != GDUT_NULLPTR, GDUT_ERROR(gdut::fsm_null_state_exception));
-      return *p_state;
-    }
-
-    //*******************************************
-    /// Checks if the FSM has been started.
-    //*******************************************
-    bool is_started() const
-    {
-      return p_state != GDUT_NULLPTR;
-    }
-
-    //*******************************************
-    /// Reset the FSM to pre-started state.
-    ///\param call_on_exit_state If true will call on_exit_state() for the current state. Default = false.
-    //*******************************************
-    virtual void reset(bool call_on_exit_state = false)
-    {
-      private_fsm::fsm_reentrancy_guard transition_lock(is_processing_state_change);
-
-      if (is_started() && call_on_exit_state)
-      {
+      do {
         p_state->on_exit_state();
-      }
+        p_state = p_next_state;
 
-      p_state = GDUT_NULLPTR;
+        next_state_id = p_state->on_enter_state();
+
+        if (have_changed_state(next_state_id)) {
+          GDUT_ASSERT_OR_RETURN_VALUE(next_state_id < number_of_states,
+                                      GDUT_ERROR(gdut::fsm_state_id_exception),
+                                      p_state->get_state_id());
+          p_next_state = state_list[next_state_id];
+        }
+      } while (p_next_state != p_state); // Have we changed state again?
     }
 
-    //********************************************
-    GDUT_DEPRECATED bool is_null_router() const GDUT_OVERRIDE
-    {
+    return p_state->get_state_id();
+  }
+
+  gdut::ifsm_state *p_state;             ///< A pointer to the current state.
+  gdut::ifsm_state **state_list;         ///< The list of added states.
+  gdut::fsm_state_id_t number_of_states; ///< The number of states.
+  bool is_processing_state_change;       ///< Whether a method call that could
+                                   ///< potentially trigger a state change is
+                                   ///< active
+};
+
+//*************************************************************************************************
+// For C++17 and above.
+//*************************************************************************************************
+#if GDUT_USING_CPP17 &&                                                        \
+    !defined(GDUT_FSM_FORCE_CPP03_IMPLEMENTATION) // For C++17 and above
+//***************************************************************************
+// The definition for all types.
+//***************************************************************************
+template <typename TContext, typename TDerived, gdut::fsm_state_id_t STATE_ID_,
+          typename... TMessageTypes>
+class fsm_state : public ifsm_state {
+public:
+  static GDUT_CONSTANT gdut::fsm_state_id_t STATE_ID = STATE_ID_;
+
+  fsm_state() : ifsm_state(STATE_ID) {}
+
+protected:
+  ~fsm_state() {}
+
+  TContext &get_fsm_context() const {
+    return static_cast<TContext &>(ifsm_state::get_fsm_context());
+  }
+
+private:
+  //********************************************
+  struct result_t {
+    bool was_handled;
+    gdut::fsm_state_id_t state_id;
+  };
+
+  //********************************************
+  gdut::fsm_state_id_t process_event(const gdut::imessage &message) {
+    gdut::fsm_state_id_t new_state_id;
+
+    const bool was_handled =
+        (process_event_type<TMessageTypes>(message, new_state_id) || ...);
+
+    if (!was_handled || (new_state_id == Pass_To_Parent)) {
+      new_state_id =
+          (p_parent != nullptr)
+              ? p_parent->process_event(message)
+              : static_cast<TDerived *>(this)->on_event_unknown(message);
+    }
+
+    return new_state_id;
+  }
+
+  //********************************************
+  template <typename TMessage>
+  bool process_event_type(const gdut::imessage &msg,
+                          gdut::fsm_state_id_t &new_state_id) {
+    if (TMessage::ID == msg.get_message_id()) {
+      new_state_id = static_cast<TDerived *>(this)->on_event(
+          static_cast<const TMessage &>(msg));
+      return true;
+    } else {
       return false;
     }
+  }
+};
 
-    //********************************************
-    bool is_producer() const GDUT_OVERRIDE
-    {
-      return true;
-    }
-
-    //********************************************
-    bool is_consumer() const GDUT_OVERRIDE
-    {
-      return true;
-    }
-
-  private:
-
-    //********************************************
-    bool have_changed_state(gdut::fsm_state_id_t next_state_id) const
-    {
-      return (next_state_id != p_state->get_state_id()) &&
-             (next_state_id != ifsm_state::No_State_Change) &&
-             (next_state_id != ifsm_state::Self_Transition);
-    }
-
-    //********************************************
-    bool is_self_transition(gdut::fsm_state_id_t next_state_id) const
-    {
-      return (next_state_id == ifsm_state::Self_Transition);
-    }
-
-    //*******************************************
-    /// Core function to process a state change.
-    //*******************************************
-    virtual gdut::fsm_state_id_t process_state_change(gdut::fsm_state_id_t next_state_id)
-    {
-      if (is_self_transition(next_state_id))
-      {
-        p_state->on_exit_state();
-        next_state_id = p_state->on_enter_state();
-      }
-      
-      if (have_changed_state(next_state_id))
-      {
-        GDUT_ASSERT_OR_RETURN_VALUE(next_state_id < number_of_states, GDUT_ERROR(gdut::fsm_state_id_exception), p_state->get_state_id());
-        gdut::ifsm_state* p_next_state = state_list[next_state_id];
-
-        do
-        {
-          p_state->on_exit_state();
-          p_state = p_next_state;
-
-          next_state_id = p_state->on_enter_state();
-
-          if (have_changed_state(next_state_id))
-          {
-            GDUT_ASSERT_OR_RETURN_VALUE(next_state_id < number_of_states, GDUT_ERROR(gdut::fsm_state_id_exception), p_state->get_state_id());
-            p_next_state = state_list[next_state_id];
-          }
-        } while (p_next_state != p_state); // Have we changed state again?
-      }
-
-      return p_state->get_state_id();
-    }
-
-    gdut::ifsm_state*    p_state;          ///< A pointer to the current state.
-    gdut::ifsm_state**   state_list;       ///< The list of added states.
-    gdut::fsm_state_id_t number_of_states; ///< The number of states.
-    bool is_processing_state_change;      ///< Whether a method call that could potentially trigger a state change is active
-  };
-
-  //*************************************************************************************************
-  // For C++17 and above.
-  //*************************************************************************************************
-#if GDUT_USING_CPP17 && !defined(GDUT_FSM_FORCE_CPP03_IMPLEMENTATION) // For C++17 and above
-  //***************************************************************************
-  // The definition for all types.
-  //***************************************************************************
-  template <typename TContext, typename TDerived, gdut::fsm_state_id_t STATE_ID_, typename... TMessageTypes>
-  class fsm_state : public ifsm_state
-  {
-  public:
-
-    static GDUT_CONSTANT gdut::fsm_state_id_t STATE_ID = STATE_ID_;
-
-    fsm_state()
-      : ifsm_state(STATE_ID)
-    {
-    }
-
-  protected:
-
-    ~fsm_state()
-    {
-    }
-
-    TContext& get_fsm_context() const
-    {
-      return static_cast<TContext&>(ifsm_state::get_fsm_context());
-    }
-
-  private:
-
-    //********************************************
-    struct result_t
-    {
-      bool was_handled;
-      gdut::fsm_state_id_t state_id;
-    };
-
-    //********************************************
-    gdut::fsm_state_id_t process_event(const gdut::imessage& message)
-    {
-      gdut::fsm_state_id_t new_state_id;
-
-      const bool was_handled = (process_event_type<TMessageTypes>(message, new_state_id) || ...);
-
-      if (!was_handled || (new_state_id == Pass_To_Parent))
-      {
-        new_state_id = (p_parent != nullptr) ? p_parent->process_event(message) : static_cast<TDerived*>(this)->on_event_unknown(message);
-      }
-
-      return new_state_id;
-    }
-
-    //********************************************
-    template <typename TMessage>
-    bool process_event_type(const gdut::imessage& msg, gdut::fsm_state_id_t& new_state_id)
-    {
-      if (TMessage::ID == msg.get_message_id())
-      {
-        new_state_id = static_cast<TDerived*>(this)->on_event(static_cast<const TMessage&>(msg));
-        return true;
-      }
-      else
-      {
-        return false;
-      }
-    }
-  };
-
-  /// Definition of STATE_ID
-  template <typename TContext, typename TDerived, gdut::fsm_state_id_t STATE_ID_, typename... TMessageTypes>
-  GDUT_CONSTANT gdut::fsm_state_id_t fsm_state<TContext, TDerived, STATE_ID_, TMessageTypes...>::STATE_ID;
+/// Definition of STATE_ID
+template <typename TContext, typename TDerived, gdut::fsm_state_id_t STATE_ID_,
+          typename... TMessageTypes>
+GDUT_CONSTANT gdut::fsm_state_id_t
+    fsm_state<TContext, TDerived, STATE_ID_, TMessageTypes...>::STATE_ID;
 
 #else
 //*************************************************************************************************
 // For C++14 and below.
 //*************************************************************************************************
-  /*[[[cog
-  import cog
-  ################################################
-  # The first definition for all of the events.
-  ################################################
-  cog.outl("//***************************************************************************")
-  cog.outl("// The definition for all %s message types." % Handlers)
-  cog.outl("//***************************************************************************")
-  cog.outl("template <typename TContext, typename TDerived, gdut::fsm_state_id_t STATE_ID_, ")
-  cog.out("          ")
-  for n in range(1, int(Handlers)):
-      cog.out("typename T%s = void, " % n)
-      if n % 4 == 0:
-          cog.outl("")
-          cog.out("          ")
-  cog.outl("typename T%s = void>" % Handlers)
-  cog.outl("class fsm_state : public ifsm_state")
-  cog.outl("{")
-  cog.outl("public:")
-  cog.outl("")
-  cog.outl("  static GDUT_CONSTANT gdut::fsm_state_id_t STATE_ID = STATE_ID_;")
-  cog.outl("")
-  cog.outl("  fsm_state()")
-  cog.outl("    : ifsm_state(STATE_ID)")
-  cog.outl("  {")
-  cog.outl("  }")
-  cog.outl("")
-  cog.outl("protected:")
-  cog.outl("")
-  cog.outl("  ~fsm_state()")
-  cog.outl("  {")
-  cog.outl("  }")
-  cog.outl("")
-  cog.outl("  TContext& get_fsm_context() const")
-  cog.outl("  {")
-  cog.outl("    return static_cast<TContext&>(ifsm_state::get_fsm_context());")
-  cog.outl("  }")
-  cog.outl("")
-  cog.outl("private:")
-  cog.outl("")
-  cog.outl("  gdut::fsm_state_id_t process_event(const gdut::imessage& message)")
-  cog.outl("  {")
-  cog.outl("    gdut::fsm_state_id_t new_state_id;")
-  cog.outl("    gdut::message_id_t event_id = message.get_message_id();")
-  cog.outl("")
-  cog.outl("    switch (event_id)")
-  cog.outl("    {")
-  for n in range(1, int(Handlers) + 1):
-      cog.out("      case T%d::ID:" % n)
-      cog.out(" new_state_id = static_cast<TDerived*>(this)->on_event(static_cast<const T%d&>(message));" % n)
-      cog.outl(" break;")
-  cog.out("      default:")
-  cog.out(" new_state_id = p_parent ? p_parent->process_event(message) : static_cast<TDerived*>(this)->on_event_unknown(message);")
-  cog.outl(" break;")
-  cog.outl("    }")
-  cog.outl("")
-  cog.outl("    return (new_state_id != Pass_To_Parent) ? new_state_id : (p_parent ? p_parent->process_event(message) : No_State_Change);")
-  cog.outl("  }")
-  cog.outl("};")
+/*[[[cog
+import cog
+################################################
+# The first definition for all of the events.
+################################################
+cog.outl("//***************************************************************************")
+cog.outl("// The definition for all %s message types." % Handlers)
+cog.outl("//***************************************************************************")
+cog.outl("template <typename TContext, typename TDerived, gdut::fsm_state_id_t
+STATE_ID_, ") cog.out("          ") for n in range(1, int(Handlers)):
+    cog.out("typename T%s = void, " % n)
+    if n % 4 == 0:
+        cog.outl("")
+        cog.out("          ")
+cog.outl("typename T%s = void>" % Handlers)
+cog.outl("class fsm_state : public ifsm_state")
+cog.outl("{")
+cog.outl("public:")
+cog.outl("")
+cog.outl("  static GDUT_CONSTANT gdut::fsm_state_id_t STATE_ID = STATE_ID_;")
+cog.outl("")
+cog.outl("  fsm_state()")
+cog.outl("    : ifsm_state(STATE_ID)")
+cog.outl("  {")
+cog.outl("  }")
+cog.outl("")
+cog.outl("protected:")
+cog.outl("")
+cog.outl("  ~fsm_state()")
+cog.outl("  {")
+cog.outl("  }")
+cog.outl("")
+cog.outl("  TContext& get_fsm_context() const")
+cog.outl("  {")
+cog.outl("    return static_cast<TContext&>(ifsm_state::get_fsm_context());")
+cog.outl("  }")
+cog.outl("")
+cog.outl("private:")
+cog.outl("")
+cog.outl("  gdut::fsm_state_id_t process_event(const gdut::imessage& message)")
+cog.outl("  {")
+cog.outl("    gdut::fsm_state_id_t new_state_id;")
+cog.outl("    gdut::message_id_t event_id = message.get_message_id();")
+cog.outl("")
+cog.outl("    switch (event_id)")
+cog.outl("    {")
+for n in range(1, int(Handlers) + 1):
+    cog.out("      case T%d::ID:" % n)
+    cog.out(" new_state_id =
+static_cast<TDerived*>(this)->on_event(static_cast<const T%d&>(message));" % n)
+    cog.outl(" break;")
+cog.out("      default:")
+cog.out(" new_state_id = p_parent ? p_parent->process_event(message) :
+static_cast<TDerived*>(this)->on_event_unknown(message);") cog.outl(" break;")
+cog.outl("    }")
+cog.outl("")
+cog.outl("    return (new_state_id != Pass_To_Parent) ? new_state_id : (p_parent
+? p_parent->process_event(message) : No_State_Change);") cog.outl("  }")
+cog.outl("};")
 
-  ####################################
-  # All of the other specialisations.
-  ####################################
-  for n in range(int(Handlers) - 1, 0, -1):
-      cog.outl("")
-      cog.outl("//***************************************************************************")
-      if n == 1:
-          cog.outl("// Specialisation for %d message type." % n)
-      else:
-          cog.outl("// Specialisation for %d message types." % n)
-      cog.outl("//***************************************************************************")
-      cog.outl("template <typename TContext, typename TDerived, gdut::fsm_state_id_t STATE_ID_, ")
-      cog.out("          ")
-      for t in range(1, n):
-          cog.out("typename T%d, " % t)
-          if t % 4 == 0:
-              cog.outl("")
-              cog.out("          ")
-      cog.outl("typename T%d>" % n)
-      cog.out("class fsm_state<TContext, TDerived, STATE_ID_, ")
-      for t in range(1, n + 1):
-          cog.out("T%d, " % t)
-      if t % 16 == 0:
-          cog.outl("")
-          cog.out("               ")
-      for t in range(n + 1, int(Handlers)):
-          cog.out("void, ")
-      if t % 16 == 0:
-          cog.outl("")
-          cog.out("               ")
-      cog.outl("void> : public ifsm_state")
-      cog.outl("{")
-      cog.outl("public:")
-      cog.outl("")
-      cog.outl("  static GDUT_CONSTANT gdut::fsm_state_id_t STATE_ID = STATE_ID_;")
-      cog.outl("")
-      cog.outl("  fsm_state()")
-      cog.outl("    : ifsm_state(STATE_ID)")
-      cog.outl("  {")
-      cog.outl("  }")
-      cog.outl("")
-      cog.outl("protected:")
-      cog.outl("")
-      cog.outl("  ~fsm_state()")
-      cog.outl("  {")
-      cog.outl("  }")
-      cog.outl("")
-      cog.outl("  TContext& get_fsm_context() const")
-      cog.outl("  {")
-      cog.outl("    return static_cast<TContext&>(ifsm_state::get_fsm_context());")
-      cog.outl("  }")
-      cog.outl("")
-      cog.outl("private:")
-      cog.outl("")
-      cog.outl("  gdut::fsm_state_id_t process_event(const gdut::imessage& message)")
-      cog.outl("  {")
-      cog.outl("    gdut::fsm_state_id_t new_state_id;")
-      cog.outl("    gdut::message_id_t event_id = message.get_message_id();")
-      cog.outl("")
-      cog.outl("    switch (event_id)")
-      cog.outl("    {")
-      for n in range(1, n + 1):
-          cog.out("      case T%d::ID:" % n)
-          cog.out(" new_state_id = static_cast<TDerived*>(this)->on_event(static_cast<const T%d&>(message));" % n)
-          cog.outl(" break;")
-      cog.out("      default:")
-      cog.out(" new_state_id = p_parent ? p_parent->process_event(message) : static_cast<TDerived*>(this)->on_event_unknown(message);")
-      cog.outl(" break;")
-      cog.outl("    }")
-      cog.outl("")
-      cog.outl("    return (new_state_id != Pass_To_Parent) ? new_state_id : (p_parent ? p_parent->process_event(message) : No_State_Change);")
-      cog.outl("  }")
-      cog.outl("};")
-  ####################################
-  # Specialisation for zero messages.
-  ####################################
-  cog.outl("")
-  cog.outl("//***************************************************************************")
-  cog.outl("// Specialisation for 0 message types.")
-  cog.outl("//***************************************************************************")
-  cog.outl("template <typename TContext, typename TDerived, gdut::fsm_state_id_t STATE_ID_>")
-  cog.out("class fsm_state<TContext, TDerived, STATE_ID_, ")
-  for t in range(1, int(Handlers)):
-      cog.out("void, ")
-  if t % 16 == 0:
-      cog.outl("")
-      cog.out("               ")
-  cog.outl("void> : public ifsm_state")
-  cog.outl("{")
-  cog.outl("public:")
-  cog.outl("")
-  cog.outl("  static GDUT_CONSTANT gdut::fsm_state_id_t STATE_ID = STATE_ID_;")
-  cog.outl("")
-  cog.outl("  fsm_state()")
-  cog.outl("    : ifsm_state(STATE_ID)")
-  cog.outl("  {")
-  cog.outl("  }")
-  cog.outl("")
-  cog.outl("protected:")
-  cog.outl("")
-  cog.outl("  ~fsm_state()")
-  cog.outl("  {")
-  cog.outl("  }")
-  cog.outl("")
-  cog.outl("  TContext& get_fsm_context() const")
-  cog.outl("  {")
-  cog.outl("    return static_cast<TContext&>(ifsm_state::get_fsm_context());")
-  cog.outl("  }")
-  cog.outl("private:")
-  cog.outl("")
-  cog.outl("  gdut::fsm_state_id_t process_event(const gdut::imessage& message)")
-  cog.outl("  {")
-  cog.outl("    return p_parent ? p_parent->process_event(message) : static_cast<TDerived*>(this)->on_event_unknown(message);")
-  cog.outl("  }")
-  cog.outl("};")
+####################################
+# All of the other specialisations.
+####################################
+for n in range(int(Handlers) - 1, 0, -1):
+    cog.outl("")
+    cog.outl("//***************************************************************************")
+    if n == 1:
+        cog.outl("// Specialisation for %d message type." % n)
+    else:
+        cog.outl("// Specialisation for %d message types." % n)
+    cog.outl("//***************************************************************************")
+    cog.outl("template <typename TContext, typename TDerived,
+gdut::fsm_state_id_t STATE_ID_, ") cog.out("          ") for t in range(1, n):
+        cog.out("typename T%d, " % t)
+        if t % 4 == 0:
+            cog.outl("")
+            cog.out("          ")
+    cog.outl("typename T%d>" % n)
+    cog.out("class fsm_state<TContext, TDerived, STATE_ID_, ")
+    for t in range(1, n + 1):
+        cog.out("T%d, " % t)
+    if t % 16 == 0:
+        cog.outl("")
+        cog.out("               ")
+    for t in range(n + 1, int(Handlers)):
+        cog.out("void, ")
+    if t % 16 == 0:
+        cog.outl("")
+        cog.out("               ")
+    cog.outl("void> : public ifsm_state")
+    cog.outl("{")
+    cog.outl("public:")
+    cog.outl("")
+    cog.outl("  static GDUT_CONSTANT gdut::fsm_state_id_t STATE_ID =
+STATE_ID_;") cog.outl("") cog.outl("  fsm_state()") cog.outl("    :
+ifsm_state(STATE_ID)") cog.outl("  {") cog.outl("  }") cog.outl("")
+    cog.outl("protected:")
+    cog.outl("")
+    cog.outl("  ~fsm_state()")
+    cog.outl("  {")
+    cog.outl("  }")
+    cog.outl("")
+    cog.outl("  TContext& get_fsm_context() const")
+    cog.outl("  {")
+    cog.outl("    return
+static_cast<TContext&>(ifsm_state::get_fsm_context());") cog.outl("  }")
+    cog.outl("")
+    cog.outl("private:")
+    cog.outl("")
+    cog.outl("  gdut::fsm_state_id_t process_event(const gdut::imessage&
+message)") cog.outl("  {") cog.outl("    gdut::fsm_state_id_t new_state_id;")
+    cog.outl("    gdut::message_id_t event_id = message.get_message_id();")
+    cog.outl("")
+    cog.outl("    switch (event_id)")
+    cog.outl("    {")
+    for n in range(1, n + 1):
+        cog.out("      case T%d::ID:" % n)
+        cog.out(" new_state_id =
+static_cast<TDerived*>(this)->on_event(static_cast<const T%d&>(message));" % n)
+        cog.outl(" break;")
+    cog.out("      default:")
+    cog.out(" new_state_id = p_parent ? p_parent->process_event(message) :
+static_cast<TDerived*>(this)->on_event_unknown(message);") cog.outl(" break;")
+    cog.outl("    }")
+    cog.outl("")
+    cog.outl("    return (new_state_id != Pass_To_Parent) ? new_state_id :
+(p_parent ? p_parent->process_event(message) : No_State_Change);") cog.outl("
+}") cog.outl("};")
+####################################
+# Specialisation for zero messages.
+####################################
+cog.outl("")
+cog.outl("//***************************************************************************")
+cog.outl("// Specialisation for 0 message types.")
+cog.outl("//***************************************************************************")
+cog.outl("template <typename TContext, typename TDerived, gdut::fsm_state_id_t
+STATE_ID_>") cog.out("class fsm_state<TContext, TDerived, STATE_ID_, ") for t in
+range(1, int(Handlers)): cog.out("void, ") if t % 16 == 0: cog.outl("")
+    cog.out("               ")
+cog.outl("void> : public ifsm_state")
+cog.outl("{")
+cog.outl("public:")
+cog.outl("")
+cog.outl("  static GDUT_CONSTANT gdut::fsm_state_id_t STATE_ID = STATE_ID_;")
+cog.outl("")
+cog.outl("  fsm_state()")
+cog.outl("    : ifsm_state(STATE_ID)")
+cog.outl("  {")
+cog.outl("  }")
+cog.outl("")
+cog.outl("protected:")
+cog.outl("")
+cog.outl("  ~fsm_state()")
+cog.outl("  {")
+cog.outl("  }")
+cog.outl("")
+cog.outl("  TContext& get_fsm_context() const")
+cog.outl("  {")
+cog.outl("    return static_cast<TContext&>(ifsm_state::get_fsm_context());")
+cog.outl("  }")
+cog.outl("private:")
+cog.outl("")
+cog.outl("  gdut::fsm_state_id_t process_event(const gdut::imessage& message)")
+cog.outl("  {")
+cog.outl("    return p_parent ? p_parent->process_event(message) :
+static_cast<TDerived*>(this)->on_event_unknown(message);") cog.outl("  }")
+cog.outl("};")
 
-  cog.outl("")
-  cog.outl("template <typename TContext, typename TDerived, gdut::fsm_state_id_t STATE_ID_, ")
-  cog.out("          ")
-  for n in range(1, int(Handlers)):
-      cog.out("typename T%s, " % n)
-      if n % 4 == 0:
-          cog.outl("")
-          cog.out("          ")
-  cog.outl("typename T%s>" % Handlers)
-  cog.out("GDUT_CONSTANT gdut::fsm_state_id_t fsm_state<TContext, TDerived, STATE_ID_, ")
-  for n in range(1, int(Handlers)):
-      cog.out("T%s, " % n)
-  cog.outl("T%s>::STATE_ID;" % Handlers)
-  ]]]*/
-  /*[[[end]]]*/
+cog.outl("")
+cog.outl("template <typename TContext, typename TDerived, gdut::fsm_state_id_t
+STATE_ID_, ") cog.out("          ") for n in range(1, int(Handlers)):
+    cog.out("typename T%s, " % n)
+    if n % 4 == 0:
+        cog.outl("")
+        cog.out("          ")
+cog.outl("typename T%s>" % Handlers)
+cog.out("GDUT_CONSTANT gdut::fsm_state_id_t fsm_state<TContext, TDerived,
+STATE_ID_, ") for n in range(1, int(Handlers)): cog.out("T%s, " % n)
+cog.outl("T%s>::STATE_ID;" % Handlers)
+]]]*/
+/*[[[end]]]*/
 #endif
-}
+} // namespace gdut
 
 #include "private/minmax_pop.hpp"
 

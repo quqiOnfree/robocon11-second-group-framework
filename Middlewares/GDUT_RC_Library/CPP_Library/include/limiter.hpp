@@ -31,57 +31,46 @@ SOFTWARE.
 #ifndef GDUT_LIMITER_INCLUDED
 #define GDUT_LIMITER_INCLUDED
 
-#include "platform.hpp"
-#include "functional.hpp"
-#include "type_traits.hpp"
 #include "algorithm.hpp"
+#include "functional.hpp"
+#include "platform.hpp"
+#include "type_traits.hpp"
 
 #include <stdint.h>
 
-namespace gdut
-{
-  namespace private_limiter
-  {
-    template<typename TInput>
-    struct limit
-    {
-      TInput operator ()(TInput value, TInput lowest, TInput highest) const
-      {
-        return gdut::clamp(value, lowest, highest);
-      }
-    };
+namespace gdut {
+namespace private_limiter {
+template <typename TInput> struct limit {
+  TInput operator()(TInput value, TInput lowest, TInput highest) const {
+    return gdut::clamp(value, lowest, highest);
+  }
+};
+} // namespace private_limiter
+
+//***************************************************************************
+/// Limiter.
+//***************************************************************************
+template <typename TInput,
+          typename TLimit = gdut::private_limiter::limit<TInput>>
+class limiter : public gdut::unary_function<TInput, TInput> {
+public:
+  //*****************************************************************
+  // Constructor.
+  //*****************************************************************
+  limiter(TInput lowest_, TInput highest_)
+      : lowest(lowest_), highest(highest_) {}
+
+  //*****************************************************************
+  // operator ()
+  //*****************************************************************
+  TInput operator()(TInput value) const {
+    return TLimit()(value, lowest, highest);
   }
 
-  //***************************************************************************
-  /// Limiter.
-  //***************************************************************************
-  template<typename TInput, typename TLimit = gdut::private_limiter::limit<TInput> >
-  class limiter : public gdut::unary_function<TInput, TInput>
-  {
-  public:
-
-    //*****************************************************************
-    // Constructor.
-    //*****************************************************************
-    limiter(TInput lowest_, TInput highest_)
-      : lowest(lowest_)
-      , highest(highest_)
-    {
-    }
-
-    //*****************************************************************
-    // operator ()
-    //*****************************************************************
-    TInput operator ()(TInput value) const
-    {
-      return TLimit()(value, lowest, highest);
-    }
-
-  private:
-
-    const TInput lowest;
-    const TInput highest;
-  };
-}
+private:
+  const TInput lowest;
+  const TInput highest;
+};
+} // namespace gdut
 
 #endif

@@ -33,824 +33,757 @@ SOFTWARE.
 
 #define GDUT_IN_PVOIDVECTOR
 
-#include "../platform.hpp"
 #include "../algorithm.hpp"
-#include "vector_base.hpp"
-#include "../type_traits.hpp"
 #include "../error_handler.hpp"
 #include "../functional.hpp"
 #include "../iterator.hpp"
+#include "../platform.hpp"
+#include "../type_traits.hpp"
+#include "vector_base.hpp"
 
 #include <stddef.h>
 
 #include "minmax_push.hpp"
 
-namespace gdut
-{
-  //***************************************************************************
-  /// The base class for void* vectors.
-  ///\ingroup vector
-  //***************************************************************************
-  class pvoidvector : public vector_base
-  {
-  public:
+namespace gdut {
+//***************************************************************************
+/// The base class for void* vectors.
+///\ingroup vector
+//***************************************************************************
+class pvoidvector : public vector_base {
+public:
+  typedef void *value_type;
+  typedef value_type &reference;
+  typedef const value_type &const_reference;
+  typedef value_type *pointer;
+  typedef const value_type *const_pointer;
+  typedef value_type *iterator;
+  typedef const value_type *const_iterator;
+  typedef GDUT_OR_STD::reverse_iterator<iterator> reverse_iterator;
+  typedef GDUT_OR_STD::reverse_iterator<const_iterator> const_reverse_iterator;
+  typedef size_t size_type;
+  typedef gdut::iterator_traits<iterator>::difference_type difference_type;
 
-    typedef void*                                 value_type;
-    typedef value_type&                           reference;
-    typedef const value_type&                     const_reference;
-    typedef value_type*                           pointer;
-    typedef const value_type*                     const_pointer;
-    typedef value_type*                           iterator;
-    typedef const value_type*                     const_iterator;
-    typedef GDUT_OR_STD::reverse_iterator<iterator>       reverse_iterator;
-    typedef GDUT_OR_STD::reverse_iterator<const_iterator> const_reverse_iterator;
-    typedef size_t                                size_type;
-    typedef gdut::iterator_traits<iterator>::difference_type difference_type;
+public:
+  //*********************************************************************
+  /// Returns an iterator to the beginning of the vector.
+  ///\return An iterator to the beginning of the vector.
+  //*********************************************************************
+  iterator begin() { return p_buffer; }
 
-  public:
+  //*********************************************************************
+  /// Returns a const_iterator to the beginning of the vector.
+  ///\return A const iterator to the beginning of the vector.
+  //*********************************************************************
+  const_iterator begin() const { return const_iterator(p_buffer); }
 
-    //*********************************************************************
-    /// Returns an iterator to the beginning of the vector.
-    ///\return An iterator to the beginning of the vector.
-    //*********************************************************************
-    iterator begin()
-    {
-      return p_buffer;
+  //*********************************************************************
+  /// Returns an iterator to the end of the vector.
+  ///\return An iterator to the end of the vector.
+  //*********************************************************************
+  iterator end() { return p_end; }
+
+  //*********************************************************************
+  /// Returns a const_iterator to the end of the vector.
+  ///\return A const iterator to the end of the vector.
+  //*********************************************************************
+  const_iterator end() const { return const_iterator(p_end); }
+
+  //*********************************************************************
+  /// Returns a const_iterator to the beginning of the vector.
+  ///\return A const iterator to the beginning of the vector.
+  //*********************************************************************
+  const_iterator cbegin() const { return const_iterator(p_buffer); }
+
+  //*********************************************************************
+  /// Returns a const_iterator to the end of the vector.
+  ///\return A const iterator to the end of the vector.
+  //*********************************************************************
+  const_iterator cend() const { return const_iterator(p_end); }
+
+  //*********************************************************************
+  /// Returns an reverse iterator to the reverse beginning of the vector.
+  ///\return Iterator to the reverse beginning of the vector.
+  //*********************************************************************
+  reverse_iterator rbegin() { return reverse_iterator(end()); }
+
+  //*********************************************************************
+  /// Returns a const reverse iterator to the reverse beginning of the vector.
+  ///\return Const iterator to the reverse beginning of the vector.
+  //*********************************************************************
+  const_reverse_iterator rbegin() const {
+    return const_reverse_iterator(end());
+  }
+
+  //*********************************************************************
+  /// Returns a reverse iterator to the end + 1 of the vector.
+  ///\return Reverse iterator to the end + 1 of the vector.
+  //*********************************************************************
+  reverse_iterator rend() { return reverse_iterator(begin()); }
+
+  //*********************************************************************
+  /// Returns a const reverse iterator to the end + 1 of the vector.
+  ///\return Const reverse iterator to the end + 1 of the vector.
+  //*********************************************************************
+  const_reverse_iterator rend() const {
+    return const_reverse_iterator(begin());
+  }
+
+  //*********************************************************************
+  /// Returns a const reverse iterator to the reverse beginning of the vector.
+  ///\return Const reverse iterator to the reverse beginning of the vector.
+  //*********************************************************************
+  const_reverse_iterator crbegin() const {
+    return const_reverse_iterator(cend());
+  }
+
+  //*********************************************************************
+  /// Returns a const reverse iterator to the end + 1 of the vector.
+  ///\return Const reverse iterator to the end + 1 of the vector.
+  //*********************************************************************
+  const_reverse_iterator crend() const {
+    return const_reverse_iterator(cbegin());
+  }
+
+  //*********************************************************************
+  /// Resizes the vector.
+  /// If asserts or exceptions are enabled and the new size is larger than the
+  /// maximum then a vector_full is thrown.
+  ///\param new_size The new size.
+  //*********************************************************************
+  void resize(size_t new_size) {
+    GDUT_ASSERT_OR_RETURN(new_size <= CAPACITY, GDUT_ERROR(vector_full));
+
+    p_end = p_buffer + new_size;
+  }
+
+  //*********************************************************************
+  /// Resizes the vector.
+  /// If asserts or exceptions are enabled and the new size is larger than the
+  /// maximum then a vector_full is thrown.
+  ///\param new_size The new size.
+  ///\param value   The value to fill new elements with. Default = default
+  ///constructed value.
+  //*********************************************************************
+  void resize(size_t new_size, value_type value) {
+    GDUT_ASSERT_OR_RETURN(new_size <= CAPACITY, GDUT_ERROR(vector_full));
+
+    pointer p_new_end = p_buffer + new_size;
+
+    // Size up if necessary.
+    if (p_end < p_new_end) {
+      gdut::fill(p_end, p_new_end, value);
     }
 
-    //*********************************************************************
-    /// Returns a const_iterator to the beginning of the vector.
-    ///\return A const iterator to the beginning of the vector.
-    //*********************************************************************
-    const_iterator begin() const
-    {
-      return const_iterator(p_buffer);
-    }
+    p_end = p_new_end;
+  }
 
-    //*********************************************************************
-    /// Returns an iterator to the end of the vector.
-    ///\return An iterator to the end of the vector.
-    //*********************************************************************
-    iterator end()
-    {
-      return p_end;
-    }
+  //*********************************************************************
+  /// Resizes the vector, but does not initialise new entries.
+  ///\param new_size The new size.
+  //*********************************************************************
+  void uninitialized_resize(size_t new_size) {
+    GDUT_ASSERT_OR_RETURN(new_size <= CAPACITY, GDUT_ERROR(vector_full));
 
-    //*********************************************************************
-    /// Returns a const_iterator to the end of the vector.
-    ///\return A const iterator to the end of the vector.
-    //*********************************************************************
-    const_iterator end() const
-    {
-      return const_iterator(p_end);
-    }
+    p_end = p_buffer + new_size;
+  }
 
-    //*********************************************************************
-    /// Returns a const_iterator to the beginning of the vector.
-    ///\return A const iterator to the beginning of the vector.
-    //*********************************************************************
-    const_iterator cbegin() const
-    {
-      return const_iterator(p_buffer);
-    }
+  //*********************************************************************
+  /// Returns a reference to the value at index 'i'
+  ///\param i The index.
+  ///\return A reference to the value at index 'i'
+  //*********************************************************************
+  reference operator[](size_t i) {
+    GDUT_ASSERT_CHECK_INDEX_OPERATOR(i < size(),
+                                     GDUT_ERROR(vector_out_of_bounds));
+    return p_buffer[i];
+  }
 
-    //*********************************************************************
-    /// Returns a const_iterator to the end of the vector.
-    ///\return A const iterator to the end of the vector.
-    //*********************************************************************
-    const_iterator cend() const
-    {
-      return const_iterator(p_end);
-    }
+  //*********************************************************************
+  /// Returns a const reference to the value at index 'i'
+  ///\param i The index.
+  ///\return A const reference to the value at index 'i'
+  //*********************************************************************
+  const_reference operator[](size_t i) const {
+    GDUT_ASSERT_CHECK_INDEX_OPERATOR(i < size(),
+                                     GDUT_ERROR(vector_out_of_bounds));
+    return p_buffer[i];
+  }
 
-    //*********************************************************************
-    /// Returns an reverse iterator to the reverse beginning of the vector.
-    ///\return Iterator to the reverse beginning of the vector.
-    //*********************************************************************
-    reverse_iterator rbegin()
-    {
-      return reverse_iterator(end());
-    }
+  //*********************************************************************
+  /// Returns a reference to the value at index 'i'
+  /// If asserts or exceptions are enabled, emits an gdut::vector_out_of_bounds
+  /// if the index is out of range.
+  ///\param i The index.
+  ///\return A reference to the value at index 'i'
+  //*********************************************************************
+  reference at(size_t i) {
+    GDUT_ASSERT(i < size(), GDUT_ERROR(vector_out_of_bounds));
+    return p_buffer[i];
+  }
 
-    //*********************************************************************
-    /// Returns a const reverse iterator to the reverse beginning of the vector.
-    ///\return Const iterator to the reverse beginning of the vector.
-    //*********************************************************************
-    const_reverse_iterator rbegin() const
-    {
-      return const_reverse_iterator(end());
-    }
+  //*********************************************************************
+  /// Returns a const reference to the value at index 'i'
+  /// If asserts or exceptions are enabled, emits an gdut::vector_out_of_bounds
+  /// if the index is out of range.
+  ///\param i The index.
+  ///\return A const reference to the value at index 'i'
+  //*********************************************************************
+  const_reference at(size_t i) const {
+    GDUT_ASSERT(i < size(), GDUT_ERROR(vector_out_of_bounds));
+    return p_buffer[i];
+  }
 
-    //*********************************************************************
-    /// Returns a reverse iterator to the end + 1 of the vector.
-    ///\return Reverse iterator to the end + 1 of the vector.
-    //*********************************************************************
-    reverse_iterator rend()
-    {
-      return reverse_iterator(begin());
-    }
+  //*********************************************************************
+  /// Returns a reference to the first element.
+  ///\return A reference to the first element.
+  //*********************************************************************
+  reference front() {
+    GDUT_ASSERT_CHECK_EXTRA(size() > 0, GDUT_ERROR(vector_out_of_bounds));
+    return p_buffer[0];
+  }
 
-    //*********************************************************************
-    /// Returns a const reverse iterator to the end + 1 of the vector.
-    ///\return Const reverse iterator to the end + 1 of the vector.
-    //*********************************************************************
-    const_reverse_iterator rend() const
-    {
-      return const_reverse_iterator(begin());
-    }
+  //*********************************************************************
+  /// Returns a const reference to the first element.
+  ///\return A const reference to the first element.
+  //*********************************************************************
+  const_reference front() const {
+    GDUT_ASSERT_CHECK_EXTRA(size() > 0, GDUT_ERROR(vector_out_of_bounds));
+    return p_buffer[0];
+  }
 
-    //*********************************************************************
-    /// Returns a const reverse iterator to the reverse beginning of the vector.
-    ///\return Const reverse iterator to the reverse beginning of the vector.
-    //*********************************************************************
-    const_reverse_iterator crbegin() const
-    {
-      return const_reverse_iterator(cend());
-    }
+  //*********************************************************************
+  /// Returns a reference to the last element.
+  ///\return A reference to the last element.
+  //*********************************************************************
+  reference back() {
+    GDUT_ASSERT_CHECK_EXTRA(size() > 0, GDUT_ERROR(vector_out_of_bounds));
+    return *(p_end - 1);
+  }
 
-    //*********************************************************************
-    /// Returns a const reverse iterator to the end + 1 of the vector.
-    ///\return Const reverse iterator to the end + 1 of the vector.
-    //*********************************************************************
-    const_reverse_iterator crend() const
-    {
-      return const_reverse_iterator(cbegin());
-    }
+  //*********************************************************************
+  /// Returns a const reference to the last element.
+  ///\return A const reference to the last element.
+  //*********************************************************************
+  const_reference back() const {
+    GDUT_ASSERT_CHECK_EXTRA(size() > 0, GDUT_ERROR(vector_out_of_bounds));
+    return *(p_end - 1);
+  }
 
-    //*********************************************************************
-    /// Resizes the vector.
-    /// If asserts or exceptions are enabled and the new size is larger than the
-    /// maximum then a vector_full is thrown.
-    ///\param new_size The new size.
-    //*********************************************************************
-    void resize(size_t new_size)
-    {
-      GDUT_ASSERT_OR_RETURN(new_size <= CAPACITY, GDUT_ERROR(vector_full));
+  //*********************************************************************
+  /// Returns a pointer to the beginning of the vector data.
+  ///\return A pointer to the beginning of the vector data.
+  //*********************************************************************
+  pointer data() { return p_buffer; }
 
-      p_end = p_buffer + new_size;
-    }
+  //*********************************************************************
+  /// Returns a const pointer to the beginning of the vector data.
+  ///\return A const pointer to the beginning of the vector data.
+  //*********************************************************************
+  const_pointer data() const { return p_buffer; }
 
-    //*********************************************************************
-    /// Resizes the vector.
-    /// If asserts or exceptions are enabled and the new size is larger than the
-    /// maximum then a vector_full is thrown.
-    ///\param new_size The new size.
-    ///\param value   The value to fill new elements with. Default = default constructed value.
-    //*********************************************************************
-    void resize(size_t new_size, value_type value)
-    {
-      GDUT_ASSERT_OR_RETURN(new_size <= CAPACITY, GDUT_ERROR(vector_full));
-
-      pointer p_new_end = p_buffer + new_size;
-
-      // Size up if necessary.
-      if (p_end < p_new_end)
-      {
-        gdut::fill(p_end, p_new_end, value);       
-      }
-
-      p_end = p_new_end;
-    }
-
-    //*********************************************************************
-    /// Resizes the vector, but does not initialise new entries.
-    ///\param new_size The new size.
-    //*********************************************************************
-    void uninitialized_resize(size_t new_size)
-    {
-      GDUT_ASSERT_OR_RETURN(new_size <= CAPACITY, GDUT_ERROR(vector_full));
-
-      p_end = p_buffer + new_size;
-    }
-
-    //*********************************************************************
-    /// Returns a reference to the value at index 'i'
-    ///\param i The index.
-    ///\return A reference to the value at index 'i'
-    //*********************************************************************
-    reference operator [](size_t i)
-    {
-      GDUT_ASSERT_CHECK_INDEX_OPERATOR(i < size(), GDUT_ERROR(vector_out_of_bounds));
-      return p_buffer[i];
-    }
-
-    //*********************************************************************
-    /// Returns a const reference to the value at index 'i'
-    ///\param i The index.
-    ///\return A const reference to the value at index 'i'
-    //*********************************************************************
-    const_reference operator [](size_t i) const
-    {
-      GDUT_ASSERT_CHECK_INDEX_OPERATOR(i < size(), GDUT_ERROR(vector_out_of_bounds));
-      return p_buffer[i];
-    }
-
-    //*********************************************************************
-    /// Returns a reference to the value at index 'i'
-    /// If asserts or exceptions are enabled, emits an gdut::vector_out_of_bounds if the index is out of range.
-    ///\param i The index.
-    ///\return A reference to the value at index 'i'
-    //*********************************************************************
-    reference at(size_t i)
-    {
-      GDUT_ASSERT(i < size(), GDUT_ERROR(vector_out_of_bounds));
-      return p_buffer[i];
-    }
-
-    //*********************************************************************
-    /// Returns a const reference to the value at index 'i'
-    /// If asserts or exceptions are enabled, emits an gdut::vector_out_of_bounds if the index is out of range.
-    ///\param i The index.
-    ///\return A const reference to the value at index 'i'
-    //*********************************************************************
-    const_reference at(size_t i) const
-    {
-      GDUT_ASSERT(i < size(), GDUT_ERROR(vector_out_of_bounds));
-      return p_buffer[i];
-    }
-
-    //*********************************************************************
-    /// Returns a reference to the first element.
-    ///\return A reference to the first element.
-    //*********************************************************************
-    reference front()
-    {
-      GDUT_ASSERT_CHECK_EXTRA(size() > 0, GDUT_ERROR(vector_out_of_bounds));
-      return p_buffer[0];
-    }
-
-    //*********************************************************************
-    /// Returns a const reference to the first element.
-    ///\return A const reference to the first element.
-    //*********************************************************************
-    const_reference front() const
-    {
-      GDUT_ASSERT_CHECK_EXTRA(size() > 0, GDUT_ERROR(vector_out_of_bounds));
-      return p_buffer[0];
-    }
-
-    //*********************************************************************
-    /// Returns a reference to the last element.
-    ///\return A reference to the last element.
-    //*********************************************************************
-    reference back()
-    {
-      GDUT_ASSERT_CHECK_EXTRA(size() > 0, GDUT_ERROR(vector_out_of_bounds));
-      return *(p_end - 1);
-    }
-
-    //*********************************************************************
-    /// Returns a const reference to the last element.
-    ///\return A const reference to the last element.
-    //*********************************************************************
-    const_reference back() const
-    {
-      GDUT_ASSERT_CHECK_EXTRA(size() > 0, GDUT_ERROR(vector_out_of_bounds));
-      return *(p_end - 1);
-    }
-
-    //*********************************************************************
-    /// Returns a pointer to the beginning of the vector data.
-    ///\return A pointer to the beginning of the vector data.
-    //*********************************************************************
-    pointer data()
-    {
-      return p_buffer;
-    }
-
-    //*********************************************************************
-    /// Returns a const pointer to the beginning of the vector data.
-    ///\return A const pointer to the beginning of the vector data.
-    //*********************************************************************
-    const_pointer data() const
-    {
-      return p_buffer;
-    }
-
-    //*********************************************************************
-    /// Assigns values to the vector. Non-pointer
-    /// If asserts or exceptions are enabled, emits vector_full if the vector does not have enough free space.
-    /// If asserts or exceptions are enabled, emits vector_iterator if the iterators are reversed.
-    ///\param first The iterator to the first element.
-    ///\param last  The iterator to the last element + 1.
-    //*********************************************************************
-    template <typename TIterator>
-    typename gdut::enable_if<!gdut::is_pointer<TIterator>::value, void>::type
-      assign(TIterator first, TIterator last)
-    {
+  //*********************************************************************
+  /// Assigns values to the vector. Non-pointer
+  /// If asserts or exceptions are enabled, emits vector_full if the vector does
+  /// not have enough free space. If asserts or exceptions are enabled, emits
+  /// vector_iterator if the iterators are reversed.
+  ///\param first The iterator to the first element.
+  ///\param last  The iterator to the last element + 1.
+  //*********************************************************************
+  template <typename TIterator>
+  typename gdut::enable_if<!gdut::is_pointer<TIterator>::value, void>::type
+  assign(TIterator first, TIterator last) {
 #if GDUT_IS_DEBUG_BUILD
-      difference_type d = gdut::distance(first, last);
-      GDUT_ASSERT_OR_RETURN(static_cast<size_t>(d) <= CAPACITY, GDUT_ERROR(vector_full));
+    difference_type d = gdut::distance(first, last);
+    GDUT_ASSERT_OR_RETURN(static_cast<size_t>(d) <= CAPACITY,
+                          GDUT_ERROR(vector_full));
 #endif
 
-      initialise();
+    initialise();
 
-      while (first != last)
-      {
-        *p_end++ = (void*)(*first);
-        ++first;
-      }
+    while (first != last) {
+      *p_end++ = (void *)(*first);
+      ++first;
     }
+  }
 
-    //*********************************************************************
-    /// Assigns values to the vector. Pointer
-    /// If asserts or exceptions are enabled, emits vector_full if the vector does not have enough free space.
-    /// If asserts or exceptions are enabled, emits vector_iterator if the iterators are reversed.
-    ///\param first The iterator to the first element.
-    ///\param last  The iterator to the last element + 1.
-    //*********************************************************************
-    template <typename TIterator>
-    typename gdut::enable_if<gdut::is_pointer<TIterator>::value, void>::type
-      assign(TIterator first, TIterator last)
-    {
-#if GDUT_IS_DEBUG_BUILD     
-      difference_type d = gdut::distance(first, last);
-      GDUT_ASSERT_OR_RETURN(static_cast<size_t>(d) <= CAPACITY, GDUT_ERROR(vector_full));
+  //*********************************************************************
+  /// Assigns values to the vector. Pointer
+  /// If asserts or exceptions are enabled, emits vector_full if the vector does
+  /// not have enough free space. If asserts or exceptions are enabled, emits
+  /// vector_iterator if the iterators are reversed.
+  ///\param first The iterator to the first element.
+  ///\param last  The iterator to the last element + 1.
+  //*********************************************************************
+  template <typename TIterator>
+  typename gdut::enable_if<gdut::is_pointer<TIterator>::value, void>::type
+  assign(TIterator first, TIterator last) {
+#if GDUT_IS_DEBUG_BUILD
+    difference_type d = gdut::distance(first, last);
+    GDUT_ASSERT_OR_RETURN(static_cast<size_t>(d) <= CAPACITY,
+                          GDUT_ERROR(vector_full));
 #endif
 
-      initialise();
+    initialise();
 
-      void** p_first = (void**)(first);
-      void** p_last  = (void**)(last);
+    void **p_first = (void **)(first);
+    void **p_last = (void **)(last);
 
-      p_end = gdut::mem_move(p_first, p_last, p_buffer) + (p_last - p_first);
-    }
+    p_end = gdut::mem_move(p_first, p_last, p_buffer) + (p_last - p_first);
+  }
 
-    //*********************************************************************
-    /// Assigns values to the vector.
-    /// If asserts or exceptions are enabled, emits vector_full if the vector does not have enough free space.
-    ///\param n     The number of elements to add.
-    ///\param value The value to insert for each element.
-    //*********************************************************************
-    void assign(size_t n, value_type value)
-    {
-      GDUT_ASSERT_OR_RETURN(n <= CAPACITY, GDUT_ERROR(vector_full));
+  //*********************************************************************
+  /// Assigns values to the vector.
+  /// If asserts or exceptions are enabled, emits vector_full if the vector does
+  /// not have enough free space.
+  ///\param n     The number of elements to add.
+  ///\param value The value to insert for each element.
+  //*********************************************************************
+  void assign(size_t n, value_type value) {
+    GDUT_ASSERT_OR_RETURN(n <= CAPACITY, GDUT_ERROR(vector_full));
 
-      initialise();
+    initialise();
 
-      p_end = gdut::fill_n(p_buffer, n, value);
-    }
+    p_end = gdut::fill_n(p_buffer, n, value);
+  }
 
-    //*************************************************************************
-    /// Clears the vector.
-    //*************************************************************************
-    void clear()
-    {
-      initialise();
-    }
+  //*************************************************************************
+  /// Clears the vector.
+  //*************************************************************************
+  void clear() { initialise(); }
 
-    //*********************************************************************
-    /// Inserts a value at the end of the vector.
-    /// If asserts or exceptions are enabled, emits vector_full if the vector is already full.
-    ///\param value The value to add.
-    //*********************************************************************
-    void push_back(value_type value)
-    {
-      GDUT_ASSERT_CHECK_PUSH_POP_OR_RETURN(size() != CAPACITY, GDUT_ERROR(vector_full));
+  //*********************************************************************
+  /// Inserts a value at the end of the vector.
+  /// If asserts or exceptions are enabled, emits vector_full if the vector is
+  /// already full.
+  ///\param value The value to add.
+  //*********************************************************************
+  void push_back(value_type value) {
+    GDUT_ASSERT_CHECK_PUSH_POP_OR_RETURN(size() != CAPACITY,
+                                         GDUT_ERROR(vector_full));
 
-      *p_end++ = value;
-    }
+    *p_end++ = value;
+  }
 
-    //*********************************************************************
-    /// Emplaces a value at the end of the vector.
-    /// If asserts or exceptions are enabled, emits vector_full if the vector is already full.
-    ///\param value The value to add.
-    //*********************************************************************
-    void emplace_back(value_type value)
-    {
-      GDUT_ASSERT_CHECK_PUSH_POP_OR_RETURN(size() != CAPACITY, GDUT_ERROR(vector_full));
+  //*********************************************************************
+  /// Emplaces a value at the end of the vector.
+  /// If asserts or exceptions are enabled, emits vector_full if the vector is
+  /// already full.
+  ///\param value The value to add.
+  //*********************************************************************
+  void emplace_back(value_type value) {
+    GDUT_ASSERT_CHECK_PUSH_POP_OR_RETURN(size() != CAPACITY,
+                                         GDUT_ERROR(vector_full));
 
-      * p_end++ = value;
-    }
+    *p_end++ = value;
+  }
 
-    //*************************************************************************
-    /// Removes an element from the end of the vector.
-    /// Does nothing if the vector is empty.
-    //*************************************************************************
-    void pop_back()
-    {
-      GDUT_ASSERT_CHECK_PUSH_POP_OR_RETURN(size() > 0, GDUT_ERROR(vector_empty));
+  //*************************************************************************
+  /// Removes an element from the end of the vector.
+  /// Does nothing if the vector is empty.
+  //*************************************************************************
+  void pop_back() {
+    GDUT_ASSERT_CHECK_PUSH_POP_OR_RETURN(size() > 0, GDUT_ERROR(vector_empty));
 
-      --p_end;
-    }
+    --p_end;
+  }
 
-    //*********************************************************************
-    /// Inserts a value to the vector.
-    /// If asserts or exceptions are enabled, emits vector_full if the vector is already full.
-    ///\param position The position to insert before.
-    ///\param value    The value to insert.
-    //*********************************************************************
+  //*********************************************************************
+  /// Inserts a value to the vector.
+  /// If asserts or exceptions are enabled, emits vector_full if the vector is
+  /// already full.
+  ///\param position The position to insert before.
+  ///\param value    The value to insert.
+  //*********************************************************************
 #if defined(GDUT_COMPILER_GCC) && defined(GDUT_IN_UNIT_TEST)
-  #include "diagnostic_array_bounds_push.hpp"
+#include "diagnostic_array_bounds_push.hpp"
 #endif
-    iterator insert(const_iterator position, value_type value)
-    {
-      GDUT_ASSERT(size() != CAPACITY, GDUT_ERROR(vector_full));
-      GDUT_ASSERT_CHECK_EXTRA(cbegin() <= position && position <= cend(), GDUT_ERROR(vector_out_of_bounds));
+  iterator insert(const_iterator position, value_type value) {
+    GDUT_ASSERT(size() != CAPACITY, GDUT_ERROR(vector_full));
+    GDUT_ASSERT_CHECK_EXTRA(cbegin() <= position && position <= cend(),
+                            GDUT_ERROR(vector_out_of_bounds));
 
-      iterator position_ = to_iterator(position);
-      
-      if (size() != CAPACITY)
-      {
-        if (position_ != end())
-        {
-          ++p_end;
-          gdut::mem_move(position_, end() - 1, position_ + 1);
-          *position_ = value;
-        }
-        else
-        {
-          *p_end++ = value;
-        }
-      }
+    iterator position_ = to_iterator(position);
 
-      return position_;
-    }
-#if defined(GDUT_COMPILER_GCC) && defined(GDUT_IN_UNIT_TEST)
-  #include "diagnostic_pop.hpp"
-#endif
-
-    //*************************************************************************
-    /// Emplaces a value to the vector at the specified position.
-    /// If asserts or exceptions are enabled, emits vector_full if the vector is already full.
-    //*************************************************************************
-#if defined(GDUT_COMPILER_GCC) && defined(GDUT_IN_UNIT_TEST)
-  #include "diagnostic_array_bounds_push.hpp"
-#endif
-    iterator emplace(const_iterator position)
-    {
-      GDUT_ASSERT(size() != CAPACITY, GDUT_ERROR(vector_full));
-      GDUT_ASSERT_CHECK_EXTRA(cbegin() <= position && position <= cend(), GDUT_ERROR(vector_out_of_bounds));
-
-      iterator position_ = to_iterator(position);
-
-      if (position_ != end())
-      {
-        ++p_end;
-        gdut::mem_move(position_, end() - 1, position_ + 1);
-        *position_ = GDUT_NULLPTR;
-      }
-      else
-      {
-        *p_end++ = GDUT_NULLPTR;
-      }
-
-      return position_;
-    }
-#if defined(GDUT_COMPILER_GCC) && defined(GDUT_IN_UNIT_TEST)
-  #include "diagnostic_pop.hpp"
-#endif
-
-    //*************************************************************************
-    /// Emplaces a value to the vector at the specified position.
-    /// If asserts or exceptions are enabled, emits vector_full if the vector is already full.
-    //*************************************************************************
-#if defined(GDUT_COMPILER_GCC) && defined(GDUT_IN_UNIT_TEST)
-  #include "diagnostic_array_bounds_push.hpp"
-#endif
-    iterator emplace(const_iterator position, value_type value)
-    {
-      GDUT_ASSERT(size() != CAPACITY, GDUT_ERROR(vector_full));
-      GDUT_ASSERT_CHECK_EXTRA(cbegin() <= position && position <= cend(), GDUT_ERROR(vector_out_of_bounds));
-
-      iterator position_ = to_iterator(position);
-
-      if (position_ != end())
-      {
+    if (size() != CAPACITY) {
+      if (position_ != end()) {
         ++p_end;
         gdut::mem_move(position_, end() - 1, position_ + 1);
         *position_ = value;
-      }
-      else
-      {
+      } else {
         *p_end++ = value;
       }
-
-      return position_;
     }
+
+    return position_;
+  }
 #if defined(GDUT_COMPILER_GCC) && defined(GDUT_IN_UNIT_TEST)
-  #include "diagnostic_pop.hpp"
+#include "diagnostic_pop.hpp"
 #endif
 
-    //*********************************************************************
-    /// Inserts 'n' values to the vector.
-    /// If asserts or exceptions are enabled, emits vector_full if the vector does not have enough free space.
-    ///\param position The position to insert before.
-    ///\param n        The number of elements to add.
-    ///\param value    The value to insert.
-    //*********************************************************************
+  //*************************************************************************
+  /// Emplaces a value to the vector at the specified position.
+  /// If asserts or exceptions are enabled, emits vector_full if the vector is
+  /// already full.
+  //*************************************************************************
 #if defined(GDUT_COMPILER_GCC) && defined(GDUT_IN_UNIT_TEST)
-  #include "diagnostic_array_bounds_push.hpp"
+#include "diagnostic_array_bounds_push.hpp"
 #endif
-    void insert(const_iterator position, size_t n, value_type value)
-    {
-      GDUT_ASSERT_OR_RETURN((size() + n) <= CAPACITY, GDUT_ERROR(vector_full));
-      GDUT_ASSERT_CHECK_EXTRA(cbegin() <= position && position <= cend(), GDUT_ERROR(vector_out_of_bounds));
+  iterator emplace(const_iterator position) {
+    GDUT_ASSERT(size() != CAPACITY, GDUT_ERROR(vector_full));
+    GDUT_ASSERT_CHECK_EXTRA(cbegin() <= position && position <= cend(),
+                            GDUT_ERROR(vector_out_of_bounds));
 
-      iterator position_ = to_iterator(position);
+    iterator position_ = to_iterator(position);
 
-      gdut::mem_move(position_, p_end, position_ + n);
-      gdut::fill_n(position_, n, value);
-
-      p_end += n;
+    if (position_ != end()) {
+      ++p_end;
+      gdut::mem_move(position_, end() - 1, position_ + 1);
+      *position_ = GDUT_NULLPTR;
+    } else {
+      *p_end++ = GDUT_NULLPTR;
     }
+
+    return position_;
+  }
 #if defined(GDUT_COMPILER_GCC) && defined(GDUT_IN_UNIT_TEST)
-  #include "diagnostic_pop.hpp"
+#include "diagnostic_pop.hpp"
 #endif
 
-    //*********************************************************************
-    /// Inserts a range of values to the vector.
-    /// If asserts or exceptions are enabled, emits vector_full if the vector does not have enough free space.
-    /// For non-pointer iterators.
-    ///\param position The position to insert before.
-    ///\param first    The first element to add.
-    ///\param last     The last + 1 element to add.
-    //*********************************************************************
-    template <typename TIterator>
-    typename gdut::enable_if<!gdut::is_pointer<TIterator>::value, void>::type
-      insert(const_iterator position, TIterator first, TIterator last)
-    {
-      size_t count = gdut::distance(first, last);
+  //*************************************************************************
+  /// Emplaces a value to the vector at the specified position.
+  /// If asserts or exceptions are enabled, emits vector_full if the vector is
+  /// already full.
+  //*************************************************************************
+#if defined(GDUT_COMPILER_GCC) && defined(GDUT_IN_UNIT_TEST)
+#include "diagnostic_array_bounds_push.hpp"
+#endif
+  iterator emplace(const_iterator position, value_type value) {
+    GDUT_ASSERT(size() != CAPACITY, GDUT_ERROR(vector_full));
+    GDUT_ASSERT_CHECK_EXTRA(cbegin() <= position && position <= cend(),
+                            GDUT_ERROR(vector_out_of_bounds));
 
-      iterator position_ = to_iterator(position);
+    iterator position_ = to_iterator(position);
 
-      GDUT_ASSERT_OR_RETURN((size() + count) <= CAPACITY, GDUT_ERROR(vector_full));
-      GDUT_ASSERT_CHECK_EXTRA(cbegin() <= position && position <= cend(), GDUT_ERROR(vector_out_of_bounds));
-
-      gdut::mem_move(position_, p_end, position_ + count);
-      gdut::copy(first, last, position_);
-      p_end += count;
+    if (position_ != end()) {
+      ++p_end;
+      gdut::mem_move(position_, end() - 1, position_ + 1);
+      *position_ = value;
+    } else {
+      *p_end++ = value;
     }
 
-    //*********************************************************************
-    /// Inserts a range of values to the vector.
-    /// If asserts or exceptions are enabled, emits vector_full if the vector does not have enough free space.
-    /// For pointer iterators.
-    ///\param position The position to insert before.
-    ///\param first    The first element to add.
-    ///\param last     The last + 1 element to add.
-    //*********************************************************************
-    template <typename TIterator>
-    typename gdut::enable_if<gdut::is_pointer<TIterator>::value, void>::type
-      insert(const_iterator position, TIterator first, TIterator last)
-    {
-      size_t count = gdut::distance(first, last);
+    return position_;
+  }
+#if defined(GDUT_COMPILER_GCC) && defined(GDUT_IN_UNIT_TEST)
+#include "diagnostic_pop.hpp"
+#endif
 
-      iterator position_ = to_iterator(position);
+  //*********************************************************************
+  /// Inserts 'n' values to the vector.
+  /// If asserts or exceptions are enabled, emits vector_full if the vector does
+  /// not have enough free space.
+  ///\param position The position to insert before.
+  ///\param n        The number of elements to add.
+  ///\param value    The value to insert.
+  //*********************************************************************
+#if defined(GDUT_COMPILER_GCC) && defined(GDUT_IN_UNIT_TEST)
+#include "diagnostic_array_bounds_push.hpp"
+#endif
+  void insert(const_iterator position, size_t n, value_type value) {
+    GDUT_ASSERT_OR_RETURN((size() + n) <= CAPACITY, GDUT_ERROR(vector_full));
+    GDUT_ASSERT_CHECK_EXTRA(cbegin() <= position && position <= cend(),
+                            GDUT_ERROR(vector_out_of_bounds));
 
-      GDUT_ASSERT_OR_RETURN((size() + count) <= CAPACITY, GDUT_ERROR(vector_full));
-      GDUT_ASSERT_CHECK_EXTRA(cbegin() <= position && position <= cend(), GDUT_ERROR(vector_out_of_bounds));
+    iterator position_ = to_iterator(position);
 
-      gdut::mem_move(position_, p_end, position_ + count);
-      gdut::mem_move((void**)first, (void**)last, position_);
-      p_end += count;
+    gdut::mem_move(position_, p_end, position_ + n);
+    gdut::fill_n(position_, n, value);
+
+    p_end += n;
+  }
+#if defined(GDUT_COMPILER_GCC) && defined(GDUT_IN_UNIT_TEST)
+#include "diagnostic_pop.hpp"
+#endif
+
+  //*********************************************************************
+  /// Inserts a range of values to the vector.
+  /// If asserts or exceptions are enabled, emits vector_full if the vector does
+  /// not have enough free space. For non-pointer iterators.
+  ///\param position The position to insert before.
+  ///\param first    The first element to add.
+  ///\param last     The last + 1 element to add.
+  //*********************************************************************
+  template <typename TIterator>
+  typename gdut::enable_if<!gdut::is_pointer<TIterator>::value, void>::type
+  insert(const_iterator position, TIterator first, TIterator last) {
+    size_t count = gdut::distance(first, last);
+
+    iterator position_ = to_iterator(position);
+
+    GDUT_ASSERT_OR_RETURN((size() + count) <= CAPACITY,
+                          GDUT_ERROR(vector_full));
+    GDUT_ASSERT_CHECK_EXTRA(cbegin() <= position && position <= cend(),
+                            GDUT_ERROR(vector_out_of_bounds));
+
+    gdut::mem_move(position_, p_end, position_ + count);
+    gdut::copy(first, last, position_);
+    p_end += count;
+  }
+
+  //*********************************************************************
+  /// Inserts a range of values to the vector.
+  /// If asserts or exceptions are enabled, emits vector_full if the vector does
+  /// not have enough free space. For pointer iterators.
+  ///\param position The position to insert before.
+  ///\param first    The first element to add.
+  ///\param last     The last + 1 element to add.
+  //*********************************************************************
+  template <typename TIterator>
+  typename gdut::enable_if<gdut::is_pointer<TIterator>::value, void>::type
+  insert(const_iterator position, TIterator first, TIterator last) {
+    size_t count = gdut::distance(first, last);
+
+    iterator position_ = to_iterator(position);
+
+    GDUT_ASSERT_OR_RETURN((size() + count) <= CAPACITY,
+                          GDUT_ERROR(vector_full));
+    GDUT_ASSERT_CHECK_EXTRA(cbegin() <= position && position <= cend(),
+                            GDUT_ERROR(vector_out_of_bounds));
+
+    gdut::mem_move(position_, p_end, position_ + count);
+    gdut::mem_move((void **)first, (void **)last, position_);
+    p_end += count;
+  }
+
+  //*********************************************************************
+  /// Erases an element.
+  ///\param i_element Iterator to the element.
+  ///\return An iterator pointing to the element that followed the erased
+  ///element.
+  //*********************************************************************
+  iterator erase(iterator i_element) {
+    GDUT_ASSERT_CHECK_EXTRA(cbegin() <= i_element && i_element < cend(),
+                            GDUT_ERROR(vector_out_of_bounds));
+
+    gdut::mem_move(i_element + 1, end(), i_element);
+    --p_end;
+
+    return i_element;
+  }
+
+  //*********************************************************************
+  /// Erases an element.
+  ///\param i_element Iterator to the element.
+  ///\return An iterator pointing to the element that followed the erased
+  ///element.
+  //*********************************************************************
+  iterator erase(const_iterator i_element) {
+    GDUT_ASSERT_CHECK_EXTRA(cbegin() <= i_element && i_element < cend(),
+                            GDUT_ERROR(vector_out_of_bounds));
+
+    iterator i_element_ = to_iterator(i_element);
+
+    gdut::mem_move(i_element_ + 1, end(), i_element_);
+    --p_end;
+
+    return i_element_;
+  }
+
+  //*********************************************************************
+  /// Erases a range of elements.
+  /// The range includes all the elements between first and last, including the
+  /// element pointed by first, but not the one pointed by last.
+  ///\param first Iterator to the first element.
+  ///\param last  Iterator to the last element.
+  ///\return An iterator pointing to the element that followed the erased
+  ///element.
+  //*********************************************************************
+  iterator erase(const_iterator first, const_iterator last) {
+    GDUT_ASSERT_CHECK_EXTRA(cbegin() <= first && first <= last &&
+                                last <= cend(),
+                            GDUT_ERROR(vector_out_of_bounds));
+
+    iterator first_ = to_iterator(first);
+    iterator last_ = to_iterator(last);
+
+    gdut::mem_move(last_, end(), first_);
+    size_t n_delete = static_cast<size_t>(gdut::distance(first, last));
+
+    // Just adjust the count.
+    p_end -= n_delete;
+
+    return first_;
+  }
+
+  //*************************************************************************
+  /// Assignment operator.
+  //*************************************************************************
+  gdut::pvoidvector &operator=(const gdut::pvoidvector &rhs) {
+    if (&rhs != this) {
+      this->initialise();
+      this->resize(rhs.size());
+      gdut::mem_copy(rhs.data(), rhs.size(), this->data());
     }
 
-    //*********************************************************************
-    /// Erases an element.
-    ///\param i_element Iterator to the element.
-    ///\return An iterator pointing to the element that followed the erased element.
-    //*********************************************************************
-    iterator erase(iterator i_element)
-    {
-      GDUT_ASSERT_CHECK_EXTRA(cbegin() <= i_element && i_element < cend(), GDUT_ERROR(vector_out_of_bounds));
-
-      gdut::mem_move(i_element + 1, end(), i_element);
-      --p_end;
-
-      return i_element;
-    }
-
-    //*********************************************************************
-    /// Erases an element.
-    ///\param i_element Iterator to the element.
-    ///\return An iterator pointing to the element that followed the erased element.
-    //*********************************************************************
-    iterator erase(const_iterator i_element)
-    {
-      GDUT_ASSERT_CHECK_EXTRA(cbegin() <= i_element && i_element < cend(), GDUT_ERROR(vector_out_of_bounds));
-
-      iterator i_element_ = to_iterator(i_element);
-
-      gdut::mem_move(i_element_ + 1, end(), i_element_);
-      --p_end;
-
-      return i_element_;
-    }
-
-    //*********************************************************************
-    /// Erases a range of elements.
-    /// The range includes all the elements between first and last, including the
-    /// element pointed by first, but not the one pointed by last.
-    ///\param first Iterator to the first element.
-    ///\param last  Iterator to the last element.
-    ///\return An iterator pointing to the element that followed the erased element.
-    //*********************************************************************
-    iterator erase(const_iterator first, const_iterator last)
-    {
-      GDUT_ASSERT_CHECK_EXTRA(cbegin() <= first && first <= last && last <= cend(), GDUT_ERROR(vector_out_of_bounds));
-      
-      iterator first_ = to_iterator(first);
-      iterator last_  = to_iterator(last);
-
-      gdut::mem_move(last_, end(), first_);
-      size_t n_delete = static_cast<size_t>(gdut::distance(first, last));
-
-      // Just adjust the count.
-      p_end -= n_delete;
-
-      return first_;
-    }
-
-    //*************************************************************************
-    /// Assignment operator.
-    //*************************************************************************
-    gdut::pvoidvector& operator = (const gdut::pvoidvector& rhs)
-    {
-      if (&rhs != this)
-      {
-        this->initialise();
-        this->resize(rhs.size());
-        gdut::mem_copy(rhs.data(), rhs.size(), this->data());
-      }
-
-      return *this;
-    }
+    return *this;
+  }
 
 #if GDUT_USING_CPP11
-    //*************************************************************************
-    /// Move assignment operator.
-    //*************************************************************************
-    gdut::pvoidvector& operator = (gdut::pvoidvector&& rhs)
-    {
-      if (&rhs != this)
-      {
-        this->initialise();
-        this->resize(rhs.size());
-        gdut::mem_copy(rhs.data(), rhs.size(), this->data());
-        rhs.initialise();
-      }
-
-      return *this;
+  //*************************************************************************
+  /// Move assignment operator.
+  //*************************************************************************
+  gdut::pvoidvector &operator=(gdut::pvoidvector &&rhs) {
+    if (&rhs != this) {
+      this->initialise();
+      this->resize(rhs.size());
+      gdut::mem_copy(rhs.data(), rhs.size(), this->data());
+      rhs.initialise();
     }
+
+    return *this;
+  }
 #endif
 
-    //*************************************************************************
-    /// Gets the current size of the vector.
-    ///\return The current size of the vector.
-    //*************************************************************************
-    size_type size() const
-    {
-      return size_t(p_end - p_buffer);
-    }
+  //*************************************************************************
+  /// Gets the current size of the vector.
+  ///\return The current size of the vector.
+  //*************************************************************************
+  size_type size() const { return size_t(p_end - p_buffer); }
 
-    //*************************************************************************
-    /// Checks the 'empty' state of the vector.
-    ///\return <b>true</b> if empty.
-    //*************************************************************************
-    bool empty() const
-    {
-      return (p_end == p_buffer);
-    }
+  //*************************************************************************
+  /// Checks the 'empty' state of the vector.
+  ///\return <b>true</b> if empty.
+  //*************************************************************************
+  bool empty() const { return (p_end == p_buffer); }
 
-    //*************************************************************************
-    /// Checks the 'full' state of the vector.
-    ///\return <b>true</b> if full.
-    //*************************************************************************
-    bool full() const
-    {
-      return size() == CAPACITY;
-    }
+  //*************************************************************************
+  /// Checks the 'full' state of the vector.
+  ///\return <b>true</b> if full.
+  //*************************************************************************
+  bool full() const { return size() == CAPACITY; }
 
-    //*************************************************************************
-    /// Returns the remaining capacity.
-    ///\return The remaining capacity.
-    //*************************************************************************
-    size_t available() const
-    {
-      return max_size() - size();
-    }
+  //*************************************************************************
+  /// Returns the remaining capacity.
+  ///\return The remaining capacity.
+  //*************************************************************************
+  size_t available() const { return max_size() - size(); }
 
-  protected:
+protected:
+  //*********************************************************************
+  /// Constructor.
+  //*********************************************************************
+  pvoidvector(void **p_buffer_, size_t MAX_SIZE)
+      : vector_base(MAX_SIZE), p_buffer(p_buffer_), p_end(p_buffer_) {}
 
-    //*********************************************************************
-    /// Constructor.
-    //*********************************************************************
-    pvoidvector(void** p_buffer_, size_t MAX_SIZE)
-      : vector_base(MAX_SIZE)
-      , p_buffer(p_buffer_)
-      , p_end(p_buffer_)
-    {
-    }
+  //*********************************************************************
+  /// Initialise the vector.
+  //*********************************************************************
+  void initialise() { p_end = p_buffer; }
 
-    //*********************************************************************
-    /// Initialise the vector.
-    //*********************************************************************
-    void initialise()
-    {
-      p_end = p_buffer;
-    }
+  //*************************************************************************
+  /// Fix the internal pointers after a low level memory copy.
+  //*************************************************************************
+  void repair_buffer(void **p_buffer_) {
+    uintptr_t length = static_cast<uintptr_t>(p_end - p_buffer);
 
-    //*************************************************************************
-    /// Fix the internal pointers after a low level memory copy.
-    //*************************************************************************
-    void repair_buffer(void** p_buffer_)
-    {
-      uintptr_t length = static_cast<uintptr_t>(p_end - p_buffer);
-
-      p_buffer = p_buffer_;
-      p_end = p_buffer_ + length;
-    }
-
-    void** p_buffer;
-    void** p_end;
-
-  private:
-
-    //*************************************************************************
-    /// Convert from const_iterator to iterator
-    //*************************************************************************
-    iterator to_iterator(const_iterator itr) const
-    {
-      return const_cast<iterator>(itr);
-    }
-
-    // Disable copy construction.
-    pvoidvector(const pvoidvector&);
-  };
-
-  //***************************************************************************
-  /// Equal operator.
-  ///\param lhs Reference to the first vector.
-  ///\param rhs Reference to the second vector.
-  ///\return <b>true</b> if the arrays are equal, otherwise <b>false</b>
-  ///\ingroup vector
-  //***************************************************************************
-  inline bool operator ==(const gdut::pvoidvector& lhs, const gdut::pvoidvector& rhs)
-  {
-    return (lhs.size() == rhs.size()) && gdut::equal(lhs.begin(), lhs.end(), rhs.begin());
+    p_buffer = p_buffer_;
+    p_end = p_buffer_ + length;
   }
 
-  //***************************************************************************
-  /// Not equal operator.
-  ///\param lhs Reference to the first vector.
-  ///\param rhs Reference to the second vector.
-  ///\return <b>true</b> if the arrays are not equal, otherwise <b>false</b>
-  ///\ingroup vector
-  //***************************************************************************
-  inline bool operator !=(const gdut::pvoidvector& lhs, const gdut::pvoidvector& rhs)
-  {
-    return !(lhs == rhs);
+  void **p_buffer;
+  void **p_end;
+
+private:
+  //*************************************************************************
+  /// Convert from const_iterator to iterator
+  //*************************************************************************
+  iterator to_iterator(const_iterator itr) const {
+    return const_cast<iterator>(itr);
   }
 
-  //***************************************************************************
-  /// Less than operator.
-  ///\param lhs Reference to the first vector.
-  ///\param rhs Reference to the second vector.
-  ///\return <b>true</b> if the first vector is lexicographically less than the second, otherwise <b>false</b>
-  ///\ingroup vector
-  //***************************************************************************
-  inline bool operator <(const gdut::pvoidvector& lhs, const gdut::pvoidvector& rhs)
-  {
-    return gdut::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
-  }
+  // Disable copy construction.
+  pvoidvector(const pvoidvector &);
+};
 
-  //***************************************************************************
-  /// Greater than operator.
-  ///\param lhs Reference to the first vector.
-  ///\param rhs Reference to the second vector.
-  ///\return <b>true</b> if the first vector is lexicographically greater than the second, otherwise <b>false</b>
-  ///\ingroup vector
-  //***************************************************************************
-  inline bool operator >(const gdut::pvoidvector& lhs, const gdut::pvoidvector& rhs)
-  {
-    return (rhs < lhs);
-  }
-
-  //***************************************************************************
-  /// Less than or equal operator.
-  ///\param lhs Reference to the first vector.
-  ///\param rhs Reference to the second vector.
-  ///\return <b>true</b> if the first vector is lexicographically less than or equal to the second, otherwise <b>false</b>
-  ///\ingroup vector
-  //***************************************************************************
-  inline bool operator <=(const gdut::pvoidvector& lhs, const gdut::pvoidvector& rhs)
-  {
-    return !(lhs > rhs);
-  }
-
-  //***************************************************************************
-  /// Greater than or equal operator.
-  ///\param lhs Reference to the first vector.
-  ///\param rhs Reference to the second vector.
-  ///\return <b>true</b> if the first vector is lexicographically greater than or equal to the second, otherwise <b>false</b>
-  ///\ingroup vector
-  //***************************************************************************
-  inline bool operator >=(const gdut::pvoidvector& lhs, const gdut::pvoidvector& rhs)
-  {
-    return !(lhs < rhs);
-  }
+//***************************************************************************
+/// Equal operator.
+///\param lhs Reference to the first vector.
+///\param rhs Reference to the second vector.
+///\return <b>true</b> if the arrays are equal, otherwise <b>false</b>
+///\ingroup vector
+//***************************************************************************
+inline bool operator==(const gdut::pvoidvector &lhs,
+                       const gdut::pvoidvector &rhs) {
+  return (lhs.size() == rhs.size()) &&
+         gdut::equal(lhs.begin(), lhs.end(), rhs.begin());
 }
+
+//***************************************************************************
+/// Not equal operator.
+///\param lhs Reference to the first vector.
+///\param rhs Reference to the second vector.
+///\return <b>true</b> if the arrays are not equal, otherwise <b>false</b>
+///\ingroup vector
+//***************************************************************************
+inline bool operator!=(const gdut::pvoidvector &lhs,
+                       const gdut::pvoidvector &rhs) {
+  return !(lhs == rhs);
+}
+
+//***************************************************************************
+/// Less than operator.
+///\param lhs Reference to the first vector.
+///\param rhs Reference to the second vector.
+///\return <b>true</b> if the first vector is lexicographically less than the
+///second, otherwise <b>false</b>
+///\ingroup vector
+//***************************************************************************
+inline bool operator<(const gdut::pvoidvector &lhs,
+                      const gdut::pvoidvector &rhs) {
+  return gdut::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(),
+                                       rhs.end());
+}
+
+//***************************************************************************
+/// Greater than operator.
+///\param lhs Reference to the first vector.
+///\param rhs Reference to the second vector.
+///\return <b>true</b> if the first vector is lexicographically greater than the
+///second, otherwise <b>false</b>
+///\ingroup vector
+//***************************************************************************
+inline bool operator>(const gdut::pvoidvector &lhs,
+                      const gdut::pvoidvector &rhs) {
+  return (rhs < lhs);
+}
+
+//***************************************************************************
+/// Less than or equal operator.
+///\param lhs Reference to the first vector.
+///\param rhs Reference to the second vector.
+///\return <b>true</b> if the first vector is lexicographically less than or
+///equal to the second, otherwise <b>false</b>
+///\ingroup vector
+//***************************************************************************
+inline bool operator<=(const gdut::pvoidvector &lhs,
+                       const gdut::pvoidvector &rhs) {
+  return !(lhs > rhs);
+}
+
+//***************************************************************************
+/// Greater than or equal operator.
+///\param lhs Reference to the first vector.
+///\param rhs Reference to the second vector.
+///\return <b>true</b> if the first vector is lexicographically greater than or
+///equal to the second, otherwise <b>false</b>
+///\ingroup vector
+//***************************************************************************
+inline bool operator>=(const gdut::pvoidvector &lhs,
+                       const gdut::pvoidvector &rhs) {
+  return !(lhs < rhs);
+}
+} // namespace gdut
 
 #include "minmax_pop.hpp"
 

@@ -35,141 +35,115 @@ SOFTWARE.
 #ifndef GDUT_VECTOR_BASE_INCLUDED
 #define GDUT_VECTOR_BASE_INCLUDED
 
-#include "../platform.hpp"
-#include "../exception.hpp"
-#include "../error_handler.hpp"
 #include "../debug_count.hpp"
+#include "../error_handler.hpp"
+#include "../exception.hpp"
+#include "../platform.hpp"
 
 #include <stddef.h>
 
-namespace gdut
-{
-  //***************************************************************************
-  ///\ingroup vector
-  /// Exception base for vectors
-  //***************************************************************************
-  class vector_exception : public exception
-  {
-  public:
+namespace gdut {
+//***************************************************************************
+///\ingroup vector
+/// Exception base for vectors
+//***************************************************************************
+class vector_exception : public exception {
+public:
+  vector_exception(string_type reason_, string_type file_name_,
+                   numeric_type line_number_)
+      : exception(reason_, file_name_, line_number_) {}
+};
 
-    vector_exception(string_type reason_, string_type file_name_, numeric_type line_number_)
-      : exception(reason_, file_name_, line_number_)
-    {
-    }
-  };
+//***************************************************************************
+///\ingroup vector
+/// Vector full exception.
+//***************************************************************************
+class vector_full : public vector_exception {
+public:
+  vector_full(string_type file_name_, numeric_type line_number_)
+      : vector_exception(
+            GDUT_ERROR_TEXT("vector:full", GDUT_VECTOR_FILE_ID "A"), file_name_,
+            line_number_) {}
+};
 
-  //***************************************************************************
-  ///\ingroup vector
-  /// Vector full exception.
-  //***************************************************************************
-  class vector_full : public vector_exception
-  {
-  public:
+//***************************************************************************
+///\ingroup vector
+/// Vector empty exception.
+//***************************************************************************
+class vector_empty : public vector_exception {
+public:
+  vector_empty(string_type file_name_, numeric_type line_number_)
+      : vector_exception(
+            GDUT_ERROR_TEXT("vector:empty", GDUT_VECTOR_FILE_ID "B"),
+            file_name_, line_number_) {}
+};
 
-    vector_full(string_type file_name_, numeric_type line_number_)
-      : vector_exception(GDUT_ERROR_TEXT("vector:full", GDUT_VECTOR_FILE_ID"A"), file_name_, line_number_)
-    {
-    }
-  };
+//***************************************************************************
+///\ingroup vector
+/// Vector out of bounds exception.
+//***************************************************************************
+class vector_out_of_bounds : public vector_exception {
+public:
+  vector_out_of_bounds(string_type file_name_, numeric_type line_number_)
+      : vector_exception(
+            GDUT_ERROR_TEXT("vector:bounds", GDUT_VECTOR_FILE_ID "C"),
+            file_name_, line_number_) {}
+};
 
-  //***************************************************************************
-  ///\ingroup vector
-  /// Vector empty exception.
-  //***************************************************************************
-  class vector_empty : public vector_exception
-  {
-  public:
+//***************************************************************************
+///\ingroup vector
+/// Vector incompatible type exception.
+//***************************************************************************
+class vector_incompatible_type : public vector_exception {
+public:
+  vector_incompatible_type(string_type file_name_, numeric_type line_number_)
+      : vector_exception(
+            GDUT_ERROR_TEXT("vector:type", GDUT_VECTOR_FILE_ID "D"), file_name_,
+            line_number_) {}
+};
 
-    vector_empty(string_type file_name_, numeric_type line_number_)
-      : vector_exception(GDUT_ERROR_TEXT("vector:empty", GDUT_VECTOR_FILE_ID"B"), file_name_, line_number_)
-    {
-    }
-  };
+//***************************************************************************
+///\ingroup vector
+/// The base class for all templated vector types.
+//***************************************************************************
+class vector_base {
+public:
+  typedef size_t size_type;
 
-  //***************************************************************************
-  ///\ingroup vector
-  /// Vector out of bounds exception.
-  //***************************************************************************
-  class vector_out_of_bounds : public vector_exception
-  {
-  public:
+  //*************************************************************************
+  /// Returns the capacity of the vector.
+  ///\return The capacity of the vector.
+  //*************************************************************************
+  size_type capacity() const { return CAPACITY; }
 
-    vector_out_of_bounds(string_type file_name_, numeric_type line_number_)
-      : vector_exception(GDUT_ERROR_TEXT("vector:bounds", GDUT_VECTOR_FILE_ID"C"), file_name_, line_number_)
-    {
-    }
-  };
+  //*************************************************************************
+  /// Returns the maximum possible size of the vector.
+  ///\return The maximum size of the vector.
+  //*************************************************************************
+  size_type max_size() const { return CAPACITY; }
 
-  //***************************************************************************
-  ///\ingroup vector
-  /// Vector incompatible type exception.
-  //***************************************************************************
-  class vector_incompatible_type : public vector_exception
-  {
-  public:
+protected:
+  //*************************************************************************
+  /// Constructor.
+  //*************************************************************************
+  vector_base(size_t max_size_) : CAPACITY(max_size_) {}
 
-    vector_incompatible_type(string_type file_name_, numeric_type line_number_)
-      : vector_exception(GDUT_ERROR_TEXT("vector:type", GDUT_VECTOR_FILE_ID"D"), file_name_, line_number_)
-    {
-    }
-  };
-
-  //***************************************************************************
-  ///\ingroup vector
-  /// The base class for all templated vector types.
-  //***************************************************************************
-  class vector_base
-  {
-  public:
-
-    typedef size_t size_type;
-
-    //*************************************************************************
-    /// Returns the capacity of the vector.
-    ///\return The capacity of the vector.
-    //*************************************************************************
-    size_type capacity() const
-    {
-      return CAPACITY;
-    }
-
-    //*************************************************************************
-    /// Returns the maximum possible size of the vector.
-    ///\return The maximum size of the vector.
-    //*************************************************************************
-    size_type max_size() const
-    {
-      return CAPACITY;
-    }
-
-  protected:
-
-    //*************************************************************************
-    /// Constructor.
-    //*************************************************************************
-    vector_base(size_t max_size_)
-      : CAPACITY(max_size_)
-    {
-    }
-
-    //*************************************************************************
-    /// Destructor.
-    //*************************************************************************
-#if defined(GDUT_POLYMORPHIC_VECTOR) || defined(GDUT_POLYMORPHIC_CONTAINERS) || defined(GDUT_IVECTOR_REPAIR_ENABLE)
-  public:
-    virtual ~vector_base()
-    {
-    }
+  //*************************************************************************
+  /// Destructor.
+  //*************************************************************************
+#if defined(GDUT_POLYMORPHIC_VECTOR) ||                                        \
+    defined(GDUT_POLYMORPHIC_CONTAINERS) ||                                    \
+    defined(GDUT_IVECTOR_REPAIR_ENABLE)
+public:
+  virtual ~vector_base() {}
 #else
-  protected:
-    ~vector_base()
-    {
-    }
+protected:
+  ~vector_base() {}
 #endif
 
-    const size_type CAPACITY; ///<The maximum number of elements in the vector.
-    GDUT_DECLARE_DEBUG_COUNT;   ///< Internal debugging.
-  };
-}
+  const size_type CAPACITY; ///< The maximum number of elements in the vector.
+  GDUT_DECLARE_DEBUG_COUNT; ///< Internal debugging.
+};
+} // namespace gdut
 
 #endif

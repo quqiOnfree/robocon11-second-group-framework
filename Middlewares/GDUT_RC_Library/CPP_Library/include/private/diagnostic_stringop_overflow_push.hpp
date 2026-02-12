@@ -33,11 +33,12 @@ SOFTWARE.
  * This file is intended to evaluated multiple times by design.
  */
 
-#if defined(__GNUC__) && (__GNUC__ >= 11) && !defined(__clang__) && !defined(__llvm__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wstringop-overflow"
+#if defined(__GNUC__) && (__GNUC__ >= 11) && !defined(__clang__) &&            \
+    !defined(__llvm__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
 #endif
 
 #if defined(__clang__) || defined(__llvm__)
-  #pragma clang diagnostic push
+#pragma clang diagnostic push
 #endif

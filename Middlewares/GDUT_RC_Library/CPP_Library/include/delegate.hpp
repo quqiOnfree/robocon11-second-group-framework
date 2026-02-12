@@ -34,9 +34,9 @@ SOFTWARE.
 #include "platform.hpp"
 
 #if GDUT_USING_CPP11 && !defined(GDUT_DELEGATE_FORCE_CPP03_IMPLEMENTATION)
-  #include "private/delegate_cpp11.hpp" // IWYU pragma: export
+#include "private/delegate_cpp11.hpp" // IWYU pragma: export
 #else
-  #include "private/delegate_cpp03.hpp" // IWYU pragma: export
+#include "private/delegate_cpp03.hpp" // IWYU pragma: export
 #endif
 
 #endif

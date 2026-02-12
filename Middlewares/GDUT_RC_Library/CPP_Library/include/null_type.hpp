@@ -33,12 +33,8 @@ SOFTWARE.
 
 #include <stddef.h>
 
-namespace gdut
-{
-  template <size_t Index>
-  class null_type
-  {
-  };
-}
+namespace gdut {
+template <size_t Index> class null_type {};
+} // namespace gdut
 
 #endif

@@ -34,807 +34,784 @@ SOFTWARE.
 #include "platform.hpp"
 #include "type_traits.hpp"
 
-namespace gdut
-{
-  #define GDUT_TYPEDEF(T, name) class name##_tag; typedef gdut::type_def<name##_tag, T> name
-  #define GDUT_USING(name, T)   class name##_tag; typedef gdut::type_def<name##_tag, T> name
+namespace gdut {
+#define GDUT_TYPEDEF(T, name)                                                  \
+  class name##_tag;                                                            \
+  typedef gdut::type_def<name##_tag, T> name
+#define GDUT_USING(name, T)                                                    \
+  class name##_tag;                                                            \
+  typedef gdut::type_def<name##_tag, T> name
 
-  //*************************************************************************
-  /// A template type to define strong typedefs.
-  /// Usage:
-  ///\code
-  /// // Short form.
-  /// GDUT_TYPEDEF(int, mytype);
-  /// or
-  /// GDUT_USING(mytype, int);
-  ///
-  /// // Long form.
-  /// class mytype_t_tag;
-  /// typedef gdut::type_def<mytype_t_tag, int> mytype;
-  ///\endcode
-  //*************************************************************************
-  template <typename TIdType, typename TValue>
-  class type_def
-  {
-  public:
+//*************************************************************************
+/// A template type to define strong typedefs.
+/// Usage:
+///\code
+/// // Short form.
+/// GDUT_TYPEDEF(int, mytype);
+/// or
+/// GDUT_USING(mytype, int);
+///
+/// // Long form.
+/// class mytype_t_tag;
+/// typedef gdut::type_def<mytype_t_tag, int> mytype;
+///\endcode
+//*************************************************************************
+template <typename TIdType, typename TValue> class type_def {
+public:
+  typedef TValue type;
+  typedef TValue value_type;
+  typedef TIdType id_type;
 
-    typedef TValue  type;
-    typedef TValue  value_type;
-    typedef TIdType id_type;
+  //*********************************************************************
+  GDUT_CONSTEXPR type_def() GDUT_NOEXCEPT : value(TValue()) {}
 
-    //*********************************************************************
-    GDUT_CONSTEXPR type_def() GDUT_NOEXCEPT
-      : value(TValue())
-    {
-    }
-
-    //*********************************************************************
+  //*********************************************************************
 #if GDUT_USING_CPP11
-    template <typename T, typename = typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, void>::type>
+  template <typename T, typename = typename gdut::enable_if<
+                            gdut::is_convertible<T, TValue>::value, void>::type>
 #else
-    template <typename T>
+  template <typename T>
 #endif
-    GDUT_CONSTEXPR type_def(T value_) GDUT_NOEXCEPT
-      : value(value_)
-    {
-    }
+  GDUT_CONSTEXPR type_def(T value_) GDUT_NOEXCEPT : value(value_) {
+  }
 
-    //*********************************************************************
+  //*********************************************************************
 #if GDUT_USING_CPP11
-    GDUT_CONSTEXPR type_def(const type_def& other) = default;
+  GDUT_CONSTEXPR type_def(const type_def &other) = default;
 #endif
 
-    //*********************************************************************
-    GDUT_CONSTEXPR operator TValue() const GDUT_NOEXCEPT
-    {
-      return value;
-    }
+  //*********************************************************************
+  GDUT_CONSTEXPR operator TValue() const GDUT_NOEXCEPT { return value; }
 
-    //*********************************************************************
-    GDUT_CONSTEXPR14 type_def& operator ++() GDUT_NOEXCEPT
-    {
-      ++value;
-      return *this;
-    }
+  //*********************************************************************
+  GDUT_CONSTEXPR14 type_def &operator++() GDUT_NOEXCEPT {
+    ++value;
+    return *this;
+  }
 
-    //*********************************************************************
-    GDUT_CONSTEXPR14 type_def operator ++(int) GDUT_NOEXCEPT
-    {
-      type_def temp(*this);
-      type_def::operator ++();
-      return temp;
-    }
+  //*********************************************************************
+  GDUT_CONSTEXPR14 type_def operator++(int) GDUT_NOEXCEPT {
+    type_def temp(*this);
+    type_def::operator++();
+    return temp;
+  }
 
-    //*********************************************************************
-    GDUT_CONSTEXPR14 type_def& operator --() GDUT_NOEXCEPT
-    {
-      --value;
-      return *this;
-    }
+  //*********************************************************************
+  GDUT_CONSTEXPR14 type_def &operator--() GDUT_NOEXCEPT {
+    --value;
+    return *this;
+  }
 
-    //*********************************************************************
-    GDUT_CONSTEXPR14 type_def operator --(int) GDUT_NOEXCEPT
-    {
-      type_def temp(*this);
-      type_def::operator --();
-      return temp;
-    }
+  //*********************************************************************
+  GDUT_CONSTEXPR14 type_def operator--(int) GDUT_NOEXCEPT {
+    type_def temp(*this);
+    type_def::operator--();
+    return temp;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    GDUT_CONSTEXPR14 
+  //*********************************************************************
+  template <typename T>
+  GDUT_CONSTEXPR14
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def&>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def &>::type
 #else
-      type_def&
+      type_def &
 #endif
-      operator +=(T rhs) GDUT_NOEXCEPT
-    {
-      value += rhs;
-      return *this;
-    }
+      operator+=(T rhs) GDUT_NOEXCEPT {
+    value += rhs;
+    return *this;
+  }
 
-    //*********************************************************************
-    GDUT_CONSTEXPR14 
-    type_def& operator +=(const type_def& rhs) GDUT_NOEXCEPT
-    {
-      value += rhs.value;
-      return *this;
-    }
+  //*********************************************************************
+  GDUT_CONSTEXPR14
+  type_def &operator+=(const type_def &rhs) GDUT_NOEXCEPT {
+    value += rhs.value;
+    return *this;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    GDUT_CONSTEXPR14 
+  //*********************************************************************
+  template <typename T>
+  GDUT_CONSTEXPR14
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def&>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def &>::type
 #else
-      type_def&
+      type_def &
 #endif
-      operator -=(T rhs) GDUT_NOEXCEPT
-    {
-      value -= rhs;
-      return *this;
-    }
+      operator-=(T rhs) GDUT_NOEXCEPT {
+    value -= rhs;
+    return *this;
+  }
 
-    //*********************************************************************
-    GDUT_CONSTEXPR14 type_def& operator -=(const type_def& rhs) GDUT_NOEXCEPT
-    {
-      value -= rhs.value;
-      return *this;
-    }
+  //*********************************************************************
+  GDUT_CONSTEXPR14 type_def &operator-=(const type_def &rhs) GDUT_NOEXCEPT {
+    value -= rhs.value;
+    return *this;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    GDUT_CONSTEXPR14 
+  //*********************************************************************
+  template <typename T>
+  GDUT_CONSTEXPR14
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def&>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def &>::type
 #else
-      type_def&
+      type_def &
 #endif
-      operator *=(T rhs) GDUT_NOEXCEPT
-    {
-      value *= rhs;
-      return *this;
-    }
+      operator*=(T rhs) GDUT_NOEXCEPT {
+    value *= rhs;
+    return *this;
+  }
 
-    //*********************************************************************
-    GDUT_CONSTEXPR14 type_def& operator *=(const type_def& rhs) GDUT_NOEXCEPT
-    {
-      value *= rhs.value;
-      return *this;
-    }
+  //*********************************************************************
+  GDUT_CONSTEXPR14 type_def &operator*=(const type_def &rhs) GDUT_NOEXCEPT {
+    value *= rhs.value;
+    return *this;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    GDUT_CONSTEXPR14 
+  //*********************************************************************
+  template <typename T>
+  GDUT_CONSTEXPR14
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def&>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def &>::type
 #else
-      type_def&
+      type_def &
 #endif
-      operator /=(T rhs) GDUT_NOEXCEPT
-    {
-      value /= rhs;
-      return *this;
-    }
+      operator/=(T rhs) GDUT_NOEXCEPT {
+    value /= rhs;
+    return *this;
+  }
 
-    //*********************************************************************
-    GDUT_CONSTEXPR14 type_def& operator /=(const type_def& rhs) GDUT_NOEXCEPT
-    {
-      value /= rhs.value;
-      return *this;
-    }
+  //*********************************************************************
+  GDUT_CONSTEXPR14 type_def &operator/=(const type_def &rhs) GDUT_NOEXCEPT {
+    value /= rhs.value;
+    return *this;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    GDUT_CONSTEXPR14 
+  //*********************************************************************
+  template <typename T>
+  GDUT_CONSTEXPR14
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def&>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def &>::type
 #else
-      type_def&
+      type_def &
 #endif
-      operator %=(T rhs) GDUT_NOEXCEPT
-    {
-      value %= rhs;
-      return *this;
-    }
+      operator%=(T rhs) GDUT_NOEXCEPT {
+    value %= rhs;
+    return *this;
+  }
 
-    //*********************************************************************
-    GDUT_CONSTEXPR14 type_def& operator %=(const type_def& rhs) GDUT_NOEXCEPT
-    {
-      value %= rhs.value;
-      return *this;
-    }
+  //*********************************************************************
+  GDUT_CONSTEXPR14 type_def &operator%=(const type_def &rhs) GDUT_NOEXCEPT {
+    value %= rhs.value;
+    return *this;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    GDUT_CONSTEXPR14 
+  //*********************************************************************
+  template <typename T>
+  GDUT_CONSTEXPR14
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def&>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def &>::type
 #else
-      type_def&
+      type_def &
 #endif
-      operator &=(T rhs) GDUT_NOEXCEPT
-    {
-      value &= rhs;
-      return *this;
-    }
+      operator&=(T rhs) GDUT_NOEXCEPT {
+    value &= rhs;
+    return *this;
+  }
 
-    //*********************************************************************
-    GDUT_CONSTEXPR14 type_def& operator &=(const type_def& rhs) GDUT_NOEXCEPT
-    {
-      value &= rhs.value;
-      return *this;
-    }
+  //*********************************************************************
+  GDUT_CONSTEXPR14 type_def &operator&=(const type_def &rhs) GDUT_NOEXCEPT {
+    value &= rhs.value;
+    return *this;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    GDUT_CONSTEXPR14 
+  //*********************************************************************
+  template <typename T>
+  GDUT_CONSTEXPR14
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def&>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def &>::type
 #else
-      type_def&
+      type_def &
 #endif
-      operator |=(T rhs) GDUT_NOEXCEPT
-    {
-      value |= rhs;
-      return *this;
-    }
+      operator|=(T rhs) GDUT_NOEXCEPT {
+    value |= rhs;
+    return *this;
+  }
 
-    //*********************************************************************
-    GDUT_CONSTEXPR14 type_def& operator |=(const type_def& rhs) GDUT_NOEXCEPT
-    {
-      value |= rhs.value;
-      return *this;
-    }
+  //*********************************************************************
+  GDUT_CONSTEXPR14 type_def &operator|=(const type_def &rhs) GDUT_NOEXCEPT {
+    value |= rhs.value;
+    return *this;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    GDUT_CONSTEXPR14 
+  //*********************************************************************
+  template <typename T>
+  GDUT_CONSTEXPR14
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def&>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def &>::type
 #else
-      type_def&
+      type_def &
 #endif
-      operator ^=(T rhs) GDUT_NOEXCEPT
-    {
-      value ^= rhs;
-      return *this;
-    }
+      operator^=(T rhs) GDUT_NOEXCEPT {
+    value ^= rhs;
+    return *this;
+  }
 
-    //*********************************************************************
-    GDUT_CONSTEXPR14 type_def& operator ^=(const type_def& rhs) GDUT_NOEXCEPT
-    {
-      value ^= rhs.value;
-      return *this;
-    }
+  //*********************************************************************
+  GDUT_CONSTEXPR14 type_def &operator^=(const type_def &rhs) GDUT_NOEXCEPT {
+    value ^= rhs.value;
+    return *this;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    GDUT_CONSTEXPR14 typename gdut::enable_if<gdut::is_integral<T>::value, type_def&>::type
-     operator <<=(T rhs) GDUT_NOEXCEPT
-    {
-      value <<= rhs;
-      return *this;
-    }
+  //*********************************************************************
+  template <typename T>
+  GDUT_CONSTEXPR14
+      typename gdut::enable_if<gdut::is_integral<T>::value, type_def &>::type
+      operator<<=(T rhs) GDUT_NOEXCEPT {
+    value <<= rhs;
+    return *this;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    GDUT_CONSTEXPR14 typename gdut::enable_if<gdut::is_integral<T>::value, type_def&>::type
-     operator >>=(T rhs) GDUT_NOEXCEPT
-    {
-      value >>= rhs;
-      return *this;
-    }
+  //*********************************************************************
+  template <typename T>
+  GDUT_CONSTEXPR14
+      typename gdut::enable_if<gdut::is_integral<T>::value, type_def &>::type
+      operator>>=(T rhs) GDUT_NOEXCEPT {
+    value >>= rhs;
+    return *this;
+  }
 
-    //*********************************************************************
+  //*********************************************************************
 #if GDUT_USING_CPP11
-    GDUT_CONSTEXPR14 type_def& operator =(const type_def& rhs) = default;
+  GDUT_CONSTEXPR14 type_def &operator=(const type_def &rhs) = default;
 #endif
 
-    //*********************************************************************
-    TValue& get() GDUT_NOEXCEPT
-    {
-      return value;
-    }
+  //*********************************************************************
+  TValue &get() GDUT_NOEXCEPT { return value; }
 
-    //*********************************************************************
-    GDUT_CONSTEXPR const TValue& get() const GDUT_NOEXCEPT
-    {
-      return value;
-    }
+  //*********************************************************************
+  GDUT_CONSTEXPR const TValue &get() const GDUT_NOEXCEPT { return value; }
 
-    //*********************************************************************
-    // + operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  // + operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def>::type
 #else
       type_def
 #endif
-      operator +(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value + rhs);
-    }
+      operator+(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value + rhs);
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR type_def operator +(T lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs + rhs.value);
-    }
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR type_def operator+(T lhs,
+                                           const type_def &rhs) GDUT_NOEXCEPT {
+    return type_def(lhs + rhs.value);
+  }
 
-    //*********************************************************************
-    friend GDUT_CONSTEXPR type_def operator +(const type_def& lhs, const type_def& rhs)
-    {
-      return type_def(lhs.value + rhs.value);
-    }
+  //*********************************************************************
+  friend GDUT_CONSTEXPR type_def operator+(const type_def &lhs,
+                                           const type_def &rhs) {
+    return type_def(lhs.value + rhs.value);
+  }
 
-    //*********************************************************************
-    // - operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR 
+  //*********************************************************************
+  // - operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def>::type
 #else
       type_def
 #endif
-      operator -(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value - rhs);
-    }
+      operator-(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value - rhs);
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def>::type
 #else
       type_def
 #endif
-      operator -(T lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs - rhs.value);
-    }
+      operator-(T lhs, const type_def &rhs) GDUT_NOEXCEPT {
+    return type_def(lhs - rhs.value);
+  }
 
-    //*********************************************************************
-    friend GDUT_CONSTEXPR type_def operator -(const type_def& lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value - rhs.value);
-    }
+  //*********************************************************************
+  friend GDUT_CONSTEXPR type_def operator-(const type_def &lhs,
+                                           const type_def &rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value - rhs.value);
+  }
 
-    //*********************************************************************
-    // * operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  // * operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def>::type
 #else
       type_def
 #endif
-      operator *(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value * rhs);
-    }
+      operator*(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value * rhs);
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def>::type
 #else
       type_def
 #endif
-      operator *(T lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs * rhs.value);
-    }
+      operator*(T lhs, const type_def &rhs) GDUT_NOEXCEPT {
+    return type_def(lhs * rhs.value);
+  }
 
-    //*********************************************************************
-    friend GDUT_CONSTEXPR type_def operator *(const type_def& lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value * rhs.value);
-    }
+  //*********************************************************************
+  friend GDUT_CONSTEXPR type_def operator*(const type_def &lhs,
+                                           const type_def &rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value * rhs.value);
+  }
 
-    //*********************************************************************
-    // / operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  // / operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def>::type
 #else
       type_def
 #endif
-      operator /(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value / rhs);
-    }
+      operator/(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value / rhs);
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def>::type
 #else
       type_def
 #endif
-      operator /(T lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs / rhs.value);
-    }
+      operator/(T lhs, const type_def &rhs) GDUT_NOEXCEPT {
+    return type_def(lhs / rhs.value);
+  }
 
-    //*********************************************************************
-    friend GDUT_CONSTEXPR type_def operator /(const type_def& lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value / rhs.value);
-    }
+  //*********************************************************************
+  friend GDUT_CONSTEXPR type_def operator/(const type_def &lhs,
+                                           const type_def &rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value / rhs.value);
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def>::type
 #else
       type_def
 #endif
-      operator %(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value % rhs);
-    }
+      operator%(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value % rhs);
+  }
 
-    //*********************************************************************
-    // % operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  // % operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def>::type
 #else
       type_def
 #endif
-      operator %(T lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs % rhs.value);
-    }
+      operator%(T lhs, const type_def &rhs) GDUT_NOEXCEPT {
+    return type_def(lhs % rhs.value);
+  }
 
-    //*********************************************************************
-    friend GDUT_CONSTEXPR type_def operator %(const type_def& lhs, const type_def& rhs)
-    {
-      return type_def(lhs.value % rhs.value);
-    }
+  //*********************************************************************
+  friend GDUT_CONSTEXPR type_def operator%(const type_def &lhs,
+                                           const type_def &rhs) {
+    return type_def(lhs.value % rhs.value);
+  }
 
-    //*********************************************************************
-    // & operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR 
+  //*********************************************************************
+  // & operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def>::type
 #else
       type_def
 #endif
-      operator &(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value & rhs);
-    }
+      operator&(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value & rhs);
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def>::type
 #else
       type_def
 #endif
-      operator &(T lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs & rhs.value);
-    }
+      operator&(T lhs, const type_def &rhs) GDUT_NOEXCEPT {
+    return type_def(lhs & rhs.value);
+  }
 
-    //*********************************************************************
-    friend GDUT_CONSTEXPR type_def operator &(const type_def& lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value & rhs.value);
-    }
+  //*********************************************************************
+  friend GDUT_CONSTEXPR type_def operator&(const type_def &lhs,
+                                           const type_def &rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value & rhs.value);
+  }
 
-    //*********************************************************************
-    // | operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  // | operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def>::type
 #else
       type_def
 #endif
-      operator |(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value | rhs);
-    }
+      operator|(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value | rhs);
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def>::type
 #else
       type_def
 #endif
-      operator |(T lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs | rhs.value);
-    }
+      operator|(T lhs, const type_def &rhs) GDUT_NOEXCEPT {
+    return type_def(lhs | rhs.value);
+  }
 
-    //*********************************************************************
-    friend GDUT_CONSTEXPR type_def operator |(const type_def& lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value | rhs.value);
-    }
+  //*********************************************************************
+  friend GDUT_CONSTEXPR type_def operator|(const type_def &lhs,
+                                           const type_def &rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value | rhs.value);
+  }
 
-    //*********************************************************************
-    // ^ operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  // ^ operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def>::type
 #else
       type_def
 #endif
-      operator ^(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value ^ rhs);
-    }
+      operator^(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value ^ rhs);
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, type_def>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               type_def>::type
 #else
       type_def
 #endif
-      operator ^(T lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs ^ rhs.value);
-    }
+      operator^(T lhs, const type_def &rhs) GDUT_NOEXCEPT {
+    return type_def(lhs ^ rhs.value);
+  }
 
-    //*********************************************************************
-    friend GDUT_CONSTEXPR type_def operator ^(const type_def& lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value ^ rhs.value);
-    }
+  //*********************************************************************
+  friend GDUT_CONSTEXPR type_def operator^(const type_def &lhs,
+                                           const type_def &rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value ^ rhs.value);
+  }
 
-    //*********************************************************************
-    // << operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR typename gdut::enable_if<gdut::is_integral<T>::value, type_def>::type
-      operator <<(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value << rhs);
-    }
+  //*********************************************************************
+  // << operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
+      typename gdut::enable_if<gdut::is_integral<T>::value, type_def>::type
+      operator<<(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value << rhs);
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR typename gdut::enable_if<(gdut::is_integral<T>::value && gdut::is_integral<TValue>::value), T>::type
-      operator <<(T lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return lhs << rhs.value;
-    }
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
+      typename gdut::enable_if<(gdut::is_integral<T>::value &&
+                                gdut::is_integral<TValue>::value),
+                               T>::type
+      operator<<(T lhs, const type_def &rhs) GDUT_NOEXCEPT {
+    return lhs << rhs.value;
+  }
 
-    //*********************************************************************
-    // >> operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR typename gdut::enable_if<gdut::is_integral<T>::value, type_def>::type
-      operator >>(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return type_def(lhs.value >> rhs);
-    }
+  //*********************************************************************
+  // >> operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
+      typename gdut::enable_if<gdut::is_integral<T>::value, type_def>::type
+      operator>>(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return type_def(lhs.value >> rhs);
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
-    typename gdut::enable_if<(gdut::is_integral<T>::value && gdut::is_integral<TValue>::value), T>::type
-      operator >>(T lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return lhs >> rhs.value;
-    }
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
+      typename gdut::enable_if<(gdut::is_integral<T>::value &&
+                                gdut::is_integral<TValue>::value),
+                               T>::type
+      operator>>(T lhs, const type_def &rhs) GDUT_NOEXCEPT {
+    return lhs >> rhs.value;
+  }
 
-    //*********************************************************************
-    // < operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  // < operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, bool>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               bool>::type
 #else
       bool
 #endif
-      operator <(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return lhs.value < rhs;
-    }
+      operator<(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return lhs.value < rhs;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, bool>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               bool>::type
 #else
       bool
 #endif
-      operator <(T lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return lhs < rhs.value;
-    }
+      operator<(T lhs, const type_def &rhs) GDUT_NOEXCEPT {
+    return lhs < rhs.value;
+  }
 
-    //*********************************************************************
-    friend GDUT_CONSTEXPR bool operator <(const type_def& lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return lhs.value < rhs.value;
-    }
+  //*********************************************************************
+  friend GDUT_CONSTEXPR bool operator<(const type_def &lhs,
+                                       const type_def &rhs) GDUT_NOEXCEPT {
+    return lhs.value < rhs.value;
+  }
 
-    //*********************************************************************
-    // <= operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  // <= operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, bool>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               bool>::type
 #else
       bool
 #endif
-      operator <=(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return lhs.value <= rhs;
-    }
+      operator<=(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return lhs.value <= rhs;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, bool>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               bool>::type
 #else
       bool
 #endif
-      operator <=(T lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return lhs <= rhs.value;
-    }
+      operator<=(T lhs, const type_def &rhs) GDUT_NOEXCEPT {
+    return lhs <= rhs.value;
+  }
 
-    //*********************************************************************
-    friend GDUT_CONSTEXPR bool operator <=(const type_def& lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return lhs.value <= rhs.value;
-    }
+  //*********************************************************************
+  friend GDUT_CONSTEXPR bool operator<=(const type_def &lhs,
+                                        const type_def &rhs) GDUT_NOEXCEPT {
+    return lhs.value <= rhs.value;
+  }
 
-    //*********************************************************************
-    // > operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  // > operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, bool>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               bool>::type
 #else
       bool
 #endif
-      operator >(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return lhs.value > rhs;
-    }
+      operator>(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return lhs.value > rhs;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, bool>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               bool>::type
 #else
       bool
 #endif
-      operator >(T lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return lhs > rhs.value;
-    }
+      operator>(T lhs, const type_def &rhs) GDUT_NOEXCEPT {
+    return lhs > rhs.value;
+  }
 
-    //*********************************************************************
-    friend GDUT_CONSTEXPR bool operator >(const type_def& lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return lhs.value > rhs.value;
-    }
+  //*********************************************************************
+  friend GDUT_CONSTEXPR bool operator>(const type_def &lhs,
+                                       const type_def &rhs) GDUT_NOEXCEPT {
+    return lhs.value > rhs.value;
+  }
 
-    //*********************************************************************
-    // >= operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  // >= operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, bool>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               bool>::type
 #else
       bool
 #endif
-      operator >=(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return lhs.value >= rhs;
-    }
+      operator>=(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return lhs.value >= rhs;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, bool>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               bool>::type
 #else
       bool
 #endif
-      operator >=(T lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return lhs >= rhs.value;
-    }
+      operator>=(T lhs, const type_def &rhs) GDUT_NOEXCEPT {
+    return lhs >= rhs.value;
+  }
 
-    //*********************************************************************
-    friend GDUT_CONSTEXPR bool operator >=(const type_def& lhs, const type_def& rhs)
-    {
-      return lhs.value >= rhs.value;
-    }
+  //*********************************************************************
+  friend GDUT_CONSTEXPR bool operator>=(const type_def &lhs,
+                                        const type_def &rhs) {
+    return lhs.value >= rhs.value;
+  }
 
-    //*********************************************************************
-    // == operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  // == operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, bool>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               bool>::type
 #else
       bool
 #endif
-      operator ==(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return lhs.value == rhs;
-    }
+      operator==(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return lhs.value == rhs;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, bool>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               bool>::type
 #else
       bool
 #endif
-      operator ==(T lhs, const type_def& rhs)
-    {
-      return lhs == rhs.value;
-    }
+      operator==(T lhs, const type_def &rhs) {
+    return lhs == rhs.value;
+  }
 
-    //*********************************************************************
-    friend GDUT_CONSTEXPR bool operator ==(const type_def& lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return lhs.value == rhs.value;
-    }
+  //*********************************************************************
+  friend GDUT_CONSTEXPR bool operator==(const type_def &lhs,
+                                        const type_def &rhs) GDUT_NOEXCEPT {
+    return lhs.value == rhs.value;
+  }
 
-    //*********************************************************************
-    // != operator
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  // != operator
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, bool>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               bool>::type
 #else
       bool
 #endif
-      operator !=(const type_def& lhs, T rhs) GDUT_NOEXCEPT
-    {
-      return lhs.value != rhs;
-    }
+      operator!=(const type_def &lhs, T rhs) GDUT_NOEXCEPT {
+    return lhs.value != rhs;
+  }
 
-    //*********************************************************************
-    template <typename T>
-    friend GDUT_CONSTEXPR
+  //*********************************************************************
+  template <typename T>
+  friend GDUT_CONSTEXPR
 #if GDUT_USING_CPP11
-      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value, bool>::type
+      typename gdut::enable_if<gdut::is_convertible<T, TValue>::value,
+                               bool>::type
 #else
       bool
 #endif
-      operator !=(T lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return lhs != rhs.value;
-    }
+      operator!=(T lhs, const type_def &rhs) GDUT_NOEXCEPT {
+    return lhs != rhs.value;
+  }
 
-    //*********************************************************************
-    friend GDUT_CONSTEXPR bool operator !=(const type_def& lhs, const type_def& rhs) GDUT_NOEXCEPT
-    {
-      return lhs.value != rhs.value;
-    }
+  //*********************************************************************
+  friend GDUT_CONSTEXPR bool operator!=(const type_def &lhs,
+                                        const type_def &rhs) GDUT_NOEXCEPT {
+    return lhs.value != rhs.value;
+  }
 
-  private:
-
-      TValue value;
-  };
-}
+private:
+  TValue value;
+};
+} // namespace gdut
 
 #endif

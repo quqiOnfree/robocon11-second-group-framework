@@ -37,42 +37,38 @@ SOFTWARE.
 ///\defgroup crc64_iso 64 bit iso CRC calculation
 ///\ingroup crc
 
-namespace gdut
-{
+namespace gdut {
 #if GDUT_USING_CPP11
-  template <size_t Table_Size>
-  using crc64_iso_t = gdut::crc_type<gdut::private_crc::crc64_iso_parameters, Table_Size>;
+template <size_t Table_Size>
+using crc64_iso_t =
+    gdut::crc_type<gdut::private_crc::crc64_iso_parameters, Table_Size>;
 #else
-  template <size_t Table_Size>
-  class crc64_iso_t : public gdut::crc_type<gdut::private_crc::crc64_iso_parameters, Table_Size>
-  {
-  public:
+template <size_t Table_Size>
+class crc64_iso_t
+    : public gdut::crc_type<gdut::private_crc::crc64_iso_parameters,
+                            Table_Size> {
+public:
+  //*************************************************************************
+  /// Default constructor.
+  //*************************************************************************
+  crc64_iso_t() { this->reset(); }
 
-    //*************************************************************************
-    /// Default constructor.
-    //*************************************************************************
-    crc64_iso_t()
-    {
-      this->reset();
-    }
-
-    //*************************************************************************
-    /// Constructor from range.
-    /// \param begin Start of the range.
-    /// \param end   End of the range.
-    //*************************************************************************
-    template<typename TIterator>
-    crc64_iso_t(TIterator begin, const TIterator end)
-    {
-      this->reset();
-      this->add(begin, end);
-    }
-  };
+  //*************************************************************************
+  /// Constructor from range.
+  /// \param begin Start of the range.
+  /// \param end   End of the range.
+  //*************************************************************************
+  template <typename TIterator>
+  crc64_iso_t(TIterator begin, const TIterator end) {
+    this->reset();
+    this->add(begin, end);
+  }
+};
 #endif
 
-  typedef gdut::crc64_iso_t<256U> crc64_iso_t256;
-  typedef gdut::crc64_iso_t<16U>  crc64_iso_t16;
-  typedef gdut::crc64_iso_t<4U>   crc64_iso_t4;
-  typedef crc64_iso_t256         crc64_iso;
-}
+typedef gdut::crc64_iso_t<256U> crc64_iso_t256;
+typedef gdut::crc64_iso_t<16U> crc64_iso_t16;
+typedef gdut::crc64_iso_t<4U> crc64_iso_t4;
+typedef crc64_iso_t256 crc64_iso;
+} // namespace gdut
 #endif

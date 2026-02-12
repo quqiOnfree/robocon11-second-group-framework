@@ -37,42 +37,38 @@ SOFTWARE.
 ///\defgroup crc16_xmodem 16 bit CRC calculation
 ///\ingroup crc
 
-namespace gdut
-{
+namespace gdut {
 #if GDUT_USING_CPP11
-  template <size_t Table_Size>
-  using crc16_xmodem_t = gdut::crc_type<gdut::private_crc::crc16_xmodem_parameters, Table_Size>;
+template <size_t Table_Size>
+using crc16_xmodem_t =
+    gdut::crc_type<gdut::private_crc::crc16_xmodem_parameters, Table_Size>;
 #else
-  template <size_t Table_Size>    
-  class crc16_xmodem_t : public gdut::crc_type<gdut::private_crc::crc16_xmodem_parameters, Table_Size>
-  {
-  public:
+template <size_t Table_Size>
+class crc16_xmodem_t
+    : public gdut::crc_type<gdut::private_crc::crc16_xmodem_parameters,
+                            Table_Size> {
+public:
+  //*************************************************************************
+  /// Default constructor.
+  //*************************************************************************
+  crc16_xmodem_t() { this->reset(); }
 
-    //*************************************************************************
-    /// Default constructor.
-    //*************************************************************************
-    crc16_xmodem_t()
-    {
-      this->reset();
-    }
-
-    //*************************************************************************
-    /// Constructor from range.
-    /// \param begin Start of the range.
-    /// \param end   End of the range.
-    //*************************************************************************
-    template<typename TIterator>
-    crc16_xmodem_t(TIterator begin, const TIterator end)
-    {
-      this->reset();
-      this->add(begin, end);
-    }
-  };
+  //*************************************************************************
+  /// Constructor from range.
+  /// \param begin Start of the range.
+  /// \param end   End of the range.
+  //*************************************************************************
+  template <typename TIterator>
+  crc16_xmodem_t(TIterator begin, const TIterator end) {
+    this->reset();
+    this->add(begin, end);
+  }
+};
 #endif
 
-  typedef gdut::crc16_xmodem_t<256U> crc16_xmodem_t256;
-  typedef gdut::crc16_xmodem_t<16U>  crc16_xmodem_t16;
-  typedef gdut::crc16_xmodem_t<4U>   crc16_xmodem_t4;
-  typedef crc16_xmodem_t256         crc16_xmodem;
-}
+typedef gdut::crc16_xmodem_t<256U> crc16_xmodem_t256;
+typedef gdut::crc16_xmodem_t<16U> crc16_xmodem_t16;
+typedef gdut::crc16_xmodem_t<4U> crc16_xmodem_t4;
+typedef crc16_xmodem_t256 crc16_xmodem;
+} // namespace gdut
 #endif

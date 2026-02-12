@@ -38,17 +38,17 @@ SOFTWARE.
 #define GDUT_TARGET_DEVICE_GENERIC
 #define GDUT_TARGET_OS_NONE
 #ifdef __cplusplus
-  #define GDUT_CPP11_SUPPORTED                      (__cplusplus >= 201103L)
-  #define GDUT_CPP14_SUPPORTED                      (__cplusplus >= 201402L)
-  #define GDUT_CPP17_SUPPORTED                      (__cplusplus >= 201703L)
+#define GDUT_CPP11_SUPPORTED (__cplusplus >= 201103L)
+#define GDUT_CPP14_SUPPORTED (__cplusplus >= 201402L)
+#define GDUT_CPP17_SUPPORTED (__cplusplus >= 201703L)
 #else
-  #define GDUT_CPP11_SUPPORTED                      0
-  #define GDUT_CPP14_SUPPORTED                      0
-  #define GDUT_CPP17_SUPPORTED                      0
+#define GDUT_CPP11_SUPPORTED 0
+#define GDUT_CPP14_SUPPORTED 0
+#define GDUT_CPP17_SUPPORTED 0
 #endif
-#define GDUT_NO_NULLPTR_SUPPORT                     1
-#define GDUT_NO_LARGE_CHAR_SUPPORT                  GDUT_CPP11_NOT_SUPPORTED
+#define GDUT_NO_NULLPTR_SUPPORT 1
+#define GDUT_NO_LARGE_CHAR_SUPPORT GDUT_CPP11_NOT_SUPPORTED
 #define GDUT_CPP11_TYPE_TRAITS_IS_TRIVIAL_SUPPORTED 0
-#define GDUT_STLPORT                                1
+#define GDUT_STLPORT 1
 
 #endif

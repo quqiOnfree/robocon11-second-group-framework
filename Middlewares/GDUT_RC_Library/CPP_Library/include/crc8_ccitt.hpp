@@ -34,43 +34,39 @@ SOFTWARE.
 #include "platform.hpp"
 #include "private/crc_implementation.hpp"
 
-namespace gdut
-{
+namespace gdut {
 #if GDUT_USING_CPP11 && !defined(GDUT_CRC_FORCE_CPP03_IMPLEMENTATION)
-  template <size_t Table_Size>
-  using crc8_ccitt_t = gdut::crc_type<gdut::private_crc::crc8_ccitt_parameters, Table_Size>;
+template <size_t Table_Size>
+using crc8_ccitt_t =
+    gdut::crc_type<gdut::private_crc::crc8_ccitt_parameters, Table_Size>;
 #else
-  template <size_t Table_Size>
-  class crc8_ccitt_t : public gdut::crc_type<gdut::private_crc::crc8_ccitt_parameters, Table_Size>
-  {
-  public:
+template <size_t Table_Size>
+class crc8_ccitt_t
+    : public gdut::crc_type<gdut::private_crc::crc8_ccitt_parameters,
+                            Table_Size> {
+public:
+  //*************************************************************************
+  /// Default constructor.
+  //*************************************************************************
+  crc8_ccitt_t() { this->reset(); }
 
-    //*************************************************************************
-    /// Default constructor.
-    //*************************************************************************
-    crc8_ccitt_t()
-    {
-      this->reset();
-    }
-
-    //*************************************************************************
-    /// Constructor from range.
-    /// \param begin Start of the range.
-    /// \param end   End of the range.
-    //*************************************************************************
-    template<typename TIterator>
-    crc8_ccitt_t(TIterator begin, const TIterator end)
-    {
-      this->reset();
-      this->add(begin, end);
-    }
-  };
+  //*************************************************************************
+  /// Constructor from range.
+  /// \param begin Start of the range.
+  /// \param end   End of the range.
+  //*************************************************************************
+  template <typename TIterator>
+  crc8_ccitt_t(TIterator begin, const TIterator end) {
+    this->reset();
+    this->add(begin, end);
+  }
+};
 #endif
 
-  typedef crc8_ccitt_t<256U> crc8_ccitt_t256;
-  typedef crc8_ccitt_t<16U>  crc8_ccitt_t16;
-  typedef crc8_ccitt_t<4U>   crc8_ccitt_t4;
-  typedef crc8_ccitt_t256    crc8_ccitt;
-}
+typedef crc8_ccitt_t<256U> crc8_ccitt_t256;
+typedef crc8_ccitt_t<16U> crc8_ccitt_t16;
+typedef crc8_ccitt_t<4U> crc8_ccitt_t4;
+typedef crc8_ccitt_t256 crc8_ccitt;
+} // namespace gdut
 
 #endif

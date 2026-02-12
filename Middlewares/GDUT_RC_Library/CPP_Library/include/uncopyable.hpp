@@ -33,27 +33,23 @@ SOFTWARE.
 
 #include "platform.hpp"
 
-namespace gdut
-{
+namespace gdut {
 #if GDUT_USING_CPP11
-  //***************************************************************************
-  /// An uncopyable base class.
-  /// Can be used to make a class uncopyable by deriving from it.
-  //***************************************************************************
-  class uncopyable
-  {
-  public:
+//***************************************************************************
+/// An uncopyable base class.
+/// Can be used to make a class uncopyable by deriving from it.
+//***************************************************************************
+class uncopyable {
+public:
+  uncopyable(uncopyable const &) = delete;
+  uncopyable &operator=(uncopyable const &) = delete;
 
-    uncopyable(uncopyable const&)            = delete;
-    uncopyable& operator=(uncopyable const&) = delete;
-
-  protected:
-    
-    uncopyable()  = default;
-    ~uncopyable() = default;
-  };
+protected:
+  uncopyable() = default;
+  ~uncopyable() = default;
+};
 
 #endif
-}
+} // namespace gdut
 
 #endif

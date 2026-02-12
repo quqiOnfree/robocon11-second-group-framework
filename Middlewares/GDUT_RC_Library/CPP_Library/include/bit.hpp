@@ -31,222 +31,195 @@ SOFTWARE.
 #ifndef GDUT_BIT_INCLUDED
 #define GDUT_BIT_INCLUDED
 
-#include "platform.hpp"
-#include "type_traits.hpp"
 #include "binary.hpp"
-#include "integral_limits.hpp"
 #include "endianness.hpp"
+#include "integral_limits.hpp"
+#include "platform.hpp"
 #include "type_traits.hpp"
 
 #include <string.h>
 
 #if GDUT_USING_CPP20 && GDUT_USING_STL
-  #include <bit>
+#include <bit>
 #endif
 
-namespace gdut
-{
-  //***************************************************************************
-  /// bit_cast - Type to different type.
-  //***************************************************************************
-  template <typename TDestination, typename TSource>
-  GDUT_NODISCARD
-  typename gdut::enable_if<!(gdut::is_integral<TDestination>::value&& gdut::is_integral<TSource>::value) &&
-                          (sizeof(TDestination) == sizeof(TSource)) &&
-                          gdut::is_trivially_copyable<TSource>::value &&
-                          gdut::is_trivially_copyable<TDestination>::value, TDestination>::type
-    bit_cast(const TSource& source) GDUT_NOEXCEPT
-  {
-    TDestination destination;
+namespace gdut {
+//***************************************************************************
+/// bit_cast - Type to different type.
+//***************************************************************************
+template <typename TDestination, typename TSource>
+GDUT_NODISCARD typename gdut::enable_if<
+    !(gdut::is_integral<TDestination>::value &&
+      gdut::is_integral<TSource>::value) &&
+        (sizeof(TDestination) == sizeof(TSource)) &&
+        gdut::is_trivially_copyable<TSource>::value &&
+        gdut::is_trivially_copyable<TDestination>::value,
+    TDestination>::type
+bit_cast(const TSource &source) GDUT_NOEXCEPT {
+  TDestination destination;
 
-    memcpy(&destination, &source, sizeof(TDestination));
+  memcpy(&destination, &source, sizeof(TDestination));
 
-    return destination;
-  }
+  return destination;
+}
 
-  //***************************************************************************
-  /// bit_cast - Integral to integral
-  //***************************************************************************
-  template <typename TDestination, typename TSource>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  typename gdut::enable_if<(gdut::is_integral<TDestination>::value && gdut::is_integral<TSource>::value) && 
-                          (sizeof(TDestination) == sizeof(TSource)), TDestination>::type
-    bit_cast(const TSource& source) GDUT_NOEXCEPT
-  {
-    return static_cast<TDestination>(source);
-  }
+//***************************************************************************
+/// bit_cast - Integral to integral
+//***************************************************************************
+template <typename TDestination, typename TSource>
+GDUT_NODISCARD GDUT_CONSTEXPR14
+    typename gdut::enable_if<(gdut::is_integral<TDestination>::value &&
+                              gdut::is_integral<TSource>::value) &&
+                                 (sizeof(TDestination) == sizeof(TSource)),
+                             TDestination>::type
+    bit_cast(const TSource &source) GDUT_NOEXCEPT {
+  return static_cast<TDestination>(source);
+}
 
-  //***************************************************************************
-  /// byteswap
-  //***************************************************************************
-  template <typename T>
-  GDUT_CONSTEXPR14
-    typename gdut::enable_if<gdut::is_integral<T>::value, T>::type
-    byteswap(T value) GDUT_NOEXCEPT
-  {
-    return gdut::reverse_bytes(value);
-  }
+//***************************************************************************
+/// byteswap
+//***************************************************************************
+template <typename T>
+GDUT_CONSTEXPR14 typename gdut::enable_if<gdut::is_integral<T>::value, T>::type
+byteswap(T value) GDUT_NOEXCEPT {
+  return gdut::reverse_bytes(value);
+}
 
-  //***************************************************************************
-  /// has_single_bit
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD GDUT_CONSTEXPR14
-    typename gdut::enable_if<gdut::is_unsigned<T>::value, bool>::type has_single_bit(T value) GDUT_NOEXCEPT
-  {
-    return (value & (value - 1)) == 0;
-  }
-  //***************************************************************************
-  /// countl_zero
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD GDUT_CONSTEXPR14
+//***************************************************************************
+/// has_single_bit
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14
+    typename gdut::enable_if<gdut::is_unsigned<T>::value, bool>::type
+    has_single_bit(T value) GDUT_NOEXCEPT {
+  return (value & (value - 1)) == 0;
+}
+//***************************************************************************
+/// countl_zero
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14
     typename gdut::enable_if<gdut::is_unsigned<T>::value, int>::type
-    countl_zero(T value) GDUT_NOEXCEPT
-  {
-    return gdut::count_leading_zeros(value);
-  }
+    countl_zero(T value) GDUT_NOEXCEPT {
+  return gdut::count_leading_zeros(value);
+}
 
-  //***************************************************************************
-  /// countl_one
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD GDUT_CONSTEXPR14
+//***************************************************************************
+/// countl_one
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14
     typename gdut::enable_if<gdut::is_unsigned<T>::value, int>::type
-    countl_one(T value) GDUT_NOEXCEPT
-  {
-    return gdut::count_leading_ones(value);
-  }
+    countl_one(T value) GDUT_NOEXCEPT {
+  return gdut::count_leading_ones(value);
+}
 
-  //***************************************************************************
-  /// countr_zero
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD GDUT_CONSTEXPR14
+//***************************************************************************
+/// countr_zero
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14
     typename gdut::enable_if<gdut::is_unsigned<T>::value, int>::type
-    countr_zero(T value) GDUT_NOEXCEPT
-  {
-    return gdut::count_trailing_zeros(value);
-  }
+    countr_zero(T value) GDUT_NOEXCEPT {
+  return gdut::count_trailing_zeros(value);
+}
 
-  //***************************************************************************
-  /// countr_one
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD GDUT_CONSTEXPR14
+//***************************************************************************
+/// countr_one
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14
     typename gdut::enable_if<gdut::is_unsigned<T>::value, int>::type
-    countr_one(T value) GDUT_NOEXCEPT
-  {
-    return gdut::count_trailing_ones(value);
-  }
+    countr_one(T value) GDUT_NOEXCEPT {
+  return gdut::count_trailing_ones(value);
+}
 
-
-  //***************************************************************************
-  /// bit_width
-  //***************************************************************************
-  template <typename T>
-  GDUT_CONSTEXPR14
-    typename gdut::enable_if<gdut::is_unsigned<T>::value, T>::type
-    bit_width(T value) GDUT_NOEXCEPT
-  {
+//***************************************************************************
+/// bit_width
+//***************************************************************************
+template <typename T>
+GDUT_CONSTEXPR14 typename gdut::enable_if<gdut::is_unsigned<T>::value, T>::type
+bit_width(T value) GDUT_NOEXCEPT {
 #if GDUT_USING_CPP20 && GDUT_USING_STL
-    return std::bit_width(value);
+  return std::bit_width(value);
 #else
-    return gdut::integral_limits<T>::bits - gdut::countl_zero(value);
+  return gdut::integral_limits<T>::bits - gdut::countl_zero(value);
 #endif
-  }
+}
 
-  //***************************************************************************
-  /// bit_ceil
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD GDUT_CONSTEXPR14
+//***************************************************************************
+/// bit_ceil
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14
     typename gdut::enable_if<gdut::is_unsigned<T>::value, T>::type
-    bit_ceil(T value)
-  {
+    bit_ceil(T value) {
 #if GDUT_USING_CPP20 && GDUT_USING_STL
-    return std::bit_ceil(value);
+  return std::bit_ceil(value);
 #else
-    if (value == T(0))
-    {
-      return T(1);
-    }
-    else
-    {
-      return T(1) << gdut::bit_width(T(value - T(1)));
-    }
-#endif
+  if (value == T(0)) {
+    return T(1);
+  } else {
+    return T(1) << gdut::bit_width(T(value - T(1)));
   }
+#endif
+}
 
-  //***************************************************************************
-  /// bit_floor
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD GDUT_CONSTEXPR14
+//***************************************************************************
+/// bit_floor
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14
     typename gdut::enable_if<gdut::is_unsigned<T>::value, T>::type
-    bit_floor(T value) GDUT_NOEXCEPT
-  {
+    bit_floor(T value) GDUT_NOEXCEPT {
 #if GDUT_USING_CPP20 && GDUT_USING_STL
-    return std::bit_floor(value);
+  return std::bit_floor(value);
 #else
-    if (value == T(0))
-    {
-      return T(0);
-    }
-    else
-    {
-      return T(1) << (gdut::bit_width(value) - T(1));
-    }
+  if (value == T(0)) {
+    return T(0);
+  } else {
+    return T(1) << (gdut::bit_width(value) - T(1));
+  }
 #endif
-  }
+}
 
-  //***************************************************************************
-  /// rotl
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD GDUT_CONSTEXPR14
+//***************************************************************************
+/// rotl
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14
     typename gdut::enable_if<gdut::is_unsigned<T>::value, T>::type
-    rotl(T value, int n) GDUT_NOEXCEPT
-  {
-    if (n < 0)
-    {
-      return gdut::rotate_right(value, -n);
-    }
-    else
-    {
-      return gdut::rotate_left(value, n);
-    }
-  }
-
-  //***************************************************************************
-  /// rotr
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD GDUT_CONSTEXPR14
-    typename gdut::enable_if<gdut::is_unsigned<T>::value, T>::type 
-    rotr(T value, int n) GDUT_NOEXCEPT
-  {
-    if (n < 0)
-    {
-      return gdut::rotate_left(value, -n);
-    }
-    else
-    {
-      return gdut::rotate_right(value, n);
-    }
-  }
- 
-  //***************************************************************************
-  /// popcount
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD GDUT_CONSTEXPR14
-    typename gdut::enable_if<gdut::is_unsigned<T>::value, int>::type
-    popcount(T value) GDUT_NOEXCEPT
-  {
-    return gdut::count_bits(value);
+    rotl(T value, int n) GDUT_NOEXCEPT {
+  if (n < 0) {
+    return gdut::rotate_right(value, -n);
+  } else {
+    return gdut::rotate_left(value, n);
   }
 }
+
+//***************************************************************************
+/// rotr
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14
+    typename gdut::enable_if<gdut::is_unsigned<T>::value, T>::type
+    rotr(T value, int n) GDUT_NOEXCEPT {
+  if (n < 0) {
+    return gdut::rotate_left(value, -n);
+  } else {
+    return gdut::rotate_right(value, n);
+  }
+}
+
+//***************************************************************************
+/// popcount
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14
+    typename gdut::enable_if<gdut::is_unsigned<T>::value, int>::type
+    popcount(T value) GDUT_NOEXCEPT {
+  return gdut::count_bits(value);
+}
+} // namespace gdut
 
 #endif

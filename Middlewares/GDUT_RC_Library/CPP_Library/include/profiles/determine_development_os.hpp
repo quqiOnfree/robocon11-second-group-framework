@@ -31,53 +31,55 @@ SOFTWARE.
 #ifndef GDUT_DETERMINE_DEVELOPMENT_OS_INCLUDED
 #define GDUT_DETERMINE_DEVELOPMENT_OS_INCLUDED
 
-#if !defined(GDUT_DEVELOPMENT_OS_WINDOWS) && \
-    !defined(GDUT_DEVELOPMENT_OS_LINUX) && \
-    !defined(GDUT_DEVELOPMENT_OS_UNIX) && \
-    !defined(GDUT_DEVELOPMENT_OS_APPLE) && \
-    !defined(GDUT_DEVELOPMENT_OS_BSD) && \
-    !defined(GDUT_DEVELOPMENT_OS_GENERIC)
+#if !defined(GDUT_DEVELOPMENT_OS_WINDOWS) &&                                   \
+    !defined(GDUT_DEVELOPMENT_OS_LINUX) &&                                     \
+    !defined(GDUT_DEVELOPMENT_OS_UNIX) &&                                      \
+    !defined(GDUT_DEVELOPMENT_OS_APPLE) &&                                     \
+    !defined(GDUT_DEVELOPMENT_OS_BSD) && !defined(GDUT_DEVELOPMENT_OS_GENERIC)
 
-  #if !defined(GDUT_DEVELOPMENT_OS_DETECTED) && !defined(GDUT_DEVELOPMENT_OS_WINDOWS)
-    #if defined(WIN32) || defined(WIN64)
-      #define GDUT_DEVELOPMENT_OS_WINDOWS
-      #define GDUT_DEVELOPMENT_OS_DETECTED
-    #endif
-  #endif
-
-  #if !defined(GDUT_DEVELOPMENT_OS_DETECTED) && !defined(GDUT_DEVELOPMENT_OS_LINUX)
-    #if defined(__linux__)
-      #define GDUT_DEVELOPMENT_OS_LINUX
-      #define GDUT_DEVELOPMENT_OS_DETECTED
-    #endif
-  #endif
-
-  #if !defined(GDUT_DEVELOPMENT_OS_DETECTED) && !defined(GDUT_DEVELOPMENT_OS_UNIX)
-    #if defined(__unix__)
-      #define GDUT_DEVELOPMENT_OS_UNIX
-      #define GDUT_DEVELOPMENT_OS_DETECTED
-    #endif
-  #endif
-
-  #if !defined(GDUT_DEVELOPMENT_OS_DETECTED) && !defined(GDUT_DEVELOPMENT_OS_APPLE)
-    #if defined(__APPLE__)
-      #define GDUT_DEVELOPMENT_OS_APPLE
-      #define GDUT_DEVELOPMENT_OS_DETECTED
-    #endif
-  #endif
-
-#if !defined(GDUT_DEVELOPMENT_OS_DETECTED) && !defined(GDUT_DEVELOPMENT_OS_BSD)
-  #if defined(BSD)
-    #define GDUT_DEVELOPMENT_OS_BSD
-    #define GDUT_DEVELOPMENT_OS_DETECTED
-  #endif
+#if !defined(GDUT_DEVELOPMENT_OS_DETECTED) &&                                  \
+    !defined(GDUT_DEVELOPMENT_OS_WINDOWS)
+#if defined(WIN32) || defined(WIN64)
+#define GDUT_DEVELOPMENT_OS_WINDOWS
+#define GDUT_DEVELOPMENT_OS_DETECTED
+#endif
 #endif
 
-  #if !defined(GDUT_DEVELOPMENT_OS_DETECTED)
-    #define GDUT_DEVELOPMENT_OS_GENERIC
-    #define GDUT_DEVELOPMENT_OS_DETECTED
+#if !defined(GDUT_DEVELOPMENT_OS_DETECTED) &&                                  \
+    !defined(GDUT_DEVELOPMENT_OS_LINUX)
+#if defined(__linux__)
+#define GDUT_DEVELOPMENT_OS_LINUX
+#define GDUT_DEVELOPMENT_OS_DETECTED
+#endif
+#endif
 
-  #endif
+#if !defined(GDUT_DEVELOPMENT_OS_DETECTED) && !defined(GDUT_DEVELOPMENT_OS_UNIX)
+#if defined(__unix__)
+#define GDUT_DEVELOPMENT_OS_UNIX
+#define GDUT_DEVELOPMENT_OS_DETECTED
+#endif
+#endif
+
+#if !defined(GDUT_DEVELOPMENT_OS_DETECTED) &&                                  \
+    !defined(GDUT_DEVELOPMENT_OS_APPLE)
+#if defined(__APPLE__)
+#define GDUT_DEVELOPMENT_OS_APPLE
+#define GDUT_DEVELOPMENT_OS_DETECTED
+#endif
+#endif
+
+#if !defined(GDUT_DEVELOPMENT_OS_DETECTED) && !defined(GDUT_DEVELOPMENT_OS_BSD)
+#if defined(BSD)
+#define GDUT_DEVELOPMENT_OS_BSD
+#define GDUT_DEVELOPMENT_OS_DETECTED
+#endif
+#endif
+
+#if !defined(GDUT_DEVELOPMENT_OS_DETECTED)
+#define GDUT_DEVELOPMENT_OS_GENERIC
+#define GDUT_DEVELOPMENT_OS_DETECTED
+
+#endif
 #endif
 
 #endif

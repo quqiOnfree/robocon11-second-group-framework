@@ -29,257 +29,240 @@ SOFTWARE.
 ******************************************************************************/
 
 #ifndef GDUT_IN_CHRONO_H
-  #error DO NOT DIRECTLY INCLUDE THIS FILE. USE CHRONO.H
+#error DO NOT DIRECTLY INCLUDE THIS FILE. USE CHRONO.H
 #endif
 
-namespace gdut
-{
-  namespace chrono
-  {
-    //***************************************************************************
-    /// Represents a point in time storing a TDuration indicating the time 
-    /// interval from the start of the TClock's epoch.
-    //***************************************************************************
-    template <typename TClock, typename TDuration = typename TClock::duration>
-    class time_point
-    {
-    public:
+namespace gdut {
+namespace chrono {
+//***************************************************************************
+/// Represents a point in time storing a TDuration indicating the time
+/// interval from the start of the TClock's epoch.
+//***************************************************************************
+template <typename TClock, typename TDuration = typename TClock::duration>
+class time_point {
+public:
+  using clock = TClock;
+  using duration = TDuration;
+  using rep = typename TDuration::rep;
+  using period = typename TDuration::period;
 
-      using clock    = TClock;
-      using duration = TDuration;
-      using rep      = typename TDuration::rep;
-      using period   = typename TDuration::period;
+  //***************************************************************************
+  /// Default constructor.
+  //***************************************************************************
+  GDUT_CONSTEXPR time_point() GDUT_NOEXCEPT : dur(duration::zero()) {}
 
-      //***************************************************************************
-      /// Default constructor.
-      //***************************************************************************
-      GDUT_CONSTEXPR time_point() GDUT_NOEXCEPT
-        : dur(duration::zero())
-      {
-      }
+  //***************************************************************************
+  /// Construct from a duration.
+  //***************************************************************************
+  GDUT_CONSTEXPR14 explicit time_point(const duration &dur_) GDUT_NOEXCEPT
+      : dur(dur_) {}
 
-      //***************************************************************************
-      /// Construct from a duration.
-      //***************************************************************************
-      GDUT_CONSTEXPR14 explicit time_point(const duration& dur_) GDUT_NOEXCEPT
-        : dur(dur_)
-      {
-      }
+  //***************************************************************************
+  /// Copy constructor.
+  //***************************************************************************
+  GDUT_CONSTEXPR14 time_point(const time_point &rhs) GDUT_NOEXCEPT
+      : dur(rhs.dur) {}
 
-      //***************************************************************************
-      /// Copy constructor.
-      //***************************************************************************
-      GDUT_CONSTEXPR14 time_point(const time_point& rhs) GDUT_NOEXCEPT
-        : dur(rhs.dur)
-      {
-      }
+  //***************************************************************************
+  /// Copy construct from another time_point with a different duration type.
+  //***************************************************************************
+  template <typename TDuration2>
+  GDUT_CONSTEXPR14 explicit time_point(const time_point<clock, TDuration2> &rhs)
+      GDUT_NOEXCEPT : dur(rhs.time_since_epoch()) {}
 
-      //***************************************************************************
-      /// Copy construct from another time_point with a different duration type.
-      //***************************************************************************
-      template <typename TDuration2>
-      GDUT_CONSTEXPR14 explicit time_point(const time_point<clock, TDuration2>& rhs) GDUT_NOEXCEPT
-        : dur(rhs.time_since_epoch())
-      {
-      }
+  //***************************************************************************
+  /// Assignment operator.
+  //***************************************************************************
+  GDUT_CONSTEXPR14 time_point &operator=(const time_point &rhs) GDUT_NOEXCEPT {
+    dur = rhs.dur;
 
-      //***************************************************************************
-      /// Assignment operator.
-      //***************************************************************************
-      GDUT_CONSTEXPR14 time_point& operator =(const time_point& rhs) GDUT_NOEXCEPT
-      {
-        dur = rhs.dur;
+    return *this;
+  }
 
-        return *this;
-      }
+  //***************************************************************************
+  /// Returns a duration representing the amount of time between this and the
+  /// clock's epoch.
+  //***************************************************************************
+  GDUT_NODISCARD
+  GDUT_CONSTEXPR14 duration time_since_epoch() const GDUT_NOEXCEPT {
+    return dur;
+  }
 
-      //***************************************************************************
-      /// Returns a duration representing the amount of time between this and the clock's epoch.
-      //***************************************************************************
-      GDUT_NODISCARD
-      GDUT_CONSTEXPR14 duration time_since_epoch() const GDUT_NOEXCEPT
-      {
-        return dur;
-      }
+  //***************************************************************************
+  /// Adds a duration.
+  //***************************************************************************
+  GDUT_CONSTEXPR14 time_point &operator+=(const duration &rhs) GDUT_NOEXCEPT {
+    dur += rhs;
 
-      //***************************************************************************
-      /// Adds a duration.
-      //***************************************************************************
-      GDUT_CONSTEXPR14 time_point& operator +=(const duration& rhs) GDUT_NOEXCEPT
-      {
-        dur += rhs;
+    return *this;
+  }
 
-        return *this;
-      }
+  //***************************************************************************
+  /// Subtracts a duration.
+  //***************************************************************************
+  GDUT_CONSTEXPR14 time_point &operator-=(const duration &rhs) GDUT_NOEXCEPT {
+    dur -= rhs;
 
-      //***************************************************************************
-      /// Subtracts a duration.
-      //***************************************************************************
-      GDUT_CONSTEXPR14 time_point& operator -=(const duration& rhs) GDUT_NOEXCEPT
-      {
-        dur -= rhs;
+    return *this;
+  }
 
-        return *this;
-      }
+  //***************************************************************************
+  /// Returns a time_point with the smallest possible duration.
+  //***************************************************************************
+  GDUT_NODISCARD
+  static GDUT_CONSTEXPR14 time_point min() GDUT_NOEXCEPT {
+    return time_point(duration::min());
+  }
 
-      //***************************************************************************
-      /// Returns a time_point with the smallest possible duration.
-      //***************************************************************************
-      GDUT_NODISCARD
-      static GDUT_CONSTEXPR14 time_point min() GDUT_NOEXCEPT
-      {
-        return time_point(duration::min());
-      }
-
-      //***************************************************************************
-      /// Returns a time_point with the largest possible duration.
-      //***************************************************************************
-      GDUT_NODISCARD
-      static GDUT_CONSTEXPR14 time_point max() GDUT_NOEXCEPT
-      {
-        return time_point(duration::max());
-      }
-
-      //***********************************************************************
-      /// Compare day with another.
-      /// if time_point < other, returns -1
-      /// else if time_point > other, returns 1
-      /// else returns 0
-      //***********************************************************************
-      GDUT_NODISCARD
-      GDUT_CONSTEXPR14 int compare(const time_point& other) const GDUT_NOEXCEPT 
-      {
-          if (dur < other.dur) return -1;
-          if (dur > other.dur) return 1;
-
-          return 0;
-      }
-
-    private:
-
-      duration dur;
-    };
-
-    //***********************************************************************
-    /// Rounds down a duration to the nearest lower precision.
-    //***********************************************************************
-    template <typename TToDuration, typename TClock, typename TDuration>
-    GDUT_NODISCARD
-    GDUT_CONSTEXPR14 
-    gdut::chrono::time_point<TClock, TToDuration>
-      floor(const gdut::chrono::time_point<TClock, TDuration>& tp) GDUT_NOEXCEPT
-    {
-       return gdut::chrono::time_point<TClock, TToDuration>(floor<TToDuration>(tp.time_since_epoch()));
-    }
-
-    //***********************************************************************
-    /// Rounds up a duration to the nearest higher precision.
-    //***********************************************************************
-    template <typename TToDuration, typename TClock, typename TDuration>
-    GDUT_NODISCARD
-    GDUT_CONSTEXPR14 
-    gdut::chrono::time_point<TClock, TToDuration>
-      ceil(const gdut::chrono::time_point<TClock, TDuration>& tp) GDUT_NOEXCEPT
-    {
-      return gdut::chrono::time_point<TClock, TToDuration>(ceil<TToDuration>(tp.time_since_epoch()));
-    }
-
-    //***********************************************************************
-    /// Rounds a duration to the nearest precision.
-    /// If the duration is exactly halfway, it rounds away from zero.
-    //***********************************************************************
-    template <typename TToDuration, typename TClock, typename TDuration>
-    GDUT_NODISCARD
-    GDUT_CONSTEXPR14 
-    gdut::chrono::time_point<TClock, TToDuration>
-      round(const gdut::chrono::time_point<TClock, TDuration>& tp) GDUT_NOEXCEPT
-    {
-      return gdut::chrono::time_point<TClock, TToDuration>(round<TToDuration>(tp.time_since_epoch()));
-    }
-
-    template <typename TToDuration, typename TClock, typename TDuration>
-    GDUT_NODISCARD
-    GDUT_CONSTEXPR14
-    gdut::chrono::time_point<TClock, TToDuration>
-      time_point_cast(const gdut::chrono::time_point<TClock, TDuration>& tp) GDUT_NOEXCEPT
-    {
-      TToDuration dur = gdut::chrono::duration_cast<TToDuration>(tp.time_since_epoch());
-
-      return gdut::chrono::time_point<TClock, TToDuration>(dur);
-    }
-
-    //***************************************************************************
-    /// Equality operator
-    //***************************************************************************
-    template <typename TClock, typename TDuration1, typename TDuration2>
-    GDUT_CONSTEXPR14 bool operator ==(const time_point<TClock, TDuration1>& lhs, const time_point<TClock, TDuration2>& rhs) GDUT_NOEXCEPT
-    {
-      return lhs.time_since_epoch() == rhs.time_since_epoch();
-    }
-
-    //***************************************************************************
-    /// Inequality operator
-    //***************************************************************************
-    template <typename TClock, typename TDuration1, typename TDuration2>
-    GDUT_CONSTEXPR14 bool operator !=(const time_point<TClock, TDuration1>& lhs, const time_point<TClock, TDuration2>& rhs) GDUT_NOEXCEPT
-    {
-      return !(lhs == rhs);
-    }
-
-    //***************************************************************************
-    /// Less-than operator
-    //***************************************************************************
-    template <typename TClock, typename TDuration1, typename TDuration2>
-    GDUT_CONSTEXPR14 bool operator <(const time_point<TClock, TDuration1>& lhs, const time_point<TClock, TDuration2>& rhs) GDUT_NOEXCEPT
-    {
-      return lhs.time_since_epoch() < rhs.time_since_epoch();
-    }
-
-    //***************************************************************************
-    /// Less-than-equal operator
-    //***************************************************************************
-    template <typename TClock, typename TDuration1, typename TDuration2>
-    GDUT_CONSTEXPR14 bool operator <=(const time_point<TClock, TDuration1>& lhs, const time_point<TClock, TDuration2>& rhs) GDUT_NOEXCEPT
-    {
-      return !(rhs < lhs);
-    }
-
-    //***************************************************************************
-    /// Greater-than operator
-    //***************************************************************************
-    template <typename TClock, typename TDuration1, typename TDuration2>
-    GDUT_CONSTEXPR14 bool operator >(const time_point<TClock, TDuration1>& lhs, const time_point<TClock, TDuration2>& rhs) GDUT_NOEXCEPT
-    {
-      return rhs < lhs;
-    }
-
-    //***************************************************************************
-    /// Greater-than-equal operator
-    //***************************************************************************
-    template <typename TClock, typename TDuration1, typename TDuration2>
-    GDUT_CONSTEXPR14 bool operator >=(const time_point<TClock, TDuration1>& lhs, const time_point<TClock, TDuration2>& rhs) GDUT_NOEXCEPT
-    {
-      return !(lhs < rhs);
-    }
+  //***************************************************************************
+  /// Returns a time_point with the largest possible duration.
+  //***************************************************************************
+  GDUT_NODISCARD
+  static GDUT_CONSTEXPR14 time_point max() GDUT_NOEXCEPT {
+    return time_point(duration::max());
   }
 
   //***********************************************************************
-  /// Spaceship operator
+  /// Compare day with another.
+  /// if time_point < other, returns -1
+  /// else if time_point > other, returns 1
+  /// else returns 0
   //***********************************************************************
-#if GDUT_USING_CPP20
-  template <typename TClock, typename TDuration1, typename TDuration2>
-  [[nodiscard]] constexpr auto operator <=>(const gdut::chrono::time_point<TClock, TDuration1>& lhs, const gdut::chrono::time_point<TClock, TDuration2>& rhs) GDUT_NOEXCEPT
-  {
-    return (lhs.time_since_epoch() <=> rhs.time_since_epoch());
-  }
-#endif
+  GDUT_NODISCARD
+  GDUT_CONSTEXPR14 int compare(const time_point &other) const GDUT_NOEXCEPT {
+    if (dur < other.dur)
+      return -1;
+    if (dur > other.dur)
+      return 1;
 
-  //***************************************************************************
-  /// Defines type, which is the common type of two gdut::chrono::time_points.
-  //***************************************************************************
-  template <typename TClock, typename TDuration1, typename TDuration2>
-  struct common_type<gdut::chrono::time_point<TClock, TDuration1>, gdut::chrono::time_point<TClock, TDuration2>>
-  {
-    using type = gdut::chrono::time_point<TClock, typename gdut::common_type<TDuration1, TDuration2>::type>;
-  };
+    return 0;
+  }
+
+private:
+  duration dur;
+};
+
+//***********************************************************************
+/// Rounds down a duration to the nearest lower precision.
+//***********************************************************************
+template <typename TToDuration, typename TClock, typename TDuration>
+GDUT_NODISCARD GDUT_CONSTEXPR14 gdut::chrono::time_point<TClock, TToDuration>
+floor(const gdut::chrono::time_point<TClock, TDuration> &tp) GDUT_NOEXCEPT {
+  return gdut::chrono::time_point<TClock, TToDuration>(
+      floor<TToDuration>(tp.time_since_epoch()));
 }
+
+//***********************************************************************
+/// Rounds up a duration to the nearest higher precision.
+//***********************************************************************
+template <typename TToDuration, typename TClock, typename TDuration>
+GDUT_NODISCARD GDUT_CONSTEXPR14 gdut::chrono::time_point<TClock, TToDuration>
+ceil(const gdut::chrono::time_point<TClock, TDuration> &tp) GDUT_NOEXCEPT {
+  return gdut::chrono::time_point<TClock, TToDuration>(
+      ceil<TToDuration>(tp.time_since_epoch()));
+}
+
+//***********************************************************************
+/// Rounds a duration to the nearest precision.
+/// If the duration is exactly halfway, it rounds away from zero.
+//***********************************************************************
+template <typename TToDuration, typename TClock, typename TDuration>
+GDUT_NODISCARD GDUT_CONSTEXPR14 gdut::chrono::time_point<TClock, TToDuration>
+round(const gdut::chrono::time_point<TClock, TDuration> &tp) GDUT_NOEXCEPT {
+  return gdut::chrono::time_point<TClock, TToDuration>(
+      round<TToDuration>(tp.time_since_epoch()));
+}
+
+template <typename TToDuration, typename TClock, typename TDuration>
+GDUT_NODISCARD GDUT_CONSTEXPR14 gdut::chrono::time_point<TClock, TToDuration>
+time_point_cast(const gdut::chrono::time_point<TClock, TDuration> &tp)
+    GDUT_NOEXCEPT {
+  TToDuration dur =
+      gdut::chrono::duration_cast<TToDuration>(tp.time_since_epoch());
+
+  return gdut::chrono::time_point<TClock, TToDuration>(dur);
+}
+
+//***************************************************************************
+/// Equality operator
+//***************************************************************************
+template <typename TClock, typename TDuration1, typename TDuration2>
+GDUT_CONSTEXPR14 bool
+operator==(const time_point<TClock, TDuration1> &lhs,
+           const time_point<TClock, TDuration2> &rhs) GDUT_NOEXCEPT {
+  return lhs.time_since_epoch() == rhs.time_since_epoch();
+}
+
+//***************************************************************************
+/// Inequality operator
+//***************************************************************************
+template <typename TClock, typename TDuration1, typename TDuration2>
+GDUT_CONSTEXPR14 bool
+operator!=(const time_point<TClock, TDuration1> &lhs,
+           const time_point<TClock, TDuration2> &rhs) GDUT_NOEXCEPT {
+  return !(lhs == rhs);
+}
+
+//***************************************************************************
+/// Less-than operator
+//***************************************************************************
+template <typename TClock, typename TDuration1, typename TDuration2>
+GDUT_CONSTEXPR14 bool
+operator<(const time_point<TClock, TDuration1> &lhs,
+          const time_point<TClock, TDuration2> &rhs) GDUT_NOEXCEPT {
+  return lhs.time_since_epoch() < rhs.time_since_epoch();
+}
+
+//***************************************************************************
+/// Less-than-equal operator
+//***************************************************************************
+template <typename TClock, typename TDuration1, typename TDuration2>
+GDUT_CONSTEXPR14 bool
+operator<=(const time_point<TClock, TDuration1> &lhs,
+           const time_point<TClock, TDuration2> &rhs) GDUT_NOEXCEPT {
+  return !(rhs < lhs);
+}
+
+//***************************************************************************
+/// Greater-than operator
+//***************************************************************************
+template <typename TClock, typename TDuration1, typename TDuration2>
+GDUT_CONSTEXPR14 bool
+operator>(const time_point<TClock, TDuration1> &lhs,
+          const time_point<TClock, TDuration2> &rhs) GDUT_NOEXCEPT {
+  return rhs < lhs;
+}
+
+//***************************************************************************
+/// Greater-than-equal operator
+//***************************************************************************
+template <typename TClock, typename TDuration1, typename TDuration2>
+GDUT_CONSTEXPR14 bool
+operator>=(const time_point<TClock, TDuration1> &lhs,
+           const time_point<TClock, TDuration2> &rhs) GDUT_NOEXCEPT {
+  return !(lhs < rhs);
+}
+} // namespace chrono
+
+//***********************************************************************
+/// Spaceship operator
+//***********************************************************************
+#if GDUT_USING_CPP20
+template <typename TClock, typename TDuration1, typename TDuration2>
+[[nodiscard]] constexpr auto operator<=>(
+    const gdut::chrono::time_point<TClock, TDuration1> &lhs,
+    const gdut::chrono::time_point<TClock, TDuration2> &rhs) GDUT_NOEXCEPT {
+  return (lhs.time_since_epoch() <=> rhs.time_since_epoch());
+}
+#endif
+
+//***************************************************************************
+/// Defines type, which is the common type of two gdut::chrono::time_points.
+//***************************************************************************
+template <typename TClock, typename TDuration1, typename TDuration2>
+struct common_type<gdut::chrono::time_point<TClock, TDuration1>,
+                   gdut::chrono::time_point<TClock, TDuration2>> {
+  using type = gdut::chrono::time_point<
+      TClock, typename gdut::common_type<TDuration1, TDuration2>::type>;
+};
+} // namespace gdut

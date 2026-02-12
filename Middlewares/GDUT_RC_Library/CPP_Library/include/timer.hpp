@@ -29,8 +29,8 @@ SOFTWARE.
 #ifndef GDUT_TIMER_INCLUDED
 #define GDUT_TIMER_INCLUDED
 
-#include "platform.hpp"
 #include "atomic.hpp"
+#include "platform.hpp"
 
 #include <stdint.h>
 
@@ -38,84 +38,64 @@ SOFTWARE.
 // Definitions common to timers.
 //*****************************************************************************
 
-namespace gdut
-{
+namespace gdut {
 #ifdef GDUT_TIMER_SEMAPHORE_TYPE
-  typedef GDUT_TIMER_SEMAPHORE_TYPE timer_semaphore_t;
+typedef GDUT_TIMER_SEMAPHORE_TYPE timer_semaphore_t;
 #else
-  #if GDUT_HAS_ATOMIC
-    typedef gdut::atomic_uint32_t timer_semaphore_t;
-  #endif
+#if GDUT_HAS_ATOMIC
+typedef gdut::atomic_uint32_t timer_semaphore_t;
+#endif
 #endif
 
-  //***************************************************************************
-  /// Common definitions for the timer framework.
-  //***************************************************************************
-  struct timer
-  {
-    // Timer modes.
-    struct mode
-    {
-      enum
-      {
-        SINGLE_SHOT = false,
-        REPEATING   = true,
+//***************************************************************************
+/// Common definitions for the timer framework.
+//***************************************************************************
+struct timer {
+  // Timer modes.
+  struct mode {
+    enum {
+      SINGLE_SHOT = false,
+      REPEATING = true,
 
-        Single_Shot = false,
-        Repeating   = true
-      };
-
-      typedef bool type;
+      Single_Shot = false,
+      Repeating = true
     };
 
-    // Timer start status.
-    struct start
-    {
-      enum
-      {
-        DELAYED   = false,
-        IMMEDIATE = true,
-
-        Delayed   = false,
-        Immediate = true
-      };
-
-      typedef bool type;
-    };
-
-    // Timer id.
-    struct id
-    {
-      enum
-      {
-        NO_TIMER = 255,
-        No_Timer = 255
-      };
-
-      typedef uint_least8_t type;
-    };
-
-    // Timer state.
-    struct state
-    {
-      enum
-      {
-        INACTIVE = 0xFFFFFFFFUL,
-        Inactive = 0xFFFFFFFFUL
-      };
-    };
-
-    // Timer time interval.
-    struct interval
-    {
-      enum
-      {
-        No_Active_Interval = 0xFFFFFFFFUL
-      };
-
-      typedef uint32_t type;
-    };
+    typedef bool type;
   };
-}
+
+  // Timer start status.
+  struct start {
+    enum {
+      DELAYED = false,
+      IMMEDIATE = true,
+
+      Delayed = false,
+      Immediate = true
+    };
+
+    typedef bool type;
+  };
+
+  // Timer id.
+  struct id {
+    enum { NO_TIMER = 255, No_Timer = 255 };
+
+    typedef uint_least8_t type;
+  };
+
+  // Timer state.
+  struct state {
+    enum { INACTIVE = 0xFFFFFFFFUL, Inactive = 0xFFFFFFFFUL };
+  };
+
+  // Timer time interval.
+  struct interval {
+    enum { No_Active_Interval = 0xFFFFFFFFUL };
+
+    typedef uint32_t type;
+  };
+};
+} // namespace gdut
 
 #endif

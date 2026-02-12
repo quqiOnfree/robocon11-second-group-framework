@@ -31,46 +31,42 @@ SOFTWARE.
 #ifndef GDUT_IHASH_INCLUDED
 #define GDUT_IHASH_INCLUDED
 
+#include "error_handler.hpp"
+#include "exception.hpp"
 #include "platform.hpp"
 #include "utility.hpp"
-#include "exception.hpp"
-#include "error_handler.hpp"
 
 #include <stdint.h>
 
 ///\defgroup ihash Common data for all hash type classes.
 ///\ingroup hash
 
-namespace gdut
-{
-  //***************************************************************************
-  ///\ingroup hash
-  /// Exception base for hashes.
-  //***************************************************************************
-  class hash_exception : public exception
-  {
-  public:
+namespace gdut {
+//***************************************************************************
+///\ingroup hash
+/// Exception base for hashes.
+//***************************************************************************
+class hash_exception : public exception {
+public:
+  hash_exception(string_type reason_, string_type file_name_,
+                 numeric_type line_number_)
+      : exception(reason_, file_name_, line_number_) {}
+};
 
-    hash_exception(string_type reason_, string_type file_name_, numeric_type line_number_)
-      : exception(reason_, file_name_, line_number_)
-    {}
-  };
+//***************************************************************************
+///\ingroup vector
+/// Hash finalised exception.
+//***************************************************************************
+class hash_finalised : public hash_exception {
+public:
+  hash_finalised(string_type file_name_, numeric_type line_number_)
+      : hash_exception(
+            GDUT_ERROR_TEXT("ihash:finalised", GDUT_IHASH_FILE_ID "A"),
+            file_name_, line_number_) {}
+};
 
-  //***************************************************************************
-  ///\ingroup vector
-  /// Hash finalised exception.
-  //***************************************************************************
-  class hash_finalised : public hash_exception
-  {
-  public:
-
-    hash_finalised(string_type file_name_, numeric_type line_number_)
-      : hash_exception(GDUT_ERROR_TEXT("ihash:finalised", GDUT_IHASH_FILE_ID"A"), file_name_, line_number_)
-    {}
-  };
-
-  /// For the Americans
-  typedef hash_finalised hash_finalized;
-}
+/// For the Americans
+typedef hash_finalised hash_finalized;
+} // namespace gdut
 
 #endif

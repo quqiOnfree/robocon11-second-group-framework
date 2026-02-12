@@ -31,8 +31,8 @@ SOFTWARE.
 #ifndef GDUT_RADIX_INCLUDED
 #define GDUT_RADIX_INCLUDED
 
-#include "platform.hpp"
 #include "enum_type.hpp"
+#include "platform.hpp"
 
 #include <stdint.h>
 
@@ -40,28 +40,25 @@ SOFTWARE.
 /// Radix constants for binary, octal, decimal and hex.
 ///\ingroup etl
 
-namespace gdut
-{
-  /// \ingroup radix
-  struct radix
-  {
-    enum enum_type
-    {
-      undefined   = 0,
-      binary      = 2,
-      octal       = 8,
-      decimal     = 10,
-      hexadecimal = 16
-    };
-
-    GDUT_DECLARE_ENUM_TYPE(radix, uint_least8_t)
-    GDUT_ENUM_TYPE(undefined,   "undefined")
-    GDUT_ENUM_TYPE(binary,      "binary")
-    GDUT_ENUM_TYPE(octal,       "octal")
-    GDUT_ENUM_TYPE(decimal,     "decimal")
-    GDUT_ENUM_TYPE(hexadecimal, "hexadecimal")
-    GDUT_END_ENUM_TYPE
+namespace gdut {
+/// \ingroup radix
+struct radix {
+  enum enum_type {
+    undefined = 0,
+    binary = 2,
+    octal = 8,
+    decimal = 10,
+    hexadecimal = 16
   };
-}
+
+  GDUT_DECLARE_ENUM_TYPE(radix, uint_least8_t)
+  GDUT_ENUM_TYPE(undefined, "undefined")
+  GDUT_ENUM_TYPE(binary, "binary")
+  GDUT_ENUM_TYPE(octal, "octal")
+  GDUT_ENUM_TYPE(decimal, "decimal")
+  GDUT_ENUM_TYPE(hexadecimal, "hexadecimal")
+  GDUT_END_ENUM_TYPE
+};
+} // namespace gdut
 
 #endif

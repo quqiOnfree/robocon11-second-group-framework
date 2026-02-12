@@ -31,59 +31,43 @@ SOFTWARE.
 
 #include "platform.hpp"
 
-namespace gdut
-{
-  namespace private_math_constants
-  {
-    template <typename T = void>
-    struct math_helper
-    {
-      static GDUT_CONSTANT double pi               = 3.14159265358979;
-      static GDUT_CONSTANT double pi_reciprocal    = 0.31830988618379;
-      static GDUT_CONSTANT double pi_squared       = 9.86960440108936;
-      static GDUT_CONSTANT double e                = 2.71828182845905;
-      static GDUT_CONSTANT double e_reciprocal     = 0.36787944117144;
-      static GDUT_CONSTANT double e_squared        = 7.38905609893065;
-      static GDUT_CONSTANT double root2            = 1.41421356237310;
-      static GDUT_CONSTANT double root2_reciprocal = 0.70710678118655;
-      static GDUT_CONSTANT double euler            = 0.57721566490153;
-      static GDUT_CONSTANT double golden_ratio     = 1.61803398874989;
-    };
+namespace gdut {
+namespace private_math_constants {
+template <typename T = void> struct math_helper {
+  static GDUT_CONSTANT double pi = 3.14159265358979;
+  static GDUT_CONSTANT double pi_reciprocal = 0.31830988618379;
+  static GDUT_CONSTANT double pi_squared = 9.86960440108936;
+  static GDUT_CONSTANT double e = 2.71828182845905;
+  static GDUT_CONSTANT double e_reciprocal = 0.36787944117144;
+  static GDUT_CONSTANT double e_squared = 7.38905609893065;
+  static GDUT_CONSTANT double root2 = 1.41421356237310;
+  static GDUT_CONSTANT double root2_reciprocal = 0.70710678118655;
+  static GDUT_CONSTANT double euler = 0.57721566490153;
+  static GDUT_CONSTANT double golden_ratio = 1.61803398874989;
+};
 
-    template <typename T>
-    GDUT_CONSTANT double math_helper<T>::pi;
+template <typename T> GDUT_CONSTANT double math_helper<T>::pi;
 
-    template <typename T>
-    GDUT_CONSTANT double math_helper<T>::pi_reciprocal;
+template <typename T> GDUT_CONSTANT double math_helper<T>::pi_reciprocal;
 
-    template <typename T>
-    GDUT_CONSTANT double math_helper<T>::pi_squared;
+template <typename T> GDUT_CONSTANT double math_helper<T>::pi_squared;
 
-    template <typename T>
-    GDUT_CONSTANT double math_helper<T>::e;
+template <typename T> GDUT_CONSTANT double math_helper<T>::e;
 
-    template <typename T>
-    GDUT_CONSTANT double math_helper<T>::e_reciprocal;
-    
-    template <typename T>
-    GDUT_CONSTANT double math_helper<T>::e_squared;
-    
-    template <typename T>
-    GDUT_CONSTANT double math_helper<T>::root2;
-    
-    template <typename T>
-    GDUT_CONSTANT double math_helper<T>::root2_reciprocal;
-    
-    template <typename T>
-    GDUT_CONSTANT double math_helper<T>::euler;
-    
-    template <typename T>
-    GDUT_CONSTANT double math_helper<T>::golden_ratio;
-  }
+template <typename T> GDUT_CONSTANT double math_helper<T>::e_reciprocal;
 
-  struct math : public private_math_constants::math_helper<>
-  {
-  };
-}
+template <typename T> GDUT_CONSTANT double math_helper<T>::e_squared;
+
+template <typename T> GDUT_CONSTANT double math_helper<T>::root2;
+
+template <typename T> GDUT_CONSTANT double math_helper<T>::root2_reciprocal;
+
+template <typename T> GDUT_CONSTANT double math_helper<T>::euler;
+
+template <typename T> GDUT_CONSTANT double math_helper<T>::golden_ratio;
+} // namespace private_math_constants
+
+struct math : public private_math_constants::math_helper<> {};
+} // namespace gdut
 
 #endif

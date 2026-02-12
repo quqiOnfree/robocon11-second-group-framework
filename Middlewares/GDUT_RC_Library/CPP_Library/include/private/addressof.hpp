@@ -35,28 +35,30 @@ SOFTWARE.
 #include "../type_traits.hpp"
 
 #if defined(GDUT_IN_UNIT_TEST) || GDUT_USING_STL
-  #include <memory>
+#include <memory>
 #endif
 
 ///\defgroup memory memory
 ///\ingroup etl
 
-namespace gdut
-{
-  //*****************************************************************************
-  /// Gets the address of an object.
-  /// https://en.cppreference.com/w/cpp/memory/addressof
-  ///\ingroup memory
-  //*****************************************************************************
-  template <typename T>
-  GDUT_CONSTEXPR17 typename gdut::enable_if<!gdut::is_same<T, gdut::nullptr_t>::value, T>::type* addressof(T& t)
-  {
+namespace gdut {
+//*****************************************************************************
+/// Gets the address of an object.
+/// https://en.cppreference.com/w/cpp/memory/addressof
+///\ingroup memory
+//*****************************************************************************
+template <typename T>
+GDUT_CONSTEXPR17
+    typename gdut::enable_if<!gdut::is_same<T, gdut::nullptr_t>::value,
+                             T>::type *
+    addressof(T &t) {
 #if GDUT_USING_STL && GDUT_USING_CPP11
-    return std::addressof(t);
+  return std::addressof(t);
 #else
-    return reinterpret_cast<T*>(&const_cast<char&>(reinterpret_cast<const volatile char&>(t)));
+  return reinterpret_cast<T *>(
+      &const_cast<char &>(reinterpret_cast<const volatile char &>(t)));
 #endif
-  }
 }
+} // namespace gdut
 
 #endif

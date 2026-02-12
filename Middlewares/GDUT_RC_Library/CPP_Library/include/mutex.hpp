@@ -32,75 +32,63 @@ SOFTWARE.
 #include "platform.hpp"
 
 #if defined(GDUT_TARGET_OS_CMSIS_OS2)
-  #include "mutex/mutex_cmsis_os2.hpp"
-  #define GDUT_HAS_MUTEX 1
+#include "mutex/mutex_cmsis_os2.hpp"
+#define GDUT_HAS_MUTEX 1
 #elif defined(GDUT_TARGET_OS_FREERTOS)
-  #include "mutex/mutex_freertos.hpp"
-  #define GDUT_HAS_MUTEX 1
+#include "mutex/mutex_freertos.hpp"
+#define GDUT_HAS_MUTEX 1
 #elif defined(GDUT_TARGET_OS_THREADX)
-  #include "mutex/mutex_threadx.hpp"
-  #define GDUT_HAS_MUTEX 1
+#include "mutex/mutex_threadx.hpp"
+#define GDUT_HAS_MUTEX 1
 #elif GDUT_USING_STL && GDUT_USING_CPP11
-  #include "mutex/mutex_std.hpp"
-  #define GDUT_HAS_MUTEX 1
-#elif defined(GDUT_COMPILER_ARM5) || defined(GDUT_COMPILER_ARM6) || defined(GDUT_COMPILER_ARM7) || defined(GDUT_COMPILER_ARM8)
-  #include "mutex/mutex_arm.hpp"
-  #define GDUT_HAS_MUTEX 1
+#include "mutex/mutex_std.hpp"
+#define GDUT_HAS_MUTEX 1
+#elif defined(GDUT_COMPILER_ARM5) || defined(GDUT_COMPILER_ARM6) ||            \
+    defined(GDUT_COMPILER_ARM7) || defined(GDUT_COMPILER_ARM8)
+#include "mutex/mutex_arm.hpp"
+#define GDUT_HAS_MUTEX 1
 #elif defined(GDUT_COMPILER_GCC)
-  #include "mutex/mutex_gcc_sync.hpp"
-  #define GDUT_HAS_MUTEX 1
+#include "mutex/mutex_gcc_sync.hpp"
+#define GDUT_HAS_MUTEX 1
 #elif defined(GDUT_COMPILER_CLANG)
-  #include "mutex/mutex_clang_sync.hpp"
-  #define GDUT_HAS_MUTEX 1
+#include "mutex/mutex_clang_sync.hpp"
+#define GDUT_HAS_MUTEX 1
 #else
-  #define GDUT_HAS_MUTEX 0
+#define GDUT_HAS_MUTEX 0
 #endif
 
-namespace gdut
-{
-  namespace traits
-  {
-    static GDUT_CONSTANT bool has_mutex = (GDUT_HAS_MUTEX == 1);
-  }
-
-  //***************************************************************************
-  /// lock_guard
-  /// A mutex wrapper that provides an RAII mechanism for owning a mutex for
-  /// the duration of a scoped block.
-  //***************************************************************************
-  template <typename TMutex>
-  class lock_guard
-  {
-  public:
-
-    typedef TMutex mutex_type;
-
-    //*****************************************************
-    /// Constructor
-    /// Locks the mutex.
-    //*****************************************************
-    explicit lock_guard(mutex_type& m_)
-      : m(m_)
-    {
-      m.lock();
-    }
-
-    //*****************************************************
-    /// Destructor
-    //*****************************************************
-    ~lock_guard()
-    {
-      m.unlock();
-    }
-
-  private:
-
-    // Deleted.
-    lock_guard(const lock_guard&) GDUT_DELETE;
-
-    mutex_type& m;
-  };
-
+namespace gdut {
+namespace traits {
+static GDUT_CONSTANT bool has_mutex = (GDUT_HAS_MUTEX == 1);
 }
+
+//***************************************************************************
+/// lock_guard
+/// A mutex wrapper that provides an RAII mechanism for owning a mutex for
+/// the duration of a scoped block.
+//***************************************************************************
+template <typename TMutex> class lock_guard {
+public:
+  typedef TMutex mutex_type;
+
+  //*****************************************************
+  /// Constructor
+  /// Locks the mutex.
+  //*****************************************************
+  explicit lock_guard(mutex_type &m_) : m(m_) { m.lock(); }
+
+  //*****************************************************
+  /// Destructor
+  //*****************************************************
+  ~lock_guard() { m.unlock(); }
+
+private:
+  // Deleted.
+  lock_guard(const lock_guard &) GDUT_DELETE;
+
+  mutex_type &m;
+};
+
+} // namespace gdut
 
 #endif

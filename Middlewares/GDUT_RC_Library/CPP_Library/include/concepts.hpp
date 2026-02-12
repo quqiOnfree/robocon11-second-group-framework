@@ -33,113 +33,107 @@ SOFTWARE.
 
 #include "platform.hpp"
 
-#include "utility.hpp"
 #include "type_traits.hpp"
+#include "utility.hpp"
 
 #if GDUT_NOT_USING_CPP20 && !defined(GDUT_IN_UNIT_TEST)
-  #error NOT SUPPORTED FOR BELOW C++20
+#error NOT SUPPORTED FOR BELOW C++20
 #endif
 
 #if GDUT_USING_CPP20
 
 #if GDUT_USING_STL
-  #include <concepts>
+#include <concepts>
 #endif
 
-namespace gdut
-{
+namespace gdut {
 
 #if GDUT_USING_STL
 
-  using std::same_as;
-  using std::derived_from;
-  using std::convertible_to;
-  using std::common_reference_with;
-  using std::common_with;
-  using std::integral;
-  using std::signed_integral;
-  using std::unsigned_integral;
-  using std::floating_point;
-  using std::assignable_from;
+using std::assignable_from;
+using std::common_reference_with;
+using std::common_with;
+using std::convertible_to;
+using std::derived_from;
+using std::floating_point;
+using std::integral;
+using std::same_as;
+using std::signed_integral;
+using std::unsigned_integral;
 
 #else // not GDUT_USING_STL
 
-  namespace private_concepts
-  {
-    template <typename T, typename U>
-    concept same_as_helper = gdut::is_same_v<T, U>;
-  }
+namespace private_concepts {
+template <typename T, typename U>
+concept same_as_helper = gdut::is_same_v<T, U>;
+}
 
-  //***************************************************************************
-  template <typename T, typename U>
-  concept same_as = private_concepts::same_as_helper<T, U> && private_concepts::same_as_helper<U, T>;
+//***************************************************************************
+template <typename T, typename U>
+concept same_as = private_concepts::same_as_helper<T, U> &&
+                  private_concepts::same_as_helper<U, T>;
 
-  //***************************************************************************
-  template <typename Derived, typename Base>
-  concept derived_from =
+//***************************************************************************
+template <typename Derived, typename Base>
+concept derived_from =
     gdut::is_base_of_v<Base, Derived> &&
-    gdut::is_convertible_v<const volatile Derived*, const volatile Base*>;
+    gdut::is_convertible_v<const volatile Derived *, const volatile Base *>;
 
-  //***************************************************************************
-  template <typename From, typename To>
-  concept convertible_to =
-    gdut::is_convertible_v<From, To> &&
-    requires {
-      static_cast<To>(gdut::declval<From>());
-    };
+//***************************************************************************
+template <typename From, typename To>
+concept convertible_to = gdut::is_convertible_v<From, To> &&
+                         requires { static_cast<To>(gdut::declval<From>()); };
 
-  //***************************************************************************
-  template< class T, typename U >
-  concept common_reference_with =
-    gdut::same_as<gdut::common_reference_t<T, U>, gdut::common_reference_t<U, T>> &&
+//***************************************************************************
+template <class T, typename U>
+concept common_reference_with =
+    gdut::same_as<gdut::common_reference_t<T, U>,
+                  gdut::common_reference_t<U, T>> &&
     gdut::convertible_to<T, gdut::common_reference_t<T, U>> &&
     gdut::convertible_to<U, gdut::common_reference_t<T, U>>;
 
-  //***************************************************************************
-  template <typename T, typename U>
-  concept common_with =
+//***************************************************************************
+template <typename T, typename U>
+concept common_with =
     gdut::same_as<gdut::common_type_t<T, U>, gdut::common_type_t<U, T>> &&
     requires {
-        static_cast<gdut::common_type_t<T, U>>(gdut::declval<T>());
-        static_cast<gdut::common_type_t<T, U>>(gdut::declval<U>());
+      static_cast<gdut::common_type_t<T, U>>(gdut::declval<T>());
+      static_cast<gdut::common_type_t<T, U>>(gdut::declval<U>());
     } &&
-    gdut::common_reference_with<
-        gdut::add_lvalue_reference_t<const T>,
-        gdut::add_lvalue_reference_t<const U>> &&
+    gdut::common_reference_with<gdut::add_lvalue_reference_t<const T>,
+                                gdut::add_lvalue_reference_t<const U>> &&
     gdut::common_reference_with<
         gdut::add_lvalue_reference_t<gdut::common_type_t<T, U>>,
-        gdut::common_reference_t<
-            gdut::add_lvalue_reference_t<const T>,
-            gdut::add_lvalue_reference_t<const U>>>;
+        gdut::common_reference_t<gdut::add_lvalue_reference_t<const T>,
+                                 gdut::add_lvalue_reference_t<const U>>>;
 
-  //***************************************************************************
-  template <typename T>
-  concept integral = gdut::is_integral_v<T>;
+//***************************************************************************
+template <typename T>
+concept integral = gdut::is_integral_v<T>;
 
-  //***************************************************************************
-  template <typename T>
-  concept signed_integral = gdut::integral<T> && gdut::is_signed_v<T>;
+//***************************************************************************
+template <typename T>
+concept signed_integral = gdut::integral<T> && gdut::is_signed_v<T>;
 
-  //***************************************************************************
-  template <typename T>
-  concept unsigned_integral = gdut::integral<T> && !gdut::signed_integral<T>;
+//***************************************************************************
+template <typename T>
+concept unsigned_integral = gdut::integral<T> && !gdut::signed_integral<T>;
 
-  //***************************************************************************
-  template <typename T>
-  concept floating_point = gdut::is_floating_point_v<T>;
+//***************************************************************************
+template <typename T>
+concept floating_point = gdut::is_floating_point_v<T>;
 
-  //***************************************************************************
-  template <typename LHS, typename RHS>
-  concept assignable_from =
+//***************************************************************************
+template <typename LHS, typename RHS>
+concept assignable_from =
     gdut::is_lvalue_reference_v<LHS> &&
-    gdut::common_reference_with<
-        const gdut::remove_reference_t<LHS>&,
-        const gdut::remove_reference_t<RHS>&> &&
-    requires(LHS lhs, RHS&& rhs) {
-        { lhs = gdut::forward<RHS>(rhs) } -> gdut::same_as<LHS>;
+    gdut::common_reference_with<const gdut::remove_reference_t<LHS> &,
+                                const gdut::remove_reference_t<RHS> &> &&
+    requires(LHS lhs, RHS &&rhs) {
+      { lhs = gdut::forward<RHS>(rhs) } -> gdut::same_as<LHS>;
     };
 
 #endif
-}
+} // namespace gdut
 #endif
 #endif

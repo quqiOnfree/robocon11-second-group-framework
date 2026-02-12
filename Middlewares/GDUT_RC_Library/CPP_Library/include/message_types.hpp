@@ -33,16 +33,15 @@ SOFTWARE.
 
 #include <stdint.h>
 
-namespace gdut
-{
-  /// Allow alternative type for message id.
+namespace gdut {
+/// Allow alternative type for message id.
 #if !defined(GDUT_MESSAGE_ID_TYPE)
-  typedef uint_least8_t message_id_t;
+typedef uint_least8_t message_id_t;
 #else
-  typedef GDUT_MESSAGE_ID_TYPE message_id_t;
+typedef GDUT_MESSAGE_ID_TYPE message_id_t;
 #endif
 
-  typedef uint_least8_t message_router_id_t;
-}
+typedef uint_least8_t message_router_id_t;
+} // namespace gdut
 
 #endif

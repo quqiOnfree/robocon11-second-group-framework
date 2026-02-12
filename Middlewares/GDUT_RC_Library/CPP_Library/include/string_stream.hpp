@@ -33,16 +33,17 @@ SOFTWARE.
 
 ///\ingroup string
 
+#include "basic_string_stream.hpp"
+#include "format_spec.hpp"
 #include "platform.hpp"
 #include "string.hpp"
-#include "format_spec.hpp"
-#include "to_string.hpp"
 #include "string_view.hpp"
-#include "basic_string_stream.hpp"
+#include "to_string.hpp"
 
-namespace gdut
-{
-  typedef gdut::basic_string_stream<gdut::format_spec, gdut::istring, gdut::string_view> string_stream;
+namespace gdut {
+typedef gdut::basic_string_stream<gdut::format_spec, gdut::istring,
+                                  gdut::string_view>
+    string_stream;
 }
 
 #endif

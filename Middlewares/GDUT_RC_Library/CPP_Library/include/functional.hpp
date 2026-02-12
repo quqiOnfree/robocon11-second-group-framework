@@ -40,613 +40,505 @@ SOFTWARE.
 ///\defgroup reference_wrapper reference_wrapper
 ///\ingroup functional
 
-namespace gdut
-{
-  //***************************************************************************
-  /// A definition of reference_wrapper for those that don't have C++ 0x11 support.
-  ///\ingroup reference
-  //***************************************************************************
-  template <typename T>
-  class reference_wrapper
-  {
-  public:
+namespace gdut {
+//***************************************************************************
+/// A definition of reference_wrapper for those that don't have C++ 0x11
+/// support.
+///\ingroup reference
+//***************************************************************************
+template <typename T> class reference_wrapper {
+public:
+  typedef T type;
 
-    typedef T type;
+  GDUT_CONSTEXPR20 explicit reference_wrapper(T &t_) GDUT_NOEXCEPT : t(&t_) {}
 
-    GDUT_CONSTEXPR20 explicit reference_wrapper(T& t_) GDUT_NOEXCEPT
-      : t(&t_)
-    {
-    }
+  GDUT_CONSTEXPR20 reference_wrapper(const reference_wrapper &rhs) GDUT_NOEXCEPT
+      : t(rhs.t) {}
 
-    GDUT_CONSTEXPR20 reference_wrapper(const reference_wrapper& rhs) GDUT_NOEXCEPT
-      : t(rhs.t)
-    {
-    }
-
-    GDUT_CONSTEXPR20 reference_wrapper<T>& operator = (const reference_wrapper& rhs) GDUT_NOEXCEPT
-    {
-      t = rhs.t;
-      return *this;
-    }
-
-    GDUT_CONSTEXPR20 T& get() const GDUT_NOEXCEPT
-    {
-      return *t;
-    }
-
-    GDUT_CONSTEXPR20 operator T&() const GDUT_NOEXCEPT
-    {
-      return *t;
-    }
-
-  private:
-
-    T* t;
-  };
-
-  //***************************************************************************
-  template <typename T>
-  reference_wrapper<T> ref(T& t)
-  {
-    return reference_wrapper<T>(t);
+  GDUT_CONSTEXPR20 reference_wrapper<T> &
+  operator=(const reference_wrapper &rhs) GDUT_NOEXCEPT {
+    t = rhs.t;
+    return *this;
   }
 
-  //***************************************************************************
-  template <typename T>
-  reference_wrapper<T> ref(reference_wrapper<T> t)
-  {
-    return reference_wrapper<T>(t.get());
-  }
+  GDUT_CONSTEXPR20 T &get() const GDUT_NOEXCEPT { return *t; }
 
-  //***************************************************************************
-  template <typename T>
-  reference_wrapper<const T> cref(const T& t)
-  {
-    return reference_wrapper<const T>(t);
-  }
+  GDUT_CONSTEXPR20 operator T &() const GDUT_NOEXCEPT { return *t; }
 
-  //***************************************************************************
-  template <typename T>
-  reference_wrapper<const T> cref(reference_wrapper<T> t)
-  {
-    return reference_wrapper<const T>(t.get());
-  }
+private:
+  T *t;
+};
 
-  //***************************************************************************
-  /// unwrap_reference.
-  //***************************************************************************
-  template <class T>
-  struct unwrap_reference
-  {
-    typedef T type;
-  };
-
-  template <typename T>
-  struct unwrap_reference<gdut::reference_wrapper<T> >
-  {
-    typedef T& type;
-  };
-
-#if GDUT_USING_CPP11
-  template <typename T>
-  using unwrap_reference_t = typename unwrap_reference<T>::type;
-#endif
-
-  //***************************************************************************
-  /// unwrap_ref_decay.
-  //***************************************************************************
-  template <typename T>
-  struct unwrap_ref_decay : gdut::unwrap_reference<typename gdut::decay<T>::type> {};
-
-#if GDUT_USING_CPP11 
-  template <typename T>
-  using unwrap_ref_decay_t = typename unwrap_ref_decay<T>::type;
-#endif
-
-  //***************************************************************************
-  // is_reference_wrapper
-  // Detect gdut::reference_wrapper<T>
-  //***************************************************************************
-  template <typename T> 
-  struct is_reference_wrapper : gdut::false_type {};
-  
-  template <typename T> 
-  struct is_reference_wrapper<gdut::reference_wrapper<T> > : gdut::true_type {};
-
-#if GDUT_USING_CPP17
-  template <typename T>
-  inline constexpr bool is_reference_wrapper_v = is_reference_wrapper<T>::value;
-#endif
-
-  //***************************************************************************
-  /// unary_function
-  //***************************************************************************
-  template <typename TArgumentType, typename TResultType>
-  struct unary_function
-  {
-    typedef TArgumentType argument_type;
-    typedef TResultType   result_type;
-  };
-
-  //***************************************************************************
-  /// binary_function
-  //***************************************************************************
-  template <typename TFirstArgumentType, typename TSecondArgumentType, typename TResultType>
-  struct binary_function
-  {
-    typedef TFirstArgumentType  first_argument_type;
-    typedef TSecondArgumentType second_argument_type;
-    typedef TResultType         result_type;
-  };
-
-  //***************************************************************************
-  template <typename T = void>
-  struct less : public gdut::binary_function<T, T, bool>
-  {
-    typedef T value_type;
-
-    GDUT_CONSTEXPR bool operator()(const T &lhs, const T &rhs) const
-    {
-      return (lhs < rhs);
-    }
-  };
-
-#if GDUT_USING_CPP11
-  template <>
-  struct less<void> : public gdut::binary_function<void, void, bool>
-  {
-    typedef int is_transparent;
-
-    template <typename T1, typename T2>
-    constexpr auto operator()(T1&& lhs, T2&& rhs) const -> decltype(static_cast<T1&&>(lhs) < static_cast<T2&&>(rhs))
-    {
-      return static_cast<T1&&>(lhs) < static_cast<T2&&>(rhs);
-    }
-  };
-#endif
-
-  //***************************************************************************
-  template <typename T = void>
-  struct less_equal : public gdut::binary_function<T, T, bool>
-  {
-    typedef T value_type;
-
-    GDUT_CONSTEXPR bool operator()(const T& lhs, const T& rhs) const
-    {
-      return !(rhs < lhs);
-    }
-  };
-
-#if GDUT_USING_CPP11
-  template <>
-  struct less_equal<void> : public gdut::binary_function<void, void, bool>
-  {
-    typedef int is_transparent;
-
-    template <typename T1, typename T2>
-    constexpr auto operator()(T1&& lhs, T2&& rhs) const -> decltype(static_cast<T1&&>(lhs) < static_cast<T2&&>(rhs))
-    {
-      return !(static_cast<T1&&>(lhs) < static_cast<T2&&>(rhs));
-    }
-  };
-#endif
-
-  //***************************************************************************
-  template <typename T = void>
-  struct greater : public gdut::binary_function<T, T, bool>
-  {
-    typedef T value_type;
-
-    GDUT_CONSTEXPR bool operator()(const T &lhs, const T &rhs) const
-    {
-      return (rhs < lhs);
-    }
-  };
-
-#if GDUT_USING_CPP11
-  template <>
-  struct greater<void> : public gdut::binary_function<void, void, bool>
-  {
-    typedef int is_transparent;
-
-    template <typename T1, typename T2>
-    constexpr auto operator()(T1&& lhs, T2&& rhs) const -> decltype(static_cast<T1&&>(lhs) < static_cast<T2&&>(rhs))
-    {
-      return static_cast<T2&&>(rhs) < static_cast<T1&&>(lhs);
-    }
-  };
-#endif
-
-  //***************************************************************************
-  template <typename T = void>
-  struct greater_equal : public gdut::binary_function<T, T, bool>
-  {
-    typedef T value_type;
-
-    GDUT_CONSTEXPR bool operator()(const T& lhs, const T& rhs) const
-    {
-      return !(lhs < rhs);
-    }
-  };
-
-#if GDUT_USING_CPP11
-  template <>
-  struct greater_equal<void> : public gdut::binary_function<void, void, bool>
-  {
-    typedef int is_transparent;
-
-    template <typename T1, typename T2>
-    constexpr auto operator()(T1&& lhs, T2&& rhs) const -> decltype(static_cast<T1&&>(lhs) < static_cast<T2&&>(rhs))
-    {
-      return static_cast<T1&&>(rhs) < static_cast<T2&&>(lhs);
-    }
-  };
-#endif
-
-  //***************************************************************************
-  template <typename T = void>
-  struct equal_to : public gdut::binary_function<T, T, bool>
-  {
-    typedef T value_type;
-
-    GDUT_CONSTEXPR bool operator()(const T &lhs, const T &rhs) const
-    {
-      return lhs == rhs;
-    }
-  };
-
-#if GDUT_USING_CPP11
-  template <>
-  struct equal_to<void> : public gdut::binary_function<void, void, bool>
-  {
-    typedef void value_type;
-    typedef int is_transparent;
-
-    template <typename T1, typename T2>
-    constexpr auto operator()(T1&& lhs, T2&& rhs) const -> decltype(static_cast<T1&&>(lhs) < static_cast<T2&&>(rhs))
-    {
-      return static_cast<T1&&>(lhs) == static_cast<T2&&>(rhs);
-    }
-  };
-#endif
-
-  //***************************************************************************
-  template <typename T = void>
-  struct not_equal_to : public gdut::binary_function<T, T, bool>
-  {
-    typedef T value_type;
-
-    GDUT_CONSTEXPR bool operator()(const T &lhs, const T &rhs) const
-    {
-      return !(lhs == rhs);
-    }
-  };
-
-#if GDUT_USING_CPP11
-  template <>
-  struct not_equal_to<void> : public gdut::binary_function<void, void, bool>
-  {
-    typedef int is_transparent;
-
-    template <typename T1, typename T2>
-    constexpr auto operator()(T1&& lhs, T2&& rhs) const -> decltype(static_cast<T1&&>(lhs) < static_cast<T2&&>(rhs))
-    {
-      return !(static_cast<T1&&>(lhs) == static_cast<T2&&>(rhs));
-    }
-  };
-#endif
-
-  //***************************************************************************
-  template <typename TFunction>
-  class binder1st : public gdut::unary_function<typename TFunction::second_argument_type, typename TFunction::result_type>
-  {
-  protected:
-
-    TFunction operation;
-    typename TFunction::first_argument_type value;
-
-  public:
-
-    binder1st(const TFunction& f, const typename TFunction::first_argument_type& v)
-      : operation(f), value(v)
-    {
-    }
-
-    typename TFunction::result_type operator()(typename TFunction::second_argument_type& x) const
-    {
-      return operation(value, x);
-    }
-
-    typename TFunction::result_type operator()(const typename TFunction::second_argument_type& x) const
-    {
-      return operation(value, x);
-    }
-  };
-
-  template <typename F, typename T>
-  binder1st<F> bind1st(const F& f, const T& x)
-  {
-    return binder1st<F>(f, x);
-  }
-
-  //***************************************************************************
-  template <typename TFunction >
-  class binder2nd : public gdut::unary_function<typename TFunction::first_argument_type, typename TFunction::result_type>
-  {
-  protected:
-    TFunction operation;
-    typename TFunction::second_argument_type value;
-  public:
-    binder2nd(const TFunction& f, const typename TFunction::second_argument_type& v)
-      : operation(f), value(v)
-    {
-    }
-
-    typename TFunction::result_type operator()(typename TFunction::first_argument_type& x) const
-    {
-      return operation(x, value);
-    }
-
-    typename TFunction::result_type operator()(const typename TFunction::first_argument_type& x) const
-    {
-      return operation(x, value);
-    }
-  };
-
-  template <typename F, typename T>
-  binder2nd<F> bind2nd(const F& f, const T& x)
-  {
-    return binder2nd<F>(f, x);
-  }
-
-  //***************************************************************************
-  template <typename T = void>
-  struct plus
-  {
-    typedef T first_argument_type;
-    typedef T second_argument_type;
-    typedef T result_type;
-
-    GDUT_CONSTEXPR T operator()(const T& lhs, const T& rhs) const
-    {
-      return lhs + rhs;
-    }
-  };
-
-  //***************************************************************************
-  template <typename T = void>
-  struct minus
-  {
-    typedef T first_argument_type;
-    typedef T second_argument_type;
-    typedef T result_type;
-
-    GDUT_CONSTEXPR T operator()(const T& lhs, const T& rhs) const
-    {
-      return lhs - rhs;
-    }
-  };
-
-  //***************************************************************************
-  template <typename T = void>
-  struct negate
-  {
-    typedef T argument_type;
-    typedef T result_type;
-
-    GDUT_CONSTEXPR T operator()(const T& lhs) const
-    {
-      return -lhs;
-    }
-  };
-
-  //***************************************************************************
-  template <typename T = void>
-  struct multiplies
-  {
-    typedef T first_argument_type;
-    typedef T second_argument_type;
-    typedef T result_type;
-
-    GDUT_CONSTEXPR T operator()(const T& lhs, const T& rhs) const
-    {
-      return lhs * rhs;
-    }
-  };
-
-  //***************************************************************************
-  template <typename T = void>
-  struct divides
-  {
-    typedef T first_argument_type;
-    typedef T second_argument_type;
-    typedef T result_type;
-
-    GDUT_CONSTEXPR T operator()(const T& lhs, const T& rhs) const
-    {
-      return lhs / rhs;
-    }
-  };
-
-  //***************************************************************************
-  template <typename T = void>
-  struct modulus
-  {
-    typedef T first_argument_type;
-    typedef T second_argument_type;
-    typedef T result_type;
-
-    GDUT_CONSTEXPR T operator()(const T& lhs, const T& rhs) const
-    {
-      return lhs % rhs;
-    }
-  };
-
-  //***************************************************************************
-  template <typename T = void>
-  struct logical_and
-  {
-    typedef T first_argument_type;
-    typedef T second_argument_type;
-    typedef T result_type;
-
-    GDUT_CONSTEXPR T operator()(const T& lhs, const T& rhs) const
-    {
-      return lhs && rhs;
-    }
-  };
-
-  //***************************************************************************
-  template <typename T = void>
-  struct logical_or
-  {
-    typedef T first_argument_type;
-    typedef T second_argument_type;
-    typedef T result_type;
-
-    GDUT_CONSTEXPR T operator()(const T& lhs, const T& rhs) const
-    {
-      return lhs || rhs;
-    }
-  };
-
-  //***************************************************************************
-  template <typename T = void>
-  struct logical_not
-  {
-    typedef T first_argument_type;
-    typedef T second_argument_type;
-    typedef T result_type;
-
-    GDUT_CONSTEXPR T operator()(const T& lhs) const
-    {
-      return !lhs;
-    }
-  };
-
-  //***************************************************************************
-  template <typename T = void>
-  struct bit_and
-  {
-    typedef T first_argument_type;
-    typedef T second_argument_type;
-    typedef T result_type;
-
-    GDUT_CONSTEXPR T operator()(const T& lhs, const T& rhs) const
-    {
-      return lhs & rhs;
-    }
-  };
-
-  //***************************************************************************
-  template <typename T = void>
-  struct bit_or
-  {
-    typedef T first_argument_type;
-    typedef T second_argument_type;
-    typedef T result_type;
-
-    GDUT_CONSTEXPR T operator()(const T& lhs, const T& rhs) const
-    {
-      return lhs | rhs;
-    }
-  };
-
-  //***************************************************************************
-  template <typename T = void>
-  struct bit_xor
-  {
-    typedef T first_argument_type;
-    typedef T second_argument_type;
-    typedef T result_type;
-
-    GDUT_CONSTEXPR T operator()(const T& lhs, const T& rhs) const
-    {
-      return lhs ^ rhs;
-    }
-  };
-
-  //***************************************************************************
-  template <typename T = void>
-  struct bit_not
-  {
-    typedef T first_argument_type;
-    typedef T second_argument_type;
-    typedef T result_type;
-
-    GDUT_CONSTEXPR T operator()(const T& lhs) const
-    {
-      return ~lhs;
-    }
-  };
-
-#if GDUT_USING_CPP11
-  namespace private_functional
-  {
-    //***************************************************************************
-    template<typename TReturnType, typename TClassType, typename... TArgs>
-    class mem_fn_impl
-    {
-    public:
-
-      typedef TReturnType(TClassType::* MemberFunctionType)(TArgs...);
-
-      GDUT_CONSTEXPR mem_fn_impl(MemberFunctionType member_function_)
-        : member_function(member_function_)
-      {
-      }
-
-      GDUT_CONSTEXPR TReturnType operator()(TClassType& instance, TArgs... args) const
-      {
-        return (instance.*member_function)(gdut::forward<TArgs>(args)...);
-      }
-
-    private:
-
-      MemberFunctionType member_function;
-    };
-
-    //***************************************************************************
-    template<typename TReturnType, typename TClassType, typename... TArgs>
-    class const_mem_fn_impl
-    {
-    public:
-
-      typedef TReturnType(TClassType::* MemberFunctionType)(TArgs...) const;
-
-      GDUT_CONSTEXPR const_mem_fn_impl(MemberFunctionType member_function_)
-        : member_function(member_function_)
-      {
-      }
-
-      GDUT_CONSTEXPR TReturnType operator()(const TClassType& instance, TArgs... args) const
-      {
-        return (instance.*member_function)(gdut::forward<TArgs>(args)...);
-      }
-
-    private:
-
-      MemberFunctionType member_function;
-    };
-  }
-
-  //***************************************************************************
-  template<typename TReturnType, typename TClassType, typename... TArgs>
-  GDUT_CONSTEXPR
-  private_functional::mem_fn_impl<TReturnType, TClassType, TArgs...> mem_fn(TReturnType(TClassType::* member_function)(TArgs...))
-  {
-    return private_functional::mem_fn_impl<TReturnType, TClassType, TArgs...>(member_function);
-  }
-
-  //***************************************************************************
-  template<typename TReturnType, typename TClassType, typename... TArgs>
-  GDUT_CONSTEXPR
-  private_functional::const_mem_fn_impl<TReturnType, TClassType, TArgs...> mem_fn(TReturnType(TClassType::* member_function)(TArgs...) const)
-  {
-    return private_functional::const_mem_fn_impl<TReturnType, TClassType, TArgs...>(member_function);
-  }
-#endif
+//***************************************************************************
+template <typename T> reference_wrapper<T> ref(T &t) {
+  return reference_wrapper<T>(t);
 }
 
+//***************************************************************************
+template <typename T> reference_wrapper<T> ref(reference_wrapper<T> t) {
+  return reference_wrapper<T>(t.get());
+}
+
+//***************************************************************************
+template <typename T> reference_wrapper<const T> cref(const T &t) {
+  return reference_wrapper<const T>(t);
+}
+
+//***************************************************************************
+template <typename T> reference_wrapper<const T> cref(reference_wrapper<T> t) {
+  return reference_wrapper<const T>(t.get());
+}
+
+//***************************************************************************
+/// unwrap_reference.
+//***************************************************************************
+template <class T> struct unwrap_reference {
+  typedef T type;
+};
+
+template <typename T> struct unwrap_reference<gdut::reference_wrapper<T>> {
+  typedef T &type;
+};
+
+#if GDUT_USING_CPP11
+template <typename T>
+using unwrap_reference_t = typename unwrap_reference<T>::type;
 #endif
 
+//***************************************************************************
+/// unwrap_ref_decay.
+//***************************************************************************
+template <typename T>
+struct unwrap_ref_decay
+    : gdut::unwrap_reference<typename gdut::decay<T>::type> {};
+
+#if GDUT_USING_CPP11
+template <typename T>
+using unwrap_ref_decay_t = typename unwrap_ref_decay<T>::type;
+#endif
+
+//***************************************************************************
+// is_reference_wrapper
+// Detect gdut::reference_wrapper<T>
+//***************************************************************************
+template <typename T> struct is_reference_wrapper : gdut::false_type {};
+
+template <typename T>
+struct is_reference_wrapper<gdut::reference_wrapper<T>> : gdut::true_type {};
+
+#if GDUT_USING_CPP17
+template <typename T>
+inline constexpr bool is_reference_wrapper_v = is_reference_wrapper<T>::value;
+#endif
+
+//***************************************************************************
+/// unary_function
+//***************************************************************************
+template <typename TArgumentType, typename TResultType> struct unary_function {
+  typedef TArgumentType argument_type;
+  typedef TResultType result_type;
+};
+
+//***************************************************************************
+/// binary_function
+//***************************************************************************
+template <typename TFirstArgumentType, typename TSecondArgumentType,
+          typename TResultType>
+struct binary_function {
+  typedef TFirstArgumentType first_argument_type;
+  typedef TSecondArgumentType second_argument_type;
+  typedef TResultType result_type;
+};
+
+//***************************************************************************
+template <typename T = void>
+struct less : public gdut::binary_function<T, T, bool> {
+  typedef T value_type;
+
+  GDUT_CONSTEXPR bool operator()(const T &lhs, const T &rhs) const {
+    return (lhs < rhs);
+  }
+};
+
+#if GDUT_USING_CPP11
+template <> struct less<void> : public gdut::binary_function<void, void, bool> {
+  typedef int is_transparent;
+
+  template <typename T1, typename T2>
+  constexpr auto operator()(T1 &&lhs, T2 &&rhs) const
+      -> decltype(static_cast<T1 &&>(lhs) < static_cast<T2 &&>(rhs)) {
+    return static_cast<T1 &&>(lhs) < static_cast<T2 &&>(rhs);
+  }
+};
+#endif
+
+//***************************************************************************
+template <typename T = void>
+struct less_equal : public gdut::binary_function<T, T, bool> {
+  typedef T value_type;
+
+  GDUT_CONSTEXPR bool operator()(const T &lhs, const T &rhs) const {
+    return !(rhs < lhs);
+  }
+};
+
+#if GDUT_USING_CPP11
+template <>
+struct less_equal<void> : public gdut::binary_function<void, void, bool> {
+  typedef int is_transparent;
+
+  template <typename T1, typename T2>
+  constexpr auto operator()(T1 &&lhs, T2 &&rhs) const
+      -> decltype(static_cast<T1 &&>(lhs) < static_cast<T2 &&>(rhs)) {
+    return !(static_cast<T1 &&>(lhs) < static_cast<T2 &&>(rhs));
+  }
+};
+#endif
+
+//***************************************************************************
+template <typename T = void>
+struct greater : public gdut::binary_function<T, T, bool> {
+  typedef T value_type;
+
+  GDUT_CONSTEXPR bool operator()(const T &lhs, const T &rhs) const {
+    return (rhs < lhs);
+  }
+};
+
+#if GDUT_USING_CPP11
+template <>
+struct greater<void> : public gdut::binary_function<void, void, bool> {
+  typedef int is_transparent;
+
+  template <typename T1, typename T2>
+  constexpr auto operator()(T1 &&lhs, T2 &&rhs) const
+      -> decltype(static_cast<T1 &&>(lhs) < static_cast<T2 &&>(rhs)) {
+    return static_cast<T2 &&>(rhs) < static_cast<T1 &&>(lhs);
+  }
+};
+#endif
+
+//***************************************************************************
+template <typename T = void>
+struct greater_equal : public gdut::binary_function<T, T, bool> {
+  typedef T value_type;
+
+  GDUT_CONSTEXPR bool operator()(const T &lhs, const T &rhs) const {
+    return !(lhs < rhs);
+  }
+};
+
+#if GDUT_USING_CPP11
+template <>
+struct greater_equal<void> : public gdut::binary_function<void, void, bool> {
+  typedef int is_transparent;
+
+  template <typename T1, typename T2>
+  constexpr auto operator()(T1 &&lhs, T2 &&rhs) const
+      -> decltype(static_cast<T1 &&>(lhs) < static_cast<T2 &&>(rhs)) {
+    return static_cast<T1 &&>(rhs) < static_cast<T2 &&>(lhs);
+  }
+};
+#endif
+
+//***************************************************************************
+template <typename T = void>
+struct equal_to : public gdut::binary_function<T, T, bool> {
+  typedef T value_type;
+
+  GDUT_CONSTEXPR bool operator()(const T &lhs, const T &rhs) const {
+    return lhs == rhs;
+  }
+};
+
+#if GDUT_USING_CPP11
+template <>
+struct equal_to<void> : public gdut::binary_function<void, void, bool> {
+  typedef void value_type;
+  typedef int is_transparent;
+
+  template <typename T1, typename T2>
+  constexpr auto operator()(T1 &&lhs, T2 &&rhs) const
+      -> decltype(static_cast<T1 &&>(lhs) < static_cast<T2 &&>(rhs)) {
+    return static_cast<T1 &&>(lhs) == static_cast<T2 &&>(rhs);
+  }
+};
+#endif
+
+//***************************************************************************
+template <typename T = void>
+struct not_equal_to : public gdut::binary_function<T, T, bool> {
+  typedef T value_type;
+
+  GDUT_CONSTEXPR bool operator()(const T &lhs, const T &rhs) const {
+    return !(lhs == rhs);
+  }
+};
+
+#if GDUT_USING_CPP11
+template <>
+struct not_equal_to<void> : public gdut::binary_function<void, void, bool> {
+  typedef int is_transparent;
+
+  template <typename T1, typename T2>
+  constexpr auto operator()(T1 &&lhs, T2 &&rhs) const
+      -> decltype(static_cast<T1 &&>(lhs) < static_cast<T2 &&>(rhs)) {
+    return !(static_cast<T1 &&>(lhs) == static_cast<T2 &&>(rhs));
+  }
+};
+#endif
+
+//***************************************************************************
+template <typename TFunction>
+class binder1st
+    : public gdut::unary_function<typename TFunction::second_argument_type,
+                                  typename TFunction::result_type> {
+protected:
+  TFunction operation;
+  typename TFunction::first_argument_type value;
+
+public:
+  binder1st(const TFunction &f,
+            const typename TFunction::first_argument_type &v)
+      : operation(f), value(v) {}
+
+  typename TFunction::result_type
+  operator()(typename TFunction::second_argument_type &x) const {
+    return operation(value, x);
+  }
+
+  typename TFunction::result_type
+  operator()(const typename TFunction::second_argument_type &x) const {
+    return operation(value, x);
+  }
+};
+
+template <typename F, typename T> binder1st<F> bind1st(const F &f, const T &x) {
+  return binder1st<F>(f, x);
+}
+
+//***************************************************************************
+template <typename TFunction>
+class binder2nd
+    : public gdut::unary_function<typename TFunction::first_argument_type,
+                                  typename TFunction::result_type> {
+protected:
+  TFunction operation;
+  typename TFunction::second_argument_type value;
+
+public:
+  binder2nd(const TFunction &f,
+            const typename TFunction::second_argument_type &v)
+      : operation(f), value(v) {}
+
+  typename TFunction::result_type
+  operator()(typename TFunction::first_argument_type &x) const {
+    return operation(x, value);
+  }
+
+  typename TFunction::result_type
+  operator()(const typename TFunction::first_argument_type &x) const {
+    return operation(x, value);
+  }
+};
+
+template <typename F, typename T> binder2nd<F> bind2nd(const F &f, const T &x) {
+  return binder2nd<F>(f, x);
+}
+
+//***************************************************************************
+template <typename T = void> struct plus {
+  typedef T first_argument_type;
+  typedef T second_argument_type;
+  typedef T result_type;
+
+  GDUT_CONSTEXPR T operator()(const T &lhs, const T &rhs) const {
+    return lhs + rhs;
+  }
+};
+
+//***************************************************************************
+template <typename T = void> struct minus {
+  typedef T first_argument_type;
+  typedef T second_argument_type;
+  typedef T result_type;
+
+  GDUT_CONSTEXPR T operator()(const T &lhs, const T &rhs) const {
+    return lhs - rhs;
+  }
+};
+
+//***************************************************************************
+template <typename T = void> struct negate {
+  typedef T argument_type;
+  typedef T result_type;
+
+  GDUT_CONSTEXPR T operator()(const T &lhs) const { return -lhs; }
+};
+
+//***************************************************************************
+template <typename T = void> struct multiplies {
+  typedef T first_argument_type;
+  typedef T second_argument_type;
+  typedef T result_type;
+
+  GDUT_CONSTEXPR T operator()(const T &lhs, const T &rhs) const {
+    return lhs * rhs;
+  }
+};
+
+//***************************************************************************
+template <typename T = void> struct divides {
+  typedef T first_argument_type;
+  typedef T second_argument_type;
+  typedef T result_type;
+
+  GDUT_CONSTEXPR T operator()(const T &lhs, const T &rhs) const {
+    return lhs / rhs;
+  }
+};
+
+//***************************************************************************
+template <typename T = void> struct modulus {
+  typedef T first_argument_type;
+  typedef T second_argument_type;
+  typedef T result_type;
+
+  GDUT_CONSTEXPR T operator()(const T &lhs, const T &rhs) const {
+    return lhs % rhs;
+  }
+};
+
+//***************************************************************************
+template <typename T = void> struct logical_and {
+  typedef T first_argument_type;
+  typedef T second_argument_type;
+  typedef T result_type;
+
+  GDUT_CONSTEXPR T operator()(const T &lhs, const T &rhs) const {
+    return lhs && rhs;
+  }
+};
+
+//***************************************************************************
+template <typename T = void> struct logical_or {
+  typedef T first_argument_type;
+  typedef T second_argument_type;
+  typedef T result_type;
+
+  GDUT_CONSTEXPR T operator()(const T &lhs, const T &rhs) const {
+    return lhs || rhs;
+  }
+};
+
+//***************************************************************************
+template <typename T = void> struct logical_not {
+  typedef T first_argument_type;
+  typedef T second_argument_type;
+  typedef T result_type;
+
+  GDUT_CONSTEXPR T operator()(const T &lhs) const { return !lhs; }
+};
+
+//***************************************************************************
+template <typename T = void> struct bit_and {
+  typedef T first_argument_type;
+  typedef T second_argument_type;
+  typedef T result_type;
+
+  GDUT_CONSTEXPR T operator()(const T &lhs, const T &rhs) const {
+    return lhs & rhs;
+  }
+};
+
+//***************************************************************************
+template <typename T = void> struct bit_or {
+  typedef T first_argument_type;
+  typedef T second_argument_type;
+  typedef T result_type;
+
+  GDUT_CONSTEXPR T operator()(const T &lhs, const T &rhs) const {
+    return lhs | rhs;
+  }
+};
+
+//***************************************************************************
+template <typename T = void> struct bit_xor {
+  typedef T first_argument_type;
+  typedef T second_argument_type;
+  typedef T result_type;
+
+  GDUT_CONSTEXPR T operator()(const T &lhs, const T &rhs) const {
+    return lhs ^ rhs;
+  }
+};
+
+//***************************************************************************
+template <typename T = void> struct bit_not {
+  typedef T first_argument_type;
+  typedef T second_argument_type;
+  typedef T result_type;
+
+  GDUT_CONSTEXPR T operator()(const T &lhs) const { return ~lhs; }
+};
+
+#if GDUT_USING_CPP11
+namespace private_functional {
+//***************************************************************************
+template <typename TReturnType, typename TClassType, typename... TArgs>
+class mem_fn_impl {
+public:
+  typedef TReturnType (TClassType::*MemberFunctionType)(TArgs...);
+
+  GDUT_CONSTEXPR mem_fn_impl(MemberFunctionType member_function_)
+      : member_function(member_function_) {}
+
+  GDUT_CONSTEXPR TReturnType operator()(TClassType &instance,
+                                        TArgs... args) const {
+    return (instance.*member_function)(gdut::forward<TArgs>(args)...);
+  }
+
+private:
+  MemberFunctionType member_function;
+};
+
+//***************************************************************************
+template <typename TReturnType, typename TClassType, typename... TArgs>
+class const_mem_fn_impl {
+public:
+  typedef TReturnType (TClassType::*MemberFunctionType)(TArgs...) const;
+
+  GDUT_CONSTEXPR const_mem_fn_impl(MemberFunctionType member_function_)
+      : member_function(member_function_) {}
+
+  GDUT_CONSTEXPR TReturnType operator()(const TClassType &instance,
+                                        TArgs... args) const {
+    return (instance.*member_function)(gdut::forward<TArgs>(args)...);
+  }
+
+private:
+  MemberFunctionType member_function;
+};
+} // namespace private_functional
+
+//***************************************************************************
+template <typename TReturnType, typename TClassType, typename... TArgs>
+GDUT_CONSTEXPR
+    private_functional::mem_fn_impl<TReturnType, TClassType, TArgs...>
+    mem_fn(TReturnType (TClassType::*member_function)(TArgs...)) {
+  return private_functional::mem_fn_impl<TReturnType, TClassType, TArgs...>(
+      member_function);
+}
+
+//***************************************************************************
+template <typename TReturnType, typename TClassType, typename... TArgs>
+GDUT_CONSTEXPR
+    private_functional::const_mem_fn_impl<TReturnType, TClassType, TArgs...>
+    mem_fn(TReturnType (TClassType::*member_function)(TArgs...) const) {
+  return private_functional::const_mem_fn_impl<TReturnType, TClassType,
+                                               TArgs...>(member_function);
+}
+#endif
+} // namespace gdut
+
+#endif

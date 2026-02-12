@@ -29,101 +29,79 @@ SOFTWARE.
 #ifndef GDUT_TASK_INCLUDED
 #define GDUT_TASK_INCLUDED
 
-#include "platform.hpp"
 #include "error_handler.hpp"
 #include "exception.hpp"
+#include "platform.hpp"
 
 #include <stdint.h>
 
-namespace gdut
-{
-  //***************************************************************************
-  /// Base exception class for task.
-  //***************************************************************************
-  class task_exception : public gdut::exception
-  {
-  public:
+namespace gdut {
+//***************************************************************************
+/// Base exception class for task.
+//***************************************************************************
+class task_exception : public gdut::exception {
+public:
+  task_exception(string_type reason_, string_type file_name_,
+                 numeric_type line_number_)
+      : gdut::exception(reason_, file_name_, line_number_) {}
+};
 
-    task_exception(string_type reason_, string_type file_name_, numeric_type line_number_)
-      : gdut::exception(reason_, file_name_, line_number_)
-    {
-    }
-  };
+typedef uint_least8_t task_priority_t;
 
-  typedef uint_least8_t task_priority_t;
+//***************************************************************************
+/// Task.
+//***************************************************************************
+class task {
+public:
+  //*******************************************
+  /// Constructor.
+  //*******************************************
+  task(task_priority_t priority)
+      : task_running(true), task_priority(priority) {}
 
-  //***************************************************************************
-  /// Task.
-  //***************************************************************************
-  class task
-  {
-  public:
+  //*******************************************
+  /// Destructor.
+  //*******************************************
+  virtual ~task() {}
 
-    //*******************************************
-    /// Constructor.
-    //*******************************************
-    task(task_priority_t priority)
-      : task_running(true),
-        task_priority(priority)
-    {
-    }
+  //*******************************************
+  /// Called to check if the task has work.
+  /// Returns a score as to the amount of work it has to do.
+  //*******************************************
+  virtual uint32_t task_request_work() const = 0;
 
-    //*******************************************
-    /// Destructor.
-    //*******************************************
-    virtual ~task()
-    {
-    }
+  //*******************************************
+  /// Called to get the task to do work.
+  //*******************************************
+  virtual void task_process_work() = 0;
 
-    //*******************************************
-    /// Called to check if the task has work.
-    /// Returns a score as to the amount of work it has to do.
-    //*******************************************
-    virtual uint32_t task_request_work() const = 0;
+  //*******************************************
+  /// Called when the task has been added to the scheduler.
+  //*******************************************
+  virtual void on_task_added() {
+    // Do nothing.
+  }
 
-    //*******************************************
-    /// Called to get the task to do work.
-    //*******************************************
-    virtual void task_process_work() = 0;
+  //*******************************************
+  /// Set the running state for the task.
+  //*******************************************
+  void set_task_running(bool task_running_) { task_running = task_running_; }
 
-    //*******************************************
-    /// Called when the task has been added to the scheduler.
-    //*******************************************
-    virtual void on_task_added()
-    {
-      // Do nothing.
-    }
+  //*******************************************
+  /// Get the running state for the task.
+  //*******************************************
+  bool task_is_running() const { return task_running; }
 
-    //*******************************************
-    /// Set the running state for the task.
-    //*******************************************
-    void set_task_running(bool task_running_)
-    {
-      task_running = task_running_;
-    }
+  //*******************************************
+  /// Get the priority of the task.
+  /// Higher value = higher priority.
+  //*******************************************
+  gdut::task_priority_t get_task_priority() const { return task_priority; }
 
-    //*******************************************
-    /// Get the running state for the task.
-    //*******************************************
-    bool task_is_running() const
-    {
-      return task_running;
-    }
-
-    //*******************************************
-    /// Get the priority of the task.
-    /// Higher value = higher priority.
-    //*******************************************
-    gdut::task_priority_t get_task_priority() const
-    {
-      return task_priority;
-    }
-
-  private:
-
-    bool task_running;
-    gdut::task_priority_t task_priority;
-  };
-}
+private:
+  bool task_running;
+  gdut::task_priority_t task_priority;
+};
+} // namespace gdut
 
 #endif

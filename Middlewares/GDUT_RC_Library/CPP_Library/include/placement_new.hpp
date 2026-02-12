@@ -34,33 +34,34 @@ SOFTWARE.
 #include "platform.hpp"
 
 //*****************************************************************************
-// Figure out if we can use the standard library <new> header, if haven't already done so.
+// Figure out if we can use the standard library <new> header, if haven't
+// already done so.
 //*****************************************************************************
 #if !defined(GDUT_USING_STD_NEW)
-  #if defined(__has_include)
-    #if __has_include(<new>)
-      #define GDUT_USING_STD_NEW 1
-    #else
-      #define GDUT_USING_STD_NEW 0
-    #endif
-  #elif (defined(ARDUINO) && defined(__AVR__))
-    #define GDUT_USING_STD_NEW 0
-  #else
-    #define GDUT_USING_STD_NEW 1
-  #endif
+#if defined(__has_include)
+#if __has_include(<new>)
+#define GDUT_USING_STD_NEW 1
+#else
+#define GDUT_USING_STD_NEW 0
+#endif
+#elif (defined(ARDUINO) && defined(__AVR__))
+#define GDUT_USING_STD_NEW 0
+#else
+#define GDUT_USING_STD_NEW 1
+#endif
 #endif
 
 #if GDUT_USING_STD_NEW
-  #include <new>
+#include <new>
 #else
-  //*****************************************************************************
-  // Define placement new if no new header is available.
-  //*****************************************************************************
-  inline void* operator new(size_t, void* p) GDUT_NOEXCEPT { return p; }
-  inline void* operator new[](size_t, void* p) GDUT_NOEXCEPT { return p; }
+//*****************************************************************************
+// Define placement new if no new header is available.
+//*****************************************************************************
+inline void *operator new(size_t, void *p) GDUT_NOEXCEPT { return p; }
+inline void *operator new[](size_t, void *p) GDUT_NOEXCEPT { return p; }
 
-  inline void operator delete(void*, void*) GDUT_NOEXCEPT {}
-  inline void operator delete[](void*, void*) GDUT_NOEXCEPT{}
+inline void operator delete(void *, void *) GDUT_NOEXCEPT {}
+inline void operator delete[](void *, void *) GDUT_NOEXCEPT {}
 
 #endif
 

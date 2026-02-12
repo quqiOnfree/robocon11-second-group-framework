@@ -31,387 +31,303 @@ SOFTWARE.
 #ifndef GDUT_SCALED_ROUNDING_INCLUDED
 #define GDUT_SCALED_ROUNDING_INCLUDED
 
+#include "absolute.hpp"
 #include "platform.hpp"
 #include "static_assert.hpp"
 #include "type_traits.hpp"
-#include "absolute.hpp"
 
-namespace gdut
-{
-  template <typename T>
-  struct scaled_rounding_t
-  {
-    typedef typename gdut::conditional<gdut::is_signed<T>::value, int32_t, uint32_t>::type type;
-  };
+namespace gdut {
+template <typename T> struct scaled_rounding_t {
+  typedef typename gdut::conditional<gdut::is_signed<T>::value, int32_t,
+                                     uint32_t>::type type;
+};
 
-  //*****************************************************************************
-  /// A set of rounding algorithms for scaled integrals.
-  /// \tparam T       The integral type.
-  /// \tparam Scaling The scaling factor.
-  ///
-  /// \example For emulating fixed point of two decimal places we could use a
-  /// scaling factor of '100'. To round the result of scaled int calculations
-  /// using 'Banker's Rounding' we would define this.
-  /// \code
-  /// int final_result = round_half_even_unscaled<100>(accumulated_result);
-  /// \endcode
-  /// \link http://www.clivemaxfield.com/diycalculator/sp-round.shtml
-  //*****************************************************************************
+//*****************************************************************************
+/// A set of rounding algorithms for scaled integrals.
+/// \tparam T       The integral type.
+/// \tparam Scaling The scaling factor.
+///
+/// \example For emulating fixed point of two decimal places we could use a
+/// scaling factor of '100'. To round the result of scaled int calculations
+/// using 'Banker's Rounding' we would define this.
+/// \code
+/// int final_result = round_half_even_unscaled<100>(accumulated_result);
+/// \endcode
+/// \link http://www.clivemaxfield.com/diycalculator/sp-round.shtml
+//*****************************************************************************
 
-  //***************************************************************************
-  /// Round to more positive integer.
-  /// \param value Scaled integral.
-  /// \return Unscaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_ceiling_unscaled(T value) GDUT_NOEXCEPT
-  {
-    typedef typename scaled_rounding_t<T>::type scale_t;
+//***************************************************************************
+/// Round to more positive integer.
+/// \param value Scaled integral.
+/// \return Unscaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_ceiling_unscaled(T value)
+    GDUT_NOEXCEPT {
+  typedef typename scaled_rounding_t<T>::type scale_t;
 
-    if (Scaling == 1)
-    {
-      return value;
-    }
-
-    if (value >= 0)
-    {
-      return T((value + scale_t(Scaling - 1U)) / scale_t(Scaling));
-    }
-    else
-    {
-      return T(value / scale_t(Scaling));
-    }
+  if (Scaling == 1) {
+    return value;
   }
 
-  //***************************************************************************
-  /// Round to more positive integer.
-  /// \param value Scaled integral.
-  /// \return Scaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_ceiling_scaled(T value) GDUT_NOEXCEPT
-  {
-    typedef typename scaled_rounding_t<T>::type scale_t;
-
-    return round_ceiling_unscaled<Scaling>(value) * scale_t(Scaling);
-  }
-
-  //***************************************************************************
-  /// Round to more negative integer.
-  /// \param value Scaled integral.
-  /// \return Unscaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_floor_unscaled(T value) GDUT_NOEXCEPT
-  {
-    typedef typename scaled_rounding_t<T>::type scale_t;
-    if (Scaling == 1)
-    {
-      return value;
-    }
-
-    if (value >= 0)
-    {
-      return T(value / scale_t(Scaling));
-    }
-    else
-    {
-      return T((value - scale_t(Scaling - 1)) / scale_t(Scaling));
-    }
-  }
-
-  //***************************************************************************
-  /// Round to more negative integer.
-  /// \param value Scaled integral.
-  /// \return Scaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_floor_scaled(T value) GDUT_NOEXCEPT
-  {
-    typedef typename scaled_rounding_t<T>::type scale_t;
-
-    return T(round_floor_unscaled<Scaling>(value) * scale_t(Scaling));
-  }
-
-  //***************************************************************************
-  /// Round to nearest integer. 'Half' value is rounded up (to infinity).
-  /// Uses 'symmetric up' rounding.
-  /// \param value Scaled integral.
-  /// \return Unscaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_half_up_unscaled(T value) GDUT_NOEXCEPT
-  {
-    typedef typename scaled_rounding_t<T>::type scale_t;
-
-    if (Scaling == 1)
-    {
-      return value;
-    }
-    else
-    {
-      if (value >= 0)
-      {
-        return T((value + scale_t(Scaling / 2U)) / scale_t(Scaling));
-      }
-      else
-      {
-        return T((value - scale_t(Scaling / 2U)) / scale_t(Scaling));
-      }
-    }
-  }
-
-  //***************************************************************************
-  /// Round to nearest integer. 'Half' value is rounded up (to infinity).
-  /// Uses 'symmetric up' rounding.
-  /// \param value Scaled integral.
-  /// \return Scaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_half_up_scaled(T value) GDUT_NOEXCEPT
-  {
-    typedef typename scaled_rounding_t<T>::type scale_t;
-
-    return T(round_half_up_unscaled<Scaling>(value) * scale_t(Scaling));
-  }
-
-  //***************************************************************************
-  /// Round to nearest integer. 'Half' value is rounded down (to zero).
-  /// Uses 'symmetric down' rounding.
-  /// \param value Scaled integral.
-  /// \return Unscaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_half_down_unscaled(T value) GDUT_NOEXCEPT
-  {
-    typedef typename scaled_rounding_t<T>::type scale_t;
-
-    if (Scaling == 1)
-    {
-      return value;
-    }
-
-    if (value >= 0)
-    {
-      return T((value + scale_t((Scaling - 1) / 2U)) / scale_t(Scaling));
-    }
-    else
-    {
-      return T((value - scale_t((Scaling - 1) / 2U)) / scale_t(Scaling));
-    }
-  }
-
-  //***************************************************************************
-  /// Round to nearest integer. 'Half' value is rounded down (to zero).
-  /// Uses 'symmetric down' rounding.
-  /// \param value Scaled integral.
-  /// \return Scaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_half_down_scaled(T value) GDUT_NOEXCEPT
-  {
-    typedef typename scaled_rounding_t<T>::type scale_t;
-
-    return T(round_half_down_unscaled<Scaling>(value) * scale_t(Scaling));
-  }
-
-  //***************************************************************************
-  /// Round toward zero.
-  /// \param value Scaled integral.
-  /// \return Unscaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_zero_unscaled(T value) GDUT_NOEXCEPT
-  {
-    typedef typename scaled_rounding_t<T>::type scale_t;
-
-    if (Scaling == 1)
-    {
-      return value;
-    }
-    else
-    {
-      return T(value / scale_t(Scaling));
-    }
-  }
-
-  //***************************************************************************
-  /// Round toward zero.
-  /// \param value Scaled integral.
-  /// \return Scaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_zero_scaled(T value) GDUT_NOEXCEPT
-  {
-    typedef typename scaled_rounding_t<T>::type scale_t;
-
-    return T(round_zero_unscaled<Scaling>(value) * scale_t(Scaling));
-  }
-
-  //***************************************************************************
-  /// Round twords infinity or away from zero.
-  /// \param value Scaled integral.
-  /// \return Unscaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_infinity_unscaled(T value) GDUT_NOEXCEPT
-  {
-    if (value >= 0)
-    {
-      return gdut::round_ceiling_unscaled<Scaling>(value);
-    }
-    else
-    {
-      return gdut::round_floor_unscaled<Scaling>(value);
-    }
-  }
-
-  //***************************************************************************
-  /// Round twords infinity or away from zero.
-  /// \param value Scaled integral.
-  /// \return Scaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_infinity_scaled(T value) GDUT_NOEXCEPT
-  {
-    typedef typename scaled_rounding_t<T>::type scale_t;
-
-    return T(round_infinity_unscaled<Scaling>(value) * scale_t(Scaling));
-  }
-
-  //***************************************************************************
-  /// Round to nearest integer. 'Half' value is rounded to even integral.
-  /// Also known as 'Banker's Rounding'.
-  /// \param value Scaled integral.
-  /// \return Unscaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_half_even_unscaled(T value) GDUT_NOEXCEPT
-  {
-    typedef typename scaled_rounding_t<T>::type scale_t;
-
-    if (Scaling == 1)
-    {
-      return value;
-    }
-    else
-    {
-      // Half?
-      if ((gdut::absolute(value) % scale_t(Scaling)) == scale_t(Scaling / 2U))
-      {
-        // Odd?
-        if ((value / scale_t(Scaling)) & 1U)
-        {
-          return T(round_half_up_unscaled<Scaling>(value));
-        }
-        else
-        {
-          return T(round_half_down_unscaled<Scaling>(value));
-        }
-      }
-      else
-      {
-        return T(round_half_up_unscaled<Scaling>(value));
-      }
-    }
-  }
-
-  //***************************************************************************
-  /// Round to nearest integer. 'Half' value is rounded to even integral.
-  /// Also known as 'Banker's Rounding'.
-  /// \param value Scaled integral.
-  /// \return Scaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_half_even_scaled(T value) GDUT_NOEXCEPT
-  {
-    typedef typename scaled_rounding_t<T>::type scale_t;
-
-    return T(round_half_even_unscaled<Scaling>(value) * scale_t(Scaling));
-  }
-
-  //***************************************************************************
-  /// Round to nearest integer. 'Half' value is rounded to odd integral.
-  /// Also known as 'Banker's Rounding'.
-  /// \param value Scaled integral.
-  /// \return Unscaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_half_odd_unscaled(T value) GDUT_NOEXCEPT
-  {
-    typedef typename scaled_rounding_t<T>::type scale_t;
-
-    if (Scaling == 1)
-    {
-      return value;
-    }
-    else
-    {
-      // Half?
-      if ((gdut::absolute(value) % scale_t(Scaling)) == scale_t(Scaling / 2U))
-      {
-        // Odd?
-        if ((value / scale_t(Scaling)) & 1U)
-        {
-          return T(round_half_down_unscaled<Scaling>(value));
-        }
-        else
-        {
-          return T(round_half_up_unscaled<Scaling>(value));
-        }
-      }
-      else
-      {
-        return T(round_half_up_unscaled<Scaling>(value));
-      }
-    }
-  }
-
-  //***************************************************************************
-  /// Round to nearest integer. 'Half' value is rounded to odd integral.
-  /// Also known as 'Banker's Rounding'.
-  /// \param value Scaled integral.
-  /// \return Scaled, rounded integral.
-  //***************************************************************************
-  template <uint32_t Scaling, typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T round_half_odd_scaled(T value) GDUT_NOEXCEPT
-  {
-    typedef typename scaled_rounding_t<T>::type scale_t;
-
-    return T(round_half_odd_unscaled<Scaling>(value) * scale_t(Scaling));
+  if (value >= 0) {
+    return T((value + scale_t(Scaling - 1U)) / scale_t(Scaling));
+  } else {
+    return T(value / scale_t(Scaling));
   }
 }
+
+//***************************************************************************
+/// Round to more positive integer.
+/// \param value Scaled integral.
+/// \return Scaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_ceiling_scaled(T value) GDUT_NOEXCEPT {
+  typedef typename scaled_rounding_t<T>::type scale_t;
+
+  return round_ceiling_unscaled<Scaling>(value) * scale_t(Scaling);
+}
+
+//***************************************************************************
+/// Round to more negative integer.
+/// \param value Scaled integral.
+/// \return Unscaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_floor_unscaled(T value) GDUT_NOEXCEPT {
+  typedef typename scaled_rounding_t<T>::type scale_t;
+  if (Scaling == 1) {
+    return value;
+  }
+
+  if (value >= 0) {
+    return T(value / scale_t(Scaling));
+  } else {
+    return T((value - scale_t(Scaling - 1)) / scale_t(Scaling));
+  }
+}
+
+//***************************************************************************
+/// Round to more negative integer.
+/// \param value Scaled integral.
+/// \return Scaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_floor_scaled(T value) GDUT_NOEXCEPT {
+  typedef typename scaled_rounding_t<T>::type scale_t;
+
+  return T(round_floor_unscaled<Scaling>(value) * scale_t(Scaling));
+}
+
+//***************************************************************************
+/// Round to nearest integer. 'Half' value is rounded up (to infinity).
+/// Uses 'symmetric up' rounding.
+/// \param value Scaled integral.
+/// \return Unscaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_half_up_unscaled(T value)
+    GDUT_NOEXCEPT {
+  typedef typename scaled_rounding_t<T>::type scale_t;
+
+  if (Scaling == 1) {
+    return value;
+  } else {
+    if (value >= 0) {
+      return T((value + scale_t(Scaling / 2U)) / scale_t(Scaling));
+    } else {
+      return T((value - scale_t(Scaling / 2U)) / scale_t(Scaling));
+    }
+  }
+}
+
+//***************************************************************************
+/// Round to nearest integer. 'Half' value is rounded up (to infinity).
+/// Uses 'symmetric up' rounding.
+/// \param value Scaled integral.
+/// \return Scaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_half_up_scaled(T value) GDUT_NOEXCEPT {
+  typedef typename scaled_rounding_t<T>::type scale_t;
+
+  return T(round_half_up_unscaled<Scaling>(value) * scale_t(Scaling));
+}
+
+//***************************************************************************
+/// Round to nearest integer. 'Half' value is rounded down (to zero).
+/// Uses 'symmetric down' rounding.
+/// \param value Scaled integral.
+/// \return Unscaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_half_down_unscaled(T value)
+    GDUT_NOEXCEPT {
+  typedef typename scaled_rounding_t<T>::type scale_t;
+
+  if (Scaling == 1) {
+    return value;
+  }
+
+  if (value >= 0) {
+    return T((value + scale_t((Scaling - 1) / 2U)) / scale_t(Scaling));
+  } else {
+    return T((value - scale_t((Scaling - 1) / 2U)) / scale_t(Scaling));
+  }
+}
+
+//***************************************************************************
+/// Round to nearest integer. 'Half' value is rounded down (to zero).
+/// Uses 'symmetric down' rounding.
+/// \param value Scaled integral.
+/// \return Scaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_half_down_scaled(T value)
+    GDUT_NOEXCEPT {
+  typedef typename scaled_rounding_t<T>::type scale_t;
+
+  return T(round_half_down_unscaled<Scaling>(value) * scale_t(Scaling));
+}
+
+//***************************************************************************
+/// Round toward zero.
+/// \param value Scaled integral.
+/// \return Unscaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_zero_unscaled(T value) GDUT_NOEXCEPT {
+  typedef typename scaled_rounding_t<T>::type scale_t;
+
+  if (Scaling == 1) {
+    return value;
+  } else {
+    return T(value / scale_t(Scaling));
+  }
+}
+
+//***************************************************************************
+/// Round toward zero.
+/// \param value Scaled integral.
+/// \return Scaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_zero_scaled(T value) GDUT_NOEXCEPT {
+  typedef typename scaled_rounding_t<T>::type scale_t;
+
+  return T(round_zero_unscaled<Scaling>(value) * scale_t(Scaling));
+}
+
+//***************************************************************************
+/// Round twords infinity or away from zero.
+/// \param value Scaled integral.
+/// \return Unscaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_infinity_unscaled(T value)
+    GDUT_NOEXCEPT {
+  if (value >= 0) {
+    return gdut::round_ceiling_unscaled<Scaling>(value);
+  } else {
+    return gdut::round_floor_unscaled<Scaling>(value);
+  }
+}
+
+//***************************************************************************
+/// Round twords infinity or away from zero.
+/// \param value Scaled integral.
+/// \return Scaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_infinity_scaled(T value) GDUT_NOEXCEPT {
+  typedef typename scaled_rounding_t<T>::type scale_t;
+
+  return T(round_infinity_unscaled<Scaling>(value) * scale_t(Scaling));
+}
+
+//***************************************************************************
+/// Round to nearest integer. 'Half' value is rounded to even integral.
+/// Also known as 'Banker's Rounding'.
+/// \param value Scaled integral.
+/// \return Unscaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_half_even_unscaled(T value)
+    GDUT_NOEXCEPT {
+  typedef typename scaled_rounding_t<T>::type scale_t;
+
+  if (Scaling == 1) {
+    return value;
+  } else {
+    // Half?
+    if ((gdut::absolute(value) % scale_t(Scaling)) == scale_t(Scaling / 2U)) {
+      // Odd?
+      if ((value / scale_t(Scaling)) & 1U) {
+        return T(round_half_up_unscaled<Scaling>(value));
+      } else {
+        return T(round_half_down_unscaled<Scaling>(value));
+      }
+    } else {
+      return T(round_half_up_unscaled<Scaling>(value));
+    }
+  }
+}
+
+//***************************************************************************
+/// Round to nearest integer. 'Half' value is rounded to even integral.
+/// Also known as 'Banker's Rounding'.
+/// \param value Scaled integral.
+/// \return Scaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_half_even_scaled(T value)
+    GDUT_NOEXCEPT {
+  typedef typename scaled_rounding_t<T>::type scale_t;
+
+  return T(round_half_even_unscaled<Scaling>(value) * scale_t(Scaling));
+}
+
+//***************************************************************************
+/// Round to nearest integer. 'Half' value is rounded to odd integral.
+/// Also known as 'Banker's Rounding'.
+/// \param value Scaled integral.
+/// \return Unscaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_half_odd_unscaled(T value)
+    GDUT_NOEXCEPT {
+  typedef typename scaled_rounding_t<T>::type scale_t;
+
+  if (Scaling == 1) {
+    return value;
+  } else {
+    // Half?
+    if ((gdut::absolute(value) % scale_t(Scaling)) == scale_t(Scaling / 2U)) {
+      // Odd?
+      if ((value / scale_t(Scaling)) & 1U) {
+        return T(round_half_down_unscaled<Scaling>(value));
+      } else {
+        return T(round_half_up_unscaled<Scaling>(value));
+      }
+    } else {
+      return T(round_half_up_unscaled<Scaling>(value));
+    }
+  }
+}
+
+//***************************************************************************
+/// Round to nearest integer. 'Half' value is rounded to odd integral.
+/// Also known as 'Banker's Rounding'.
+/// \param value Scaled integral.
+/// \return Scaled, rounded integral.
+//***************************************************************************
+template <uint32_t Scaling, typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T round_half_odd_scaled(T value) GDUT_NOEXCEPT {
+  typedef typename scaled_rounding_t<T>::type scale_t;
+
+  return T(round_half_odd_unscaled<Scaling>(value) * scale_t(Scaling));
+}
+} // namespace gdut
 
 #endif

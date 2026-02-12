@@ -31,51 +31,38 @@ SOFTWARE.
 #ifndef __GDUT_CALLBACK__
 #define __GDUT_CALLBACK__
 
-namespace gdut
-{
-  //***************************************************************************
-  /// A callback class designed to be multiply inherited by other client classes.
-  /// The class is parametrised with a callback parameter type and a unique id.
-  /// The unique id allows multiple callbacks with the same parameter type.
-  ///\tparam TParameter The callback parameter type.
-  ///\tparam ID The unique id for this callback.
-  //***************************************************************************
-  template <typename TParameter, const int ID>
-  class callback
-  {
+namespace gdut {
+//***************************************************************************
+/// A callback class designed to be multiply inherited by other client classes.
+/// The class is parametrised with a callback parameter type and a unique id.
+/// The unique id allows multiple callbacks with the same parameter type.
+///\tparam TParameter The callback parameter type.
+///\tparam ID The unique id for this callback.
+//***************************************************************************
+template <typename TParameter, const int ID> class callback {
+private:
+  // Creates a parameter type unique to this ID.
+  template <typename T, const int I> struct parameter {
+    parameter(T value_) : value(value_) {}
+
+    typedef T value_type;
+
+    T value;
+
   private:
-
-    // Creates a parameter type unique to this ID.
-    template <typename T, const int I>
-    struct parameter
-    {
-        parameter(T value_)
-            : value(value_)
-        {
-        }
-
-        typedef T value_type;
-
-        T value;
-
-    private:
-
-        parameter();
-    };
-
-    // Specialisation for void.
-    template <const int I>
-    struct parameter<void, I>
-    {
-        typedef void value_type;
-    };
-
-  public:
-
-    typedef parameter<TParameter, ID> type;
-
-    virtual void etl_callback(type p = type()) = 0;
+    parameter();
   };
-}
+
+  // Specialisation for void.
+  template <const int I> struct parameter<void, I> {
+    typedef void value_type;
+  };
+
+public:
+  typedef parameter<TParameter, ID> type;
+
+  virtual void etl_callback(type p = type()) = 0;
+};
+} // namespace gdut
 
 #endif

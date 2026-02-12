@@ -34,30 +34,24 @@ SOFTWARE.
 #include "platform.hpp"
 #include "type_traits.hpp"
 
-namespace gdut
-{
-  //***************************************************************************
-  // For signed types.
-  //***************************************************************************
-  template <typename T>
-  GDUT_CONSTEXPR
-  typename gdut::enable_if<gdut::is_signed<T>::value, bool>::type  
-    is_negative(const T value)
-  {
-    return (value < T(0));
-  }
-
-  //***************************************************************************
-  // For unsigned types.
-  //***************************************************************************
-  template <typename T>
-  GDUT_CONSTEXPR
-  typename gdut::enable_if<gdut::is_unsigned<T>::value, bool>::type
-    is_negative(const T)
-  {
-    return false;
-  }
+namespace gdut {
+//***************************************************************************
+// For signed types.
+//***************************************************************************
+template <typename T>
+GDUT_CONSTEXPR typename gdut::enable_if<gdut::is_signed<T>::value, bool>::type
+is_negative(const T value) {
+  return (value < T(0));
 }
 
-#endif
+//***************************************************************************
+// For unsigned types.
+//***************************************************************************
+template <typename T>
+GDUT_CONSTEXPR typename gdut::enable_if<gdut::is_unsigned<T>::value, bool>::type
+is_negative(const T) {
+  return false;
+}
+} // namespace gdut
 
+#endif

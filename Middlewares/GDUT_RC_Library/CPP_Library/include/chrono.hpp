@@ -36,36 +36,32 @@ SOFTWARE.
 #include "platform.hpp"
 
 #if GDUT_NOT_USING_CPP11 && !defined(GDUT_IN_UNIT_TEST)
-  #error NOT SUPPORTED FOR C++03 OR BELOW
+#error NOT SUPPORTED FOR C++03 OR BELOW
 #endif
 
 #if GDUT_USING_CPP11
 
-#include "type_traits.hpp"
-#include "integral_limits.hpp"
 #include "hash.hpp"
+#include "integral_limits.hpp"
+#include "type_traits.hpp"
 
 #include <stdint.h>
 #include <time.h>
 
-namespace gdut
-{
-  namespace chrono
-  {
-    template <typename TRep>
-    struct treat_as_floating_point : gdut::is_floating_point<TRep>
-    {
-    };
+namespace gdut {
+namespace chrono {
+template <typename TRep>
+struct treat_as_floating_point : gdut::is_floating_point<TRep> {};
 
 #if GDUT_USING_CPP17
-    template <typename TRep>
-    constexpr bool treat_as_floating_point_v = treat_as_floating_point<TRep>::value;
+template <typename TRep>
+constexpr bool treat_as_floating_point_v = treat_as_floating_point<TRep>::value;
 #endif
-  }
+} // namespace chrono
 
-  // Use the same type as defined in time.h.
-  using time_t = ::time_t;
-}
+// Use the same type as defined in time.h.
+using time_t = ::time_t;
+} // namespace gdut
 
 // clang-format off
 // Keeping the order is important here
@@ -87,13 +83,11 @@ namespace gdut
 #include "private/chrono/time_zone.hpp"
 // clang-format on
 
-namespace gdut
-{
-  namespace chrono 
-  {
-    using namespace literals::chrono_literals;
-  }
+namespace gdut {
+namespace chrono {
+using namespace literals::chrono_literals;
 }
+} // namespace gdut
 
 #endif
 

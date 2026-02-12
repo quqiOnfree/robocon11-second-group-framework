@@ -31,206 +31,165 @@ SOFTWARE.
 #ifndef GDUT_VARIANCE_INCLUDED
 #define GDUT_VARIANCE_INCLUDED
 
-#include "platform.hpp"
 #include "functional.hpp"
+#include "platform.hpp"
 #include "type_traits.hpp"
 
-//#include <math.h>
+// #include <math.h>
 #include <stdint.h>
 
-namespace gdut
-{
-  namespace private_variance
-  {
-    //***************************************************************************
-    /// Types for generic variance.
-    //***************************************************************************
-    template <typename TInput, typename TCalc>
-    struct variance_traits
-    {
-      typedef TCalc calc_t;
-    };
+namespace gdut {
+namespace private_variance {
+//***************************************************************************
+/// Types for generic variance.
+//***************************************************************************
+template <typename TInput, typename TCalc> struct variance_traits {
+  typedef TCalc calc_t;
+};
 
-    //***************************************************************************
-    /// Types for float variance.
-    //***************************************************************************
-    template <typename TCalc>
-    struct variance_traits<float, TCalc>
-    {
-      typedef float calc_t;
-    };
+//***************************************************************************
+/// Types for float variance.
+//***************************************************************************
+template <typename TCalc> struct variance_traits<float, TCalc> {
+  typedef float calc_t;
+};
 
-    //***************************************************************************
-    /// Types for double variance.
-    //***************************************************************************
-    template <typename TCalc>
-    struct variance_traits<double, TCalc>
-    {
-      typedef double calc_t;
-    };
+//***************************************************************************
+/// Types for double variance.
+//***************************************************************************
+template <typename TCalc> struct variance_traits<double, TCalc> {
+  typedef double calc_t;
+};
+} // namespace private_variance
+
+//***************************************************************************
+/// Variance Type.
+//***************************************************************************
+namespace private_variance {
+template <typename T = void> struct variance_type_helper {
+  static GDUT_CONSTANT bool Sample = false;
+  static GDUT_CONSTANT bool Population = true;
+};
+
+template <typename T> GDUT_CONSTANT bool variance_type_helper<T>::Sample;
+
+template <typename T> GDUT_CONSTANT bool variance_type_helper<T>::Population;
+} // namespace private_variance
+
+struct variance_type : public private_variance::variance_type_helper<> {};
+
+//***************************************************************************
+/// Variance.
+//***************************************************************************
+template <bool Variance_Type, typename TInput, typename TCalc = TInput>
+class variance : public private_variance::variance_traits<TInput, TCalc>,
+                 public gdut::binary_function<TInput, TInput, void> {
+private:
+  static GDUT_CONSTANT int Adjustment =
+      (Variance_Type == variance_type::Population) ? 0 : 1;
+
+  typedef
+      typename private_variance::variance_traits<TInput, TCalc>::calc_t calc_t;
+
+public:
+  //*********************************
+  /// Constructor.
+  //*********************************
+  variance() { clear(); }
+
+  //*********************************
+  /// Constructor.
+  //*********************************
+  template <typename TIterator> variance(TIterator first, TIterator last) {
+    clear();
+    add(first, last);
   }
 
-  //***************************************************************************
-  /// Variance Type.
-  //***************************************************************************
-  namespace private_variance
-  {
-    template<typename T = void>
-    struct variance_type_helper
-    {
-      static GDUT_CONSTANT bool Sample = false;
-      static GDUT_CONSTANT bool Population = true;
-    };
-
-    template <typename T>
-    GDUT_CONSTANT bool variance_type_helper<T>::Sample;
-
-    template <typename T>
-    GDUT_CONSTANT bool variance_type_helper<T>::Population;
+  //*********************************
+  /// Add a pair of values.
+  //*********************************
+  void add(TInput value) {
+    sum_of_squares += TCalc(value * value);
+    sum += TCalc(value);
+    ++counter;
+    recalculate = true;
   }
 
-  struct variance_type : public private_variance::variance_type_helper<>
-  {
-  };
-
-  //***************************************************************************
-  /// Variance.
-  //***************************************************************************
-  template <bool Variance_Type, typename TInput, typename TCalc = TInput>
-  class variance 
-    : public private_variance::variance_traits<TInput, TCalc>
-    , public gdut::binary_function<TInput, TInput, void>
-  {
-  private:
-
-    static GDUT_CONSTANT int Adjustment = (Variance_Type == variance_type::Population) ? 0 : 1;
-
-    typedef typename private_variance::variance_traits<TInput, TCalc>::calc_t calc_t;
-
-  public:
-
-    //*********************************
-    /// Constructor.
-    //*********************************
-    variance()
-    {
-      clear();
+  //*********************************
+  /// Add a range.
+  //*********************************
+  template <typename TIterator> void add(TIterator first, TIterator last) {
+    while (first != last) {
+      add(*first);
+      ++first;
     }
+  }
 
-    //*********************************
-    /// Constructor.
-    //*********************************
-    template <typename TIterator>
-    variance(TIterator first, TIterator last)
-    {
-      clear();
-      add(first, last);
-    }
+  //*********************************
+  /// operator ()
+  /// Add a pair of values.
+  //*********************************
+  void operator()(TInput value) { add(value); }
 
-    //*********************************
-    /// Add a pair of values.
-    //*********************************
-    void add(TInput value)
-    {
-      sum_of_squares += TCalc(value * value);
-      sum            += TCalc(value);
-      ++counter;
-      recalculate = true;
-    }
+  //*********************************
+  /// operator ()
+  /// Add a range.
+  //*********************************
+  template <typename TIterator>
+  void operator()(TIterator first, TIterator last) {
+    add(first, last);
+  }
 
-    //*********************************
-    /// Add a range.
-    //*********************************
-    template <typename TIterator>
-    void add(TIterator first, TIterator last)
-    {
-      while (first != last)
-      {
-        add(*first);
-        ++first;
-      }
-    }
-
-    //*********************************
-    /// operator ()
-    /// Add a pair of values.
-    //*********************************
-    void operator ()(TInput value)
-    {
-      add(value);
-    }
-
-    //*********************************
-    /// operator ()
-    /// Add a range.
-    //*********************************
-    template <typename TIterator>
-    void operator ()(TIterator first, TIterator last)
-    {
-      add(first, last);
-    }
-
-    //*********************************
-    /// Get the variance.
-    //*********************************
-    double get_variance() const
-    {
-      if (recalculate)
-      {
-        variance_value = 0.0;
-
-        if (counter != 0)
-        {
-          double n = double(counter);
-          double adjustment = 1.0 / (n * (n - Adjustment)) ;
-
-          double square_of_sum = sum * sum;
-
-          variance_value = (n * sum_of_squares - square_of_sum) * adjustment;
-        }
-
-        recalculate = false;
-      }
-
-      return variance_value;
-    }
-
-    //*********************************
-    /// Get the variance.
-    //*********************************
-    operator double() const
-    {
-      return get_variance();
-    }
-
-    //*********************************
-    /// Get the total number added entries.
-    //*********************************
-    size_t count() const
-    {
-      return size_t(counter);
-    }
-
-    //*********************************
-    /// Clear the variance.
-    //*********************************
-    void clear()
-    {
-      sum_of_squares = calc_t(0);
-      sum            = calc_t(0);
-      counter        = 0U;
+  //*********************************
+  /// Get the variance.
+  //*********************************
+  double get_variance() const {
+    if (recalculate) {
       variance_value = 0.0;
-      recalculate    = true;
+
+      if (counter != 0) {
+        double n = double(counter);
+        double adjustment = 1.0 / (n * (n - Adjustment));
+
+        double square_of_sum = sum * sum;
+
+        variance_value = (n * sum_of_squares - square_of_sum) * adjustment;
+      }
+
+      recalculate = false;
     }
 
-  private:
-  
-    calc_t   sum_of_squares;
-    calc_t   sum;
-    uint32_t counter;
-    mutable double variance_value;
-    mutable bool   recalculate;
-  };
-}
+    return variance_value;
+  }
+
+  //*********************************
+  /// Get the variance.
+  //*********************************
+  operator double() const { return get_variance(); }
+
+  //*********************************
+  /// Get the total number added entries.
+  //*********************************
+  size_t count() const { return size_t(counter); }
+
+  //*********************************
+  /// Clear the variance.
+  //*********************************
+  void clear() {
+    sum_of_squares = calc_t(0);
+    sum = calc_t(0);
+    counter = 0U;
+    variance_value = 0.0;
+    recalculate = true;
+  }
+
+private:
+  calc_t sum_of_squares;
+  calc_t sum;
+  uint32_t counter;
+  mutable double variance_value;
+  mutable bool recalculate;
+};
+} // namespace gdut
 
 #endif

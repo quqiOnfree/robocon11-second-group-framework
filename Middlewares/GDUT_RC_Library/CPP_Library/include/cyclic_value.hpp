@@ -35,565 +35,447 @@ SOFTWARE.
 /// Provides a value that cycles between two limits.
 /// \ingroup utilities
 
+#include "algorithm.hpp"
+#include "exception.hpp"
 #include "platform.hpp"
 #include "static_assert.hpp"
-#include "exception.hpp"
-#include "static_assert.hpp"
 #include "type_traits.hpp"
-#include "algorithm.hpp"
 
 #include <stddef.h>
 
-namespace gdut
-{
-  //***************************************************************************
-  /// Provides a value that cycles between two limits.
-  //***************************************************************************
-  template <typename T, T First = 0, T Last = 0, bool EtlRuntimeSpecialisation = ((First == 0) && (Last == 0))>
-  class cyclic_value;
+namespace gdut {
+//***************************************************************************
+/// Provides a value that cycles between two limits.
+//***************************************************************************
+template <typename T, T First = 0, T Last = 0,
+          bool EtlRuntimeSpecialisation = ((First == 0) && (Last == 0))>
+class cyclic_value;
 
-  //***************************************************************************
-  /// Provides a value that cycles between two compile time limits.
-  /// Supports incrementing and decrementing.
-  ///\tparam T     The type of the variable.
-  ///\tparam First The first value of the range.
-  ///\tparam Last  The last value of the range.
-  ///\ingroup cyclic_value
-  //***************************************************************************
-  template <typename T, T First, T Last>
-  class cyclic_value<T, First, Last, false>
-  {
-  public:
+//***************************************************************************
+/// Provides a value that cycles between two compile time limits.
+/// Supports incrementing and decrementing.
+///\tparam T     The type of the variable.
+///\tparam First The first value of the range.
+///\tparam Last  The last value of the range.
+///\ingroup cyclic_value
+//***************************************************************************
+template <typename T, T First, T Last>
+class cyclic_value<T, First, Last, false> {
+public:
+  //*************************************************************************
+  /// Default constructor.
+  /// The initial value is set to the first value.
+  //*************************************************************************
+  cyclic_value() : value(First) {}
 
-    //*************************************************************************
-    /// Default constructor.
-    /// The initial value is set to the first value.
-    //*************************************************************************
-    cyclic_value()
-      : value(First)
-    {
-    }
+  //*************************************************************************
+  /// Constructor.
+  /// Set to an initial value.
+  /// Clamped to the range.
+  //*************************************************************************
+  explicit cyclic_value(T initial) { set(initial); }
 
-    //*************************************************************************
-    /// Constructor.
-    /// Set to an initial value.
-    /// Clamped to the range.
-    //*************************************************************************
-    explicit cyclic_value(T initial)
-    {
-      set(initial);
-    }
+  //*************************************************************************
+  /// Copy constructor.
+  //*************************************************************************
+  cyclic_value(const cyclic_value<T, First, Last> &other)
+      : value(other.value) {}
 
-    //*************************************************************************
-    /// Copy constructor.
-    //*************************************************************************
-    cyclic_value(const cyclic_value<T, First, Last>& other)
-      : value(other.value)
-    {
-    }
+  //*************************************************************************
+  /// Assignment operator.
+  //*************************************************************************
+  cyclic_value &operator=(const cyclic_value<T, First, Last> &other) {
+    value = other.value;
 
-    //*************************************************************************
-    /// Assignment operator.
-    //*************************************************************************
-    cyclic_value& operator =(const cyclic_value<T, First, Last>& other)
-    {
-      value = other.value;
+    return *this;
+  }
 
-      return *this;
-    }
+  //*************************************************************************
+  /// Sets the value.
+  /// Truncates to the First/Last range.
+  ///\param value The value.
+  //*************************************************************************
+  void set(T value_) { value = gdut::clamp(value_, First, Last); }
 
-    //*************************************************************************
-    /// Sets the value.
-    /// Truncates to the First/Last range.
-    ///\param value The value.
-    //*************************************************************************
-    void set(T value_)
-    {
-      value = gdut::clamp(value_, First, Last);
-    }
+  //*************************************************************************
+  /// Resets the value to the first in the range.
+  //*************************************************************************
+  void to_first() { value = First; }
 
-    //*************************************************************************
-    /// Resets the value to the first in the range.
-    //*************************************************************************
-    void to_first()
-    {
-      value = First;
-    }
+  //*************************************************************************
+  /// Resets the value to the last in the range.
+  //*************************************************************************
+  void to_last() { value = Last; }
 
-    //*************************************************************************
-    /// Resets the value to the last in the range.
-    //*************************************************************************
-    void to_last()
-    {
-      value = Last;
-    }
-
-    //*************************************************************************
-    /// Advances to value by a number of steps.
-    ///\param n The number of steps to advance.
-    //*************************************************************************
-    void advance(int n)
-    {
-      if (n > 0)
-      {
-        for (int i = 0; i < n; ++i)
-        {
-          operator ++();
-        }
+  //*************************************************************************
+  /// Advances to value by a number of steps.
+  ///\param n The number of steps to advance.
+  //*************************************************************************
+  void advance(int n) {
+    if (n > 0) {
+      for (int i = 0; i < n; ++i) {
+        operator++();
       }
-      else
-      {
-        for (int i = 0; i < -n; ++i)
-        {
-          operator --();
-        }
+    } else {
+      for (int i = 0; i < -n; ++i) {
+        operator--();
       }
     }
+  }
 
-    //*************************************************************************
-    /// Conversion operator.
-    /// \return The value of the underlying type.
-    //*************************************************************************
-    operator T()
-    {
-      return value;
+  //*************************************************************************
+  /// Conversion operator.
+  /// \return The value of the underlying type.
+  //*************************************************************************
+  operator T() { return value; }
+
+  //*************************************************************************
+  /// Const conversion operator.
+  /// \return The value of the underlying type.
+  //*************************************************************************
+  operator const T() const { return value; }
+
+  //*************************************************************************
+  /// ++ operator.
+  //*************************************************************************
+  cyclic_value &operator++() {
+    if (value >= Last)
+      GDUT_UNLIKELY { value = First; }
+    else {
+      ++value;
     }
 
-    //*************************************************************************
-    /// Const conversion operator.
-    /// \return The value of the underlying type.
-    //*************************************************************************
-    operator const T() const
-    {
-      return value;
+    return *this;
+  }
+
+  //*************************************************************************
+  /// ++ operator.
+  //*************************************************************************
+  cyclic_value operator++(int) {
+    cyclic_value temp(*this);
+
+    operator++();
+
+    return temp;
+  }
+
+  //*************************************************************************
+  /// -- operator.
+  //*************************************************************************
+  cyclic_value &operator--() {
+    if (value <= First)
+      GDUT_UNLIKELY { value = Last; }
+    else {
+      --value;
     }
 
-    //*************************************************************************
-    /// ++ operator.
-    //*************************************************************************
-    cyclic_value& operator ++()
-    {
-      if (value >= Last) GDUT_UNLIKELY
-      {
-        value = First;
+    return *this;
+  }
+
+  //*************************************************************************
+  /// -- operator.
+  //*************************************************************************
+  cyclic_value operator--(int) {
+    cyclic_value temp(*this);
+
+    operator--();
+
+    return temp;
+  }
+
+  //*************************************************************************
+  /// = operator.
+  //*************************************************************************
+  cyclic_value &operator=(T t) {
+    set(t);
+    return *this;
+  }
+
+  //*************************************************************************
+  /// = operator.
+  //*************************************************************************
+  template <const T FIRST2, const T LAST2>
+  cyclic_value &operator=(const cyclic_value<T, FIRST2, LAST2> &other) {
+    set(other.get());
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Gets the value.
+  //*************************************************************************
+  T get() const { return value; }
+
+  //*************************************************************************
+  /// Gets the first value.
+  //*************************************************************************
+  static GDUT_CONSTEXPR T first() { return First; }
+
+  //*************************************************************************
+  /// Gets the last value.
+  //*************************************************************************
+  static GDUT_CONSTEXPR T last() { return Last; }
+
+  //*************************************************************************
+  /// Swaps the values.
+  //*************************************************************************
+  void swap(cyclic_value<T, First, Last> &other) {
+    using GDUT_OR_STD::swap; // Allow ADL
+
+    swap(value, other.value);
+  }
+
+  //*************************************************************************
+  /// Swaps the values.
+  //*************************************************************************
+  friend void swap(cyclic_value<T, First, Last> &lhs,
+                   cyclic_value<T, First, Last> &rhs) {
+    lhs.swap(rhs);
+  }
+
+  //*************************************************************************
+  /// Operator ==.
+  //*************************************************************************
+  friend bool operator==(const cyclic_value<T, First, Last> &lhs,
+                         const cyclic_value<T, First, Last> &rhs) {
+    return lhs.value == rhs.value;
+  }
+
+  //*************************************************************************
+  /// Operator !=.
+  //*************************************************************************
+  friend bool operator!=(const cyclic_value<T, First, Last> &lhs,
+                         const cyclic_value<T, First, Last> &rhs) {
+    return !(lhs == rhs);
+  }
+
+private:
+  T value; ///< The current value.
+};
+
+//***************************************************************************
+/// Provides a value that cycles between two run time limits.
+/// Supports incrementing and decrementing.
+///\tparam T     The type of the variable.
+///\tparam First The first value of the range.
+///\tparam Last  The last value of the range.
+///\ingroup cyclic_value
+//***************************************************************************
+template <typename T, T First, T Last>
+class cyclic_value<T, First, Last, true> {
+public:
+  //*************************************************************************
+  /// Constructor.
+  /// Sets 'first' and 'last' to the template parameter values.
+  /// The initial value is set to the first value.
+  //*************************************************************************
+  cyclic_value() : value(First), first_value(First), last_value(Last) {}
+
+  //*************************************************************************
+  /// Constructor.
+  /// Sets the value to the first of the range.
+  ///\param first The first value in the range.
+  ///\param last  The last value in the range.
+  //*************************************************************************
+  cyclic_value(T first_, T last_)
+      : value(first_), first_value(first_), last_value(last_) {}
+
+  //*************************************************************************
+  /// Constructor.
+  /// Set to an initial value.
+  /// Clamped to the range.
+  ///\param first The first value in the range.
+  ///\param last  The last value in the range.
+  //*************************************************************************
+  cyclic_value(T first_, T last_, T initial)
+      : first_value(first_), last_value(last_) {
+    set(initial);
+  }
+
+  //*************************************************************************
+  /// Copy constructor.
+  //*************************************************************************
+  cyclic_value(const cyclic_value &other)
+      : value(other.value), first_value(other.first_value),
+        last_value(other.last_value) {}
+
+  //*************************************************************************
+  /// Sets the range.
+  /// Sets the value to the first of the range.
+  ///\param first The first value in the range.
+  ///\param last  The last value in the range.
+  //*************************************************************************
+  void set(T first_, T last_) {
+    first_value = first_;
+    last_value = last_;
+    value = first_;
+  }
+
+  //*************************************************************************
+  /// Sets the value.
+  ///\param value The value.
+  //*************************************************************************
+  void set(T value_) { value = gdut::clamp(value_, first_value, last_value); }
+
+  //*************************************************************************
+  /// Resets the value to the first in the range.
+  //*************************************************************************
+  void to_first() { value = first_value; }
+
+  //*************************************************************************
+  /// Resets the value to the last in the range.
+  //*************************************************************************
+  void to_last() { value = last_value; }
+
+  //*************************************************************************
+  /// Advances to value by a number of steps.
+  ///\param n The number of steps to advance.
+  //*************************************************************************
+  void advance(int n) {
+    if (n > 0) {
+      for (int i = 0; i < n; ++i) {
+        operator++();
       }
-      else
-      {
-        ++value;
+    } else {
+      for (int i = 0; i < -n; ++i) {
+        operator--();
       }
-
-      return *this;
     }
+  }
 
-    //*************************************************************************
-    /// ++ operator.
-    //*************************************************************************
-    cyclic_value operator ++(int)
-    {
-      cyclic_value temp(*this);
+  //*************************************************************************
+  /// Conversion operator.
+  /// \return The value of the underlying type.
+  //*************************************************************************
+  operator T() { return value; }
 
-      operator++();
+  //*************************************************************************
+  /// Const conversion operator.
+  /// \return The value of the underlying type.
+  //*************************************************************************
+  operator const T() const { return value; }
 
-      return temp;
-    }
-
-    //*************************************************************************
-    /// -- operator.
-    //*************************************************************************
-    cyclic_value& operator --()
-    {
-      if (value <= First) GDUT_UNLIKELY
-      {
-        value = Last;
-      }
-      else
-      {
-        --value;
-      }
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// -- operator.
-    //*************************************************************************
-    cyclic_value operator --(int)
-    {
-      cyclic_value temp(*this);
-
-      operator--();
-
-      return temp;
-    }
-
-    //*************************************************************************
-    /// = operator.
-    //*************************************************************************
-    cyclic_value& operator =(T t)
-    {
-      set(t);
-      return *this;
-    }
-
-    //*************************************************************************
-    /// = operator.
-    //*************************************************************************
-    template <const T FIRST2, const T LAST2>
-    cyclic_value& operator =(const cyclic_value<T, FIRST2, LAST2>& other)
-    {
-      set(other.get());
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Gets the value.
-    //*************************************************************************
-    T get() const
-    {
-      return value;
-    }
-
-    //*************************************************************************
-    /// Gets the first value.
-    //*************************************************************************
-    static GDUT_CONSTEXPR T first()
-    {
-      return First;
-    }
-
-    //*************************************************************************
-    /// Gets the last value.
-    //*************************************************************************
-    static GDUT_CONSTEXPR T last()
-    {
-      return Last;
-    }
-
-    //*************************************************************************
-    /// Swaps the values.
-    //*************************************************************************
-    void swap(cyclic_value<T, First, Last>& other)
-    {
-      using GDUT_OR_STD::swap; // Allow ADL
-
-      swap(value, other.value);
-    }
-
-    //*************************************************************************
-    /// Swaps the values.
-    //*************************************************************************
-    friend void swap(cyclic_value<T, First, Last>& lhs, cyclic_value<T, First, Last>& rhs)
-    {
-      lhs.swap(rhs);
-    }
-
-    //*************************************************************************
-    /// Operator ==.
-    //*************************************************************************
-    friend bool operator == (const cyclic_value<T, First, Last>& lhs, const cyclic_value<T, First, Last>& rhs)
-    {
-      return lhs.value == rhs.value;
-    }
-
-    //*************************************************************************
-    /// Operator !=.
-    //*************************************************************************
-    friend bool operator != (const cyclic_value<T, First, Last>& lhs, const cyclic_value<T, First, Last>& rhs)
-    {
-      return !(lhs == rhs);
-    }
-
-  private:
-
-    T value; ///< The current value.
-  };
-
-  //***************************************************************************
-  /// Provides a value that cycles between two run time limits.
-  /// Supports incrementing and decrementing.
-  ///\tparam T     The type of the variable.
-  ///\tparam First The first value of the range.
-  ///\tparam Last  The last value of the range.
-  ///\ingroup cyclic_value
-  //***************************************************************************
-  template <typename T, T First, T Last>
-  class cyclic_value<T, First, Last, true>
-  {
-  public:
-
-    //*************************************************************************
-    /// Constructor.
-    /// Sets 'first' and 'last' to the template parameter values.
-    /// The initial value is set to the first value.
-    //*************************************************************************
-    cyclic_value()
-      : value(First)
-      , first_value(First)
-      , last_value(Last)
-    {
-    }
-
-    //*************************************************************************
-    /// Constructor.
-    /// Sets the value to the first of the range.
-    ///\param first The first value in the range.
-    ///\param last  The last value in the range.
-    //*************************************************************************
-    cyclic_value(T first_, T last_)
-      : value(first_)
-      , first_value(first_)
-      , last_value(last_)
-    {
-    }
-
-    //*************************************************************************
-    /// Constructor.
-    /// Set to an initial value.
-    /// Clamped to the range.
-    ///\param first The first value in the range.
-    ///\param last  The last value in the range.
-    //*************************************************************************
-    cyclic_value(T first_, T last_, T initial)
-      : first_value(first_)
-      , last_value(last_)
-    {
-      set(initial);
-    }
-
-    //*************************************************************************
-    /// Copy constructor.
-    //*************************************************************************
-    cyclic_value(const cyclic_value& other)
-      : value(other.value)
-      , first_value(other.first_value)
-      , last_value(other.last_value)
-    {
-    }
-
-    //*************************************************************************
-    /// Sets the range.
-    /// Sets the value to the first of the range.
-    ///\param first The first value in the range.
-    ///\param last  The last value in the range.
-    //*************************************************************************
-    void set(T first_, T last_)
-    {
-      first_value = first_;
-      last_value  = last_;
-      value       = first_;
-    }
-
-    //*************************************************************************
-    /// Sets the value.
-    ///\param value The value.
-    //*************************************************************************
-    void set(T value_)
-    {
-      value = gdut::clamp(value_, first_value, last_value);
-    }
-
-    //*************************************************************************
-    /// Resets the value to the first in the range.
-    //*************************************************************************
-    void to_first()
-    {
+  //*************************************************************************
+  /// ++ operator.
+  //*************************************************************************
+  cyclic_value &operator++() {
+    if (value >= last_value) {
       value = first_value;
+    } else {
+      ++value;
     }
 
-    //*************************************************************************
-    /// Resets the value to the last in the range.
-    //*************************************************************************
-    void to_last()
-    {
+    return *this;
+  }
+
+  //*************************************************************************
+  /// ++ operator.
+  //*************************************************************************
+  cyclic_value operator++(int) {
+    cyclic_value temp(*this);
+
+    operator++();
+
+    return temp;
+  }
+
+  //*************************************************************************
+  /// -- operator.
+  //*************************************************************************
+  cyclic_value &operator--() {
+    if (value <= first_value) {
       value = last_value;
+    } else {
+      --value;
     }
 
-    //*************************************************************************
-    /// Advances to value by a number of steps.
-    ///\param n The number of steps to advance.
-    //*************************************************************************
-    void advance(int n)
-    {
-      if (n > 0)
-      {
-        for (int i = 0; i < n; ++i)
-        {
-          operator ++();
-        }
-      }
-      else
-      {
-        for (int i = 0; i < -n; ++i)
-        {
-          operator --();
-        }
-      }
-    }
+    return *this;
+  }
 
-    //*************************************************************************
-    /// Conversion operator.
-    /// \return The value of the underlying type.
-    //*************************************************************************
-    operator T()
-    {
-      return value;
-    }
+  //*************************************************************************
+  /// -- operator.
+  //*************************************************************************
+  cyclic_value operator--(int) {
+    cyclic_value temp(*this);
 
-    //*************************************************************************
-    /// Const conversion operator.
-    /// \return The value of the underlying type.
-    //*************************************************************************
-    operator const T() const
-    {
-      return value;
-    }
+    operator--();
 
-    //*************************************************************************
-    /// ++ operator.
-    //*************************************************************************
-    cyclic_value& operator ++()
-    {
-      if (value >= last_value)
-      {
-        value = first_value;
-      }
-      else
-      {
-        ++value;
-      }
+    return temp;
+  }
 
-      return *this;
-    }
+  //*************************************************************************
+  /// = operator.
+  //*************************************************************************
+  cyclic_value &operator=(T t) {
+    set(t);
+    return *this;
+  }
 
-    //*************************************************************************
-    /// ++ operator.
-    //*************************************************************************
-    cyclic_value operator ++(int)
-    {
-      cyclic_value temp(*this);
+  //*************************************************************************
+  /// = operator.
+  //*************************************************************************
+  cyclic_value &operator=(const cyclic_value &other) {
+    value = other.value;
+    first_value = other.first_value;
+    last_value = other.last_value;
+    return *this;
+  }
 
-      operator++();
+  //*************************************************************************
+  /// Gets the value.
+  //*************************************************************************
+  T get() const { return value; }
 
-      return temp;
-    }
+  //*************************************************************************
+  /// Gets the first value.
+  //*************************************************************************
+  T first() const { return first_value; }
 
-    //*************************************************************************
-    /// -- operator.
-    //*************************************************************************
-    cyclic_value& operator --()
-    {
-      if (value <= first_value)
-      {
-        value = last_value;
-      }
-      else
-      {
-        --value;
-      }
+  //*************************************************************************
+  /// Gets the last value.
+  //*************************************************************************
+  T last() const { return last_value; }
 
-      return *this;
-    }
+  //*************************************************************************
+  /// Swaps the values.
+  //*************************************************************************
+  void swap(cyclic_value<T, First, Last> &other) {
+    using GDUT_OR_STD::swap; // Allow ADL
 
-    //*************************************************************************
-    /// -- operator.
-    //*************************************************************************
-    cyclic_value operator --(int)
-    {
-      cyclic_value temp(*this);
+    swap(first_value, other.first_value);
+    swap(last_value, other.last_value);
+    swap(value, other.value);
+  }
 
-      operator--();
+  //*************************************************************************
+  /// Swaps the values.
+  //*************************************************************************
+  friend void swap(cyclic_value<T, First, Last> &lhs,
+                   cyclic_value<T, First, Last> &rhs) {
+    lhs.swap(rhs);
+  }
 
-      return temp;
-    }
+  //*************************************************************************
+  /// Operator ==.
+  //*************************************************************************
+  friend bool operator==(const cyclic_value<T, First, Last> &lhs,
+                         const cyclic_value<T, First, Last> &rhs) {
+    return (lhs.value == rhs.value) && (lhs.first_value == rhs.first_value) &&
+           (lhs.last_value == rhs.last_value);
+  }
 
-    //*************************************************************************
-    /// = operator.
-    //*************************************************************************
-    cyclic_value& operator =(T t)
-    {
-      set(t);
-      return *this;
-    }
+  //*************************************************************************
+  /// Operator !=.
+  //*************************************************************************
+  friend bool operator!=(const cyclic_value<T, First, Last> &lhs,
+                         const cyclic_value<T, First, Last> &rhs) {
+    return !(lhs == rhs);
+  }
 
-    //*************************************************************************
-    /// = operator.
-    //*************************************************************************
-    cyclic_value& operator =(const cyclic_value& other)
-    {
-      value       = other.value;
-      first_value = other.first_value;
-      last_value  = other.last_value;
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Gets the value.
-    //*************************************************************************
-    T get() const
-    {
-      return value;
-    }
-
-    //*************************************************************************
-    /// Gets the first value.
-    //*************************************************************************
-    T first() const
-    {
-      return first_value;
-    }
-
-    //*************************************************************************
-    /// Gets the last value.
-    //*************************************************************************
-    T last() const
-    {
-      return last_value;
-    }
-
-    //*************************************************************************
-    /// Swaps the values.
-    //*************************************************************************
-    void swap(cyclic_value<T, First, Last>& other)
-    {
-      using GDUT_OR_STD::swap; // Allow ADL
-
-      swap(first_value, other.first_value);
-      swap(last_value, other.last_value);
-      swap(value, other.value);
-    }
-
-    //*************************************************************************
-    /// Swaps the values.
-    //*************************************************************************
-    friend void swap(cyclic_value<T, First, Last>& lhs, cyclic_value<T, First, Last>& rhs)
-    {
-      lhs.swap(rhs);
-    }
-
-    //*************************************************************************
-    /// Operator ==.
-    //*************************************************************************
-    friend bool operator == (const cyclic_value<T, First, Last>& lhs, const cyclic_value<T, First, Last>& rhs)
-    {
-      return (lhs.value       == rhs.value) &&
-             (lhs.first_value == rhs.first_value) &&
-             (lhs.last_value  == rhs.last_value);
-    }
-
-    //*************************************************************************
-    /// Operator !=.
-    //*************************************************************************
-    friend bool operator != (const cyclic_value<T, First, Last>& lhs, const cyclic_value<T, First, Last>& rhs)
-    {
-      return !(lhs == rhs);
-    }
-
-  private:
-
-    T value;       ///< The current value.
-    T first_value; ///< The first value in the range.
-    T last_value;  ///< The last value in the range.
-  };
-}
+private:
+  T value;       ///< The current value.
+  T first_value; ///< The first value in the range.
+  T last_value;  ///< The last value in the range.
+};
+} // namespace gdut
 
 #endif

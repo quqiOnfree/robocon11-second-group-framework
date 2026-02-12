@@ -31,16 +31,16 @@ SOFTWARE.
 #ifndef GDUT_PRIORITY_QUEUE_INCLUDED
 #define GDUT_PRIORITY_QUEUE_INCLUDED
 
-#include "platform.hpp"
 #include "algorithm.hpp"
-#include "utility.hpp"
-#include "functional.hpp"
-#include "iterator.hpp"
-#include "vector.hpp"
-#include "type_traits.hpp"
-#include "parameter_type.hpp"
 #include "error_handler.hpp"
 #include "exception.hpp"
+#include "functional.hpp"
+#include "iterator.hpp"
+#include "parameter_type.hpp"
+#include "platform.hpp"
+#include "type_traits.hpp"
+#include "utility.hpp"
+#include "vector.hpp"
 
 #include <stddef.h>
 
@@ -51,502 +51,447 @@ SOFTWARE.
 ///\ingroup containers
 //*****************************************************************************
 
-namespace gdut
-{
-  //***************************************************************************
-  /// The base class for priority_queue exceptions.
-  ///\ingroup queue
-  //***************************************************************************
-  class priority_queue_exception : public exception
-  {
-  public:
+namespace gdut {
+//***************************************************************************
+/// The base class for priority_queue exceptions.
+///\ingroup queue
+//***************************************************************************
+class priority_queue_exception : public exception {
+public:
+  priority_queue_exception(string_type reason_, string_type file_name_,
+                           numeric_type line_number_)
+      : exception(reason_, file_name_, line_number_) {}
+};
 
-    priority_queue_exception(string_type reason_, string_type file_name_, numeric_type line_number_)
-      : exception(reason_, file_name_, line_number_)
-    {
-    }
-  };
+//***************************************************************************
+/// The exception thrown when the queue is full.
+///\ingroup queue
+//***************************************************************************
+class priority_queue_full : public gdut::priority_queue_exception {
+public:
+  priority_queue_full(string_type file_name_, numeric_type line_number_)
+      : priority_queue_exception(GDUT_ERROR_TEXT("priority_queue:full",
+                                                 GDUT_PRIORITY_QUEUE_FILE_ID
+                                                 "A"),
+                                 file_name_, line_number_) {}
+};
 
-  //***************************************************************************
-  /// The exception thrown when the queue is full.
-  ///\ingroup queue
-  //***************************************************************************
-  class priority_queue_full : public gdut::priority_queue_exception
-  {
-  public:
+//***************************************************************************
+/// The priority queue iterator exception on reversed iterators
+///\ingroup queue
+//***************************************************************************
+class priority_queue_iterator : public gdut::priority_queue_exception {
+public:
+  priority_queue_iterator(string_type file_name_, numeric_type line_number_)
+      : priority_queue_exception(GDUT_ERROR_TEXT("priority_queue:iterator",
+                                                 GDUT_PRIORITY_QUEUE_FILE_ID
+                                                 "B"),
+                                 file_name_, line_number_) {}
+};
 
-    priority_queue_full(string_type file_name_, numeric_type line_number_)
-      : priority_queue_exception(GDUT_ERROR_TEXT("priority_queue:full", GDUT_PRIORITY_QUEUE_FILE_ID"A"), file_name_, line_number_)
-    {
-    }
-  };
-
-  //***************************************************************************
-  /// The priority queue iterator exception on reversed iterators
-  ///\ingroup queue
-  //***************************************************************************
-  class priority_queue_iterator : public gdut::priority_queue_exception
-  {
-  public:
-
-    priority_queue_iterator(string_type file_name_, numeric_type line_number_)
-      : priority_queue_exception(GDUT_ERROR_TEXT("priority_queue:iterator", GDUT_PRIORITY_QUEUE_FILE_ID"B"), file_name_, line_number_)
-    {
-    }
-  };
-
-  //***************************************************************************
-  ///\ingroup queue
-  ///\brief This is the base for all priority queues that contain a particular type.
-  ///\details Normally a reference to this type will be taken from a derived queue.
-  /// The TContainer specified must provide the front, push_back, pop_back, and
-  /// assign methods to work correctly with priority_queue.
-  ///\code
-  /// gdut::priority_queue<int, 10> myPriorityQueue;
-  /// gdut::ipriority_queue<int>& iQueue = myPriorityQueue;
-  ///\endcode
-  /// \warning This priority queue cannot be used for concurrent access from
-  /// multiple threads.
-  /// \tparam T The type of value that the queue holds.
-  /// \tparam TContainer to hold the T queue values
-  /// \tparam TCompare to use in comparing T values
-  //***************************************************************************
-  template <typename T, typename TContainer, typename TCompare = gdut::less<T> >
-  class ipriority_queue
-  {
-  public:
-
-    typedef T                     value_type;         ///< The type stored in the queue.
-    typedef TContainer            container_type;     ///< The container type used for priority queue.
-    typedef TCompare              compare_type;       ///< The comparison type.
-    typedef T&                    reference;          ///< A reference to the type used in the queue.
-    typedef const T&              const_reference;    ///< A const reference to the type used in the queue.
+//***************************************************************************
+///\ingroup queue
+///\brief This is the base for all priority queues that contain a particular
+///type.
+///\details Normally a reference to this type will be taken from a derived
+///queue.
+/// The TContainer specified must provide the front, push_back, pop_back, and
+/// assign methods to work correctly with priority_queue.
+///\code
+/// gdut::priority_queue<int, 10> myPriorityQueue;
+/// gdut::ipriority_queue<int>& iQueue = myPriorityQueue;
+///\endcode
+/// \warning This priority queue cannot be used for concurrent access from
+/// multiple threads.
+/// \tparam T The type of value that the queue holds.
+/// \tparam TContainer to hold the T queue values
+/// \tparam TCompare to use in comparing T values
+//***************************************************************************
+template <typename T, typename TContainer, typename TCompare = gdut::less<T>>
+class ipriority_queue {
+public:
+  typedef T value_type; ///< The type stored in the queue.
+  typedef TContainer
+      container_type; ///< The container type used for priority queue.
+  typedef TCompare compare_type; ///< The comparison type.
+  typedef T &reference;          ///< A reference to the type used in the queue.
+  typedef const T
+      &const_reference; ///< A const reference to the type used in the queue.
 #if GDUT_USING_CPP11
-    typedef T&&                   rvalue_reference;   ///< An rvalue reference to the type used in the queue.
+  typedef T &&
+      rvalue_reference; ///< An rvalue reference to the type used in the queue.
 #endif
-    typedef typename TContainer::size_type size_type; ///< The type used for determining the size of the queue.
-    typedef typename gdut::iterator_traits<typename TContainer::iterator>::difference_type difference_type;
+  typedef typename TContainer::size_type
+      size_type; ///< The type used for determining the size of the queue.
+  typedef typename gdut::iterator_traits<
+      typename TContainer::iterator>::difference_type difference_type;
 
-    //*************************************************************************
-    /// Gets a reference to the highest priority value in the priority queue.<br>
-    /// \return A reference to the highest priority value in the priority queue.
-    //*************************************************************************
-    reference top()
-    {
-      return container.front();
-    }
+  //*************************************************************************
+  /// Gets a reference to the highest priority value in the priority queue.<br>
+  /// \return A reference to the highest priority value in the priority queue.
+  //*************************************************************************
+  reference top() { return container.front(); }
 
-    //*************************************************************************
-    /// Gets a const reference to the highest priority value in the priority queue.<br>
-    /// \return A const reference to the highest priority value in the priority queue.
-    //*************************************************************************
-    const_reference top() const
-    {
-      return container.front();
-    }
+  //*************************************************************************
+  /// Gets a const reference to the highest priority value in the priority
+  /// queue.<br>
+  /// \return A const reference to the highest priority value in the priority
+  /// queue.
+  //*************************************************************************
+  const_reference top() const { return container.front(); }
 
-    //*************************************************************************
-    /// Adds a value to the queue.
-    /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
-    /// is the priority queue is already full.
-    ///\param value The value to push to the queue.
-    //*************************************************************************
-    void push(const_reference value)
-    {
-      GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
+  //*************************************************************************
+  /// Adds a value to the queue.
+  /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
+  /// is the priority queue is already full.
+  ///\param value The value to push to the queue.
+  //*************************************************************************
+  void push(const_reference value) {
+    GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
 
-      // Put element at end
-      container.push_back(value);
-      // Make elements in container into heap
-      gdut::push_heap(container.begin(), container.end(), compare);
-    }
+    // Put element at end
+    container.push_back(value);
+    // Make elements in container into heap
+    gdut::push_heap(container.begin(), container.end(), compare);
+  }
 
 #if GDUT_USING_CPP11
-    //*************************************************************************
-    /// Moves a value to the queue.
-    /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
-    /// is the priority queue is already full.
-    ///\param value The value to push to the queue.
-    //*************************************************************************
-    void push(rvalue_reference value)
-    {
-      GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
+  //*************************************************************************
+  /// Moves a value to the queue.
+  /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
+  /// is the priority queue is already full.
+  ///\param value The value to push to the queue.
+  //*************************************************************************
+  void push(rvalue_reference value) {
+    GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
 
-      // Put element at end
-      container.push_back(gdut::move(value));
-      // Make elements in container into heap
-      gdut::push_heap(container.begin(), container.end(), compare);
-    }
+    // Put element at end
+    container.push_back(gdut::move(value));
+    // Make elements in container into heap
+    gdut::push_heap(container.begin(), container.end(), compare);
+  }
 #endif
 
-#if GDUT_USING_CPP11 && GDUT_NOT_USING_STLPORT && !defined(GDUT_PRIORITY_QUEUE_FORCE_CPP03_IMPLEMENTATION)
-    //*************************************************************************
-    /// Emplaces a value to the queue.
-    /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
-    /// is the priority queue is already full.
-    ///\param value The value to push to the queue.
-    //*************************************************************************
-    template <typename ... Args>
-    void emplace(Args && ... args)
-    {
-      GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
+#if GDUT_USING_CPP11 && GDUT_NOT_USING_STLPORT &&                              \
+    !defined(GDUT_PRIORITY_QUEUE_FORCE_CPP03_IMPLEMENTATION)
+  //*************************************************************************
+  /// Emplaces a value to the queue.
+  /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
+  /// is the priority queue is already full.
+  ///\param value The value to push to the queue.
+  //*************************************************************************
+  template <typename... Args> void emplace(Args &&...args) {
+    GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
 
-      // Put element at end
-      container.emplace_back(gdut::forward<Args>(args)...);
-      // Make elements in container into heap
-      gdut::push_heap(container.begin(), container.end(), compare);
-    }
+    // Put element at end
+    container.emplace_back(gdut::forward<Args>(args)...);
+    // Make elements in container into heap
+    gdut::push_heap(container.begin(), container.end(), compare);
+  }
 #else
-    //*************************************************************************
-    /// Emplaces a value to the queue.
-    /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
-    /// is the priority queue is already full.
-    ///\param value The value to push to the queue.
-    //*************************************************************************
-    void emplace()
-    {
-      GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
+  //*************************************************************************
+  /// Emplaces a value to the queue.
+  /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
+  /// is the priority queue is already full.
+  ///\param value The value to push to the queue.
+  //*************************************************************************
+  void emplace() {
+    GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
 
-      // Put element at end
-      container.emplace_back();
-      // Make elements in container into heap
-      gdut::push_heap(container.begin(), container.end(), compare);
-    }
+    // Put element at end
+    container.emplace_back();
+    // Make elements in container into heap
+    gdut::push_heap(container.begin(), container.end(), compare);
+  }
 
-    //*************************************************************************
-    /// Emplaces a value to the queue.
-    /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
-    /// is the priority queue is already full.
-    ///\param value The value to push to the queue.
-    //*************************************************************************
-    template <typename T1>
-    void emplace(const T1& value1)
-    {
-      GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
+  //*************************************************************************
+  /// Emplaces a value to the queue.
+  /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
+  /// is the priority queue is already full.
+  ///\param value The value to push to the queue.
+  //*************************************************************************
+  template <typename T1> void emplace(const T1 &value1) {
+    GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
 
-      // Put element at end
-      container.emplace_back(value1);
-      // Make elements in container into heap
-      gdut::push_heap(container.begin(), container.end(), compare);
-    }
+    // Put element at end
+    container.emplace_back(value1);
+    // Make elements in container into heap
+    gdut::push_heap(container.begin(), container.end(), compare);
+  }
 
-    //*************************************************************************
-    /// Emplaces a value to the queue.
-    /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
-    /// is the priority queue is already full.
-    ///\param value The value to push to the queue.
-    //*************************************************************************
-    template <typename T1, typename T2>
-    void emplace(const T1& value1, const T2& value2)
-    {
-      GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
+  //*************************************************************************
+  /// Emplaces a value to the queue.
+  /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
+  /// is the priority queue is already full.
+  ///\param value The value to push to the queue.
+  //*************************************************************************
+  template <typename T1, typename T2>
+  void emplace(const T1 &value1, const T2 &value2) {
+    GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
 
-      // Put element at end
-      container.emplace_back(value1, value2);
-      // Make elements in container into heap
-      gdut::push_heap(container.begin(), container.end(), compare);
-    }
+    // Put element at end
+    container.emplace_back(value1, value2);
+    // Make elements in container into heap
+    gdut::push_heap(container.begin(), container.end(), compare);
+  }
 
-    //*************************************************************************
-    /// Emplaces a value to the queue.
-    /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
-    /// is the priority queue is already full.
-    ///\param value The value to push to the queue.
-    //*************************************************************************
-    template <typename T1, typename T2, typename T3>
-    void emplace(const T1& value1, const T2& value2, const T3& value3)
-    {
-      GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
+  //*************************************************************************
+  /// Emplaces a value to the queue.
+  /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
+  /// is the priority queue is already full.
+  ///\param value The value to push to the queue.
+  //*************************************************************************
+  template <typename T1, typename T2, typename T3>
+  void emplace(const T1 &value1, const T2 &value2, const T3 &value3) {
+    GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
 
-      // Put element at end
-      container.emplace_back(value1, value2, value3);
-      // Make elements in container into heap
-      gdut::push_heap(container.begin(), container.end(), compare);
-    }
+    // Put element at end
+    container.emplace_back(value1, value2, value3);
+    // Make elements in container into heap
+    gdut::push_heap(container.begin(), container.end(), compare);
+  }
 
-    //*************************************************************************
-    /// Emplaces a value to the queue.
-    /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
-    /// is the priority queue is already full.
-    ///\param value The value to push to the queue.
-    //*************************************************************************
-    template <typename T1, typename T2, typename T3, typename T4>
-    void emplace(const T1& value1, const T2& value2, const T3& value3, const T4& value4)
-    {
-      GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
+  //*************************************************************************
+  /// Emplaces a value to the queue.
+  /// If asserts or exceptions are enabled, throws an gdut::priority_queue_full
+  /// is the priority queue is already full.
+  ///\param value The value to push to the queue.
+  //*************************************************************************
+  template <typename T1, typename T2, typename T3, typename T4>
+  void emplace(const T1 &value1, const T2 &value2, const T3 &value3,
+               const T4 &value4) {
+    GDUT_ASSERT(!full(), GDUT_ERROR(gdut::priority_queue_full));
 
-      // Put element at end
-      container.emplace_back(value1, value2, value3, value4);
-      // Make elements in container into heap
-      gdut::push_heap(container.begin(), container.end(), compare);
-    }
+    // Put element at end
+    container.emplace_back(value1, value2, value3, value4);
+    // Make elements in container into heap
+    gdut::push_heap(container.begin(), container.end(), compare);
+  }
 #endif
 
-    //*************************************************************************
-    /// Assigns values to the priority queue.
-    /// If asserts or exceptions are enabled, emits priority_queue_full if
-    /// priority queue does not have enough free space.
-    /// If asserts or exceptions are enabled, emits priority_iterator if the
-    /// iterators are reversed.
-    ///\param first The iterator to the first element.
-    ///\param last  The iterator to the last element + 1.
-    //*************************************************************************
-    template <typename TIterator>
-    void assign(TIterator first, TIterator last)
-    {
+  //*************************************************************************
+  /// Assigns values to the priority queue.
+  /// If asserts or exceptions are enabled, emits priority_queue_full if
+  /// priority queue does not have enough free space.
+  /// If asserts or exceptions are enabled, emits priority_iterator if the
+  /// iterators are reversed.
+  ///\param first The iterator to the first element.
+  ///\param last  The iterator to the last element + 1.
+  //*************************************************************************
+  template <typename TIterator> void assign(TIterator first, TIterator last) {
 #if GDUT_IS_DEBUG_BUILD
-      difference_type d = gdut::distance(first, last);
-      GDUT_ASSERT(d >= 0, GDUT_ERROR(gdut::priority_queue_iterator));
-      GDUT_ASSERT(static_cast<size_t>(d) <= max_size(), GDUT_ERROR(gdut::priority_queue_full));
+    difference_type d = gdut::distance(first, last);
+    GDUT_ASSERT(d >= 0, GDUT_ERROR(gdut::priority_queue_iterator));
+    GDUT_ASSERT(static_cast<size_t>(d) <= max_size(),
+                GDUT_ERROR(gdut::priority_queue_full));
 #endif
 
+    clear();
+    container.assign(first, last);
+    gdut::make_heap(container.begin(), container.end(), compare);
+  }
+
+  //*************************************************************************
+  /// Removes the oldest value from the back of the priority queue.
+  /// Does nothing if the priority queue is already empty.
+  //*************************************************************************
+  void pop() {
+    // Move largest element to end
+    gdut::pop_heap(container.begin(), container.end(), compare);
+    // Actually remove largest element at end
+    container.pop_back();
+  }
+
+  //*************************************************************************
+  /// Gets the highest priority value in the priority queue
+  /// and assigns it to destination and removes it from the queue.
+  //*************************************************************************
+  void pop_into(reference destination) {
+    destination = GDUT_MOVE(top());
+    pop();
+  }
+
+  //*************************************************************************
+  /// Returns the current number of items in the priority queue.
+  //*************************************************************************
+  size_type size() const { return container.size(); }
+
+  //*************************************************************************
+  /// Returns the maximum number of items that can be queued.
+  //*************************************************************************
+  size_type max_size() const { return container.max_size(); }
+
+  //*************************************************************************
+  /// Checks to see if the priority queue is empty.
+  /// \return <b>true</b> if the queue is empty, otherwise <b>false</b>
+  //*************************************************************************
+  bool empty() const { return container.empty(); }
+
+  //*************************************************************************
+  /// Checks to see if the priority queue is full.
+  /// \return <b>true</b> if the priority queue is full, otherwise <b>false</b>
+  //*************************************************************************
+  bool full() const { return container.size() == container.max_size(); }
+
+  //*************************************************************************
+  /// Returns the remaining capacity.
+  ///\return The remaining capacity.
+  //*************************************************************************
+  size_type available() const {
+    return container.max_size() - container.size();
+  }
+
+  //*************************************************************************
+  /// Clears the queue to the empty state.
+  //*************************************************************************
+  void clear() { container.clear(); }
+
+  //*************************************************************************
+  /// Assignment operator.
+  //*************************************************************************
+  ipriority_queue &operator=(const ipriority_queue &rhs) {
+    if (&rhs != this) {
+      clone(rhs);
+    }
+
+    return *this;
+  }
+
+#if GDUT_USING_CPP11
+  //*************************************************************************
+  /// Move assignment operator.
+  //*************************************************************************
+  ipriority_queue &operator=(ipriority_queue &&rhs) {
+    if (&rhs != this) {
       clear();
-      container.assign(first, last);
-      gdut::make_heap(container.begin(), container.end(), compare);
+      move(gdut::move(rhs));
     }
 
-    //*************************************************************************
-    /// Removes the oldest value from the back of the priority queue.
-    /// Does nothing if the priority queue is already empty.
-    //*************************************************************************
-    void pop()
-    {
-      // Move largest element to end
-      gdut::pop_heap(container.begin(), container.end(), compare);
-      // Actually remove largest element at end
-      container.pop_back();
-    }
-
-    //*************************************************************************
-    /// Gets the highest priority value in the priority queue
-    /// and assigns it to destination and removes it from the queue.
-    //*************************************************************************
-    void pop_into(reference destination)
-    {
-      destination = GDUT_MOVE(top());
-      pop();
-    }
-
-    //*************************************************************************
-    /// Returns the current number of items in the priority queue.
-    //*************************************************************************
-    size_type size() const
-    {
-      return container.size();
-    }
-
-    //*************************************************************************
-    /// Returns the maximum number of items that can be queued.
-    //*************************************************************************
-    size_type max_size() const
-    {
-      return container.max_size();
-    }
-
-    //*************************************************************************
-    /// Checks to see if the priority queue is empty.
-    /// \return <b>true</b> if the queue is empty, otherwise <b>false</b>
-    //*************************************************************************
-    bool empty() const
-    {
-      return container.empty();
-    }
-
-    //*************************************************************************
-    /// Checks to see if the priority queue is full.
-    /// \return <b>true</b> if the priority queue is full, otherwise <b>false</b>
-    //*************************************************************************
-    bool full() const
-    {
-      return container.size() == container.max_size();
-    }
-
-    //*************************************************************************
-    /// Returns the remaining capacity.
-    ///\return The remaining capacity.
-    //*************************************************************************
-    size_type available() const
-    {
-      return container.max_size() - container.size();
-    }
-
-    //*************************************************************************
-    /// Clears the queue to the empty state.
-    //*************************************************************************
-    void clear()
-    {
-      container.clear();
-    }
-
-    //*************************************************************************
-    /// Assignment operator.
-    //*************************************************************************
-    ipriority_queue& operator = (const ipriority_queue& rhs)
-    {
-      if (&rhs != this)
-      {
-        clone(rhs);
-      }
-
-      return *this;
-    }
-
-#if GDUT_USING_CPP11
-    //*************************************************************************
-    /// Move assignment operator.
-    //*************************************************************************
-    ipriority_queue& operator = (ipriority_queue&& rhs)
-    {
-      if (&rhs != this)
-      {
-        clear();
-        move(gdut::move(rhs));
-      }
-
-      return *this;
-    }
+    return *this;
+  }
 #endif
 
-  protected:
-
-    //*************************************************************************
-    /// Make this a clone of the supplied priority queue
-    //*************************************************************************
-    void clone(const ipriority_queue& other)
-    {
-      assign(other.container.cbegin(), other.container.cend());
-    }
+protected:
+  //*************************************************************************
+  /// Make this a clone of the supplied priority queue
+  //*************************************************************************
+  void clone(const ipriority_queue &other) {
+    assign(other.container.cbegin(), other.container.cend());
+  }
 
 #if GDUT_USING_CPP11
-    //*************************************************************************
-    /// Make this a moved version of the supplied priority queue
-    //*************************************************************************
-    void move(ipriority_queue&& other)
-    {
-      while (!other.empty())
-      {
-        push(gdut::move(other.top()));
-        other.pop();
-      }
+  //*************************************************************************
+  /// Make this a moved version of the supplied priority queue
+  //*************************************************************************
+  void move(ipriority_queue &&other) {
+    while (!other.empty()) {
+      push(gdut::move(other.top()));
+      other.pop();
     }
+  }
 #endif
 
-    //*************************************************************************
-    /// The constructor that is called from derived classes.
-    //*************************************************************************
-    ipriority_queue()
-    {
-    }
+  //*************************************************************************
+  /// The constructor that is called from derived classes.
+  //*************************************************************************
+  ipriority_queue() {}
 
-  private:
+private:
+  // Disable copy construction.
+  ipriority_queue(const ipriority_queue &);
 
-    // Disable copy construction.
-    ipriority_queue(const ipriority_queue&);
+  /// The container specified at instantiation of the priority_queue
+  TContainer container;
 
-    /// The container specified at instantiation of the priority_queue
-    TContainer container;
+  TCompare compare;
+};
 
-    TCompare compare;
-  };
+//***************************************************************************
+///\ingroup priority_queue
+/// A fixed capacity priority queue.
+/// This queue does not support concurrent access by different threads.
+/// \tparam T    The type this queue should support.
+/// \tparam SIZE The maximum capacity of the queue.
+//***************************************************************************
+template <typename T, const size_t SIZE,
+          typename TContainer = gdut::vector<T, SIZE>,
+          typename TCompare = gdut::less<typename TContainer::value_type>>
+class priority_queue : public gdut::ipriority_queue<T, TContainer, TCompare> {
+public:
+  typedef typename TContainer::size_type size_type;
+  typedef TContainer container_type;
 
-  //***************************************************************************
-  ///\ingroup priority_queue
-  /// A fixed capacity priority queue.
-  /// This queue does not support concurrent access by different threads.
-  /// \tparam T    The type this queue should support.
-  /// \tparam SIZE The maximum capacity of the queue.
-  //***************************************************************************
-  template <typename T, const size_t SIZE, typename TContainer = gdut::vector<T, SIZE>, typename TCompare = gdut::less<typename TContainer::value_type> >
-  class priority_queue : public gdut::ipriority_queue<T, TContainer, TCompare>
-  {
-  public:
+  static GDUT_CONSTANT size_type MAX_SIZE = size_type(SIZE);
 
-    typedef typename TContainer::size_type size_type;
-    typedef TContainer                     container_type;
+  //*************************************************************************
+  /// Default constructor.
+  //*************************************************************************
+  priority_queue() : gdut::ipriority_queue<T, TContainer, TCompare>() {}
 
-    static GDUT_CONSTANT size_type MAX_SIZE = size_type(SIZE);
+  //*************************************************************************
+  /// Copy constructor
+  //*************************************************************************
+  priority_queue(const priority_queue &rhs)
+      : gdut::ipriority_queue<T, TContainer, TCompare>() {
+    gdut::ipriority_queue<T, TContainer, TCompare>::clone(rhs);
+  }
 
-    //*************************************************************************
-    /// Default constructor.
-    //*************************************************************************
-    priority_queue()
-      : gdut::ipriority_queue<T, TContainer, TCompare>()
-    {
-    }
+#if GDUT_USING_CPP11
+  //*************************************************************************
+  /// Move constructor
+  //*************************************************************************
+  priority_queue(priority_queue &&rhs)
+      : gdut::ipriority_queue<T, TContainer, TCompare>() {
+    gdut::ipriority_queue<T, TContainer, TCompare>::move(gdut::move(rhs));
+  }
+#endif
 
-    //*************************************************************************
-    /// Copy constructor
-    //*************************************************************************
-    priority_queue(const priority_queue& rhs)
-      : gdut::ipriority_queue<T, TContainer, TCompare>()
-    {
+  //*************************************************************************
+  /// Constructor, from an iterator range.
+  ///\tparam TIterator The iterator type.
+  ///\param first The iterator to the first element.
+  ///\param last  The iterator to the last element + 1.
+  //*************************************************************************
+  template <typename TIterator>
+  priority_queue(TIterator first, TIterator last)
+      : gdut::ipriority_queue<T, TContainer, TCompare>() {
+    gdut::ipriority_queue<T, TContainer, TCompare>::assign(first, last);
+  }
+
+  //*************************************************************************
+  /// Destructor.
+  //*************************************************************************
+  ~priority_queue() { gdut::ipriority_queue<T, TContainer, TCompare>::clear(); }
+
+  //*************************************************************************
+  /// Assignment operator.
+  //*************************************************************************
+  priority_queue &operator=(const priority_queue &rhs) {
+    if (&rhs != this) {
       gdut::ipriority_queue<T, TContainer, TCompare>::clone(rhs);
     }
 
+    return *this;
+  }
+
 #if GDUT_USING_CPP11
-    //*************************************************************************
-    /// Move constructor
-    //*************************************************************************
-    priority_queue(priority_queue&& rhs)
-      : gdut::ipriority_queue<T, TContainer, TCompare>()
-    {
+  //*************************************************************************
+  /// Move assignment operator.
+  //*************************************************************************
+  priority_queue &operator=(priority_queue &&rhs) {
+    if (&rhs != this) {
+      gdut::ipriority_queue<T, TContainer, TCompare>::clear();
       gdut::ipriority_queue<T, TContainer, TCompare>::move(gdut::move(rhs));
     }
+
+    return *this;
+  }
 #endif
+};
 
-    //*************************************************************************
-    /// Constructor, from an iterator range.
-    ///\tparam TIterator The iterator type.
-    ///\param first The iterator to the first element.
-    ///\param last  The iterator to the last element + 1.
-    //*************************************************************************
-    template <typename TIterator>
-    priority_queue(TIterator first, TIterator last)
-      : gdut::ipriority_queue<T, TContainer, TCompare>()
-    {
-      gdut::ipriority_queue<T, TContainer, TCompare>::assign(first, last);
-    }
-
-    //*************************************************************************
-    /// Destructor.
-    //*************************************************************************
-    ~priority_queue()
-    {
-      gdut::ipriority_queue<T, TContainer, TCompare>::clear();
-    }
-
-    //*************************************************************************
-    /// Assignment operator.
-    //*************************************************************************
-    priority_queue& operator = (const priority_queue& rhs)
-    {
-      if (&rhs != this)
-      {
-        gdut::ipriority_queue<T, TContainer, TCompare>::clone(rhs);
-      }
-
-      return *this;
-    }
-
-#if GDUT_USING_CPP11
-    //*************************************************************************
-    /// Move assignment operator.
-    //*************************************************************************
-    priority_queue& operator = (priority_queue&& rhs)
-    {
-      if (&rhs != this)
-      {
-        gdut::ipriority_queue<T, TContainer, TCompare>::clear();
-        gdut::ipriority_queue<T, TContainer, TCompare>::move(gdut::move(rhs));
-      }
-
-      return *this;
-    }
-#endif
-  };
-
-  template <typename T, const size_t SIZE, typename TContainer, typename TCompare>
-  GDUT_CONSTANT typename priority_queue<T, SIZE, TContainer, TCompare>::size_type priority_queue<T, SIZE, TContainer, TCompare>::MAX_SIZE;
-}
+template <typename T, const size_t SIZE, typename TContainer, typename TCompare>
+GDUT_CONSTANT typename priority_queue<T, SIZE, TContainer, TCompare>::size_type
+    priority_queue<T, SIZE, TContainer, TCompare>::MAX_SIZE;
+} // namespace gdut
 
 #endif

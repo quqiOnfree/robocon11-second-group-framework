@@ -32,21 +32,19 @@ SOFTWARE.
 #include "platform.hpp"
 
 #if (GDUT_USING_CPP11)
-  #define GDUT_STATIC_ASSERT(Condition, Message) static_assert(Condition, Message)
+#define GDUT_STATIC_ASSERT(Condition, Message) static_assert(Condition, Message)
 #else
-  template <bool Condition>
-  struct GDUT_GDUT_STATIC_ASSERT_FAILED;
+template <bool Condition> struct GDUT_GDUT_STATIC_ASSERT_FAILED;
 
-  template <>
-  struct GDUT_GDUT_STATIC_ASSERT_FAILED<true> {};
+template <> struct GDUT_GDUT_STATIC_ASSERT_FAILED<true> {};
 
-  #define GDUT_SA1(a,b) a##b
-  #define GDUT_SA2(a,b) GDUT_SA1(a,b)
-  #define GDUT_STATIC_ASSERT(Condition, Message) \
-		  enum \
-		  { \
-        GDUT_SA2(dummy, __LINE__) = sizeof(GDUT_GDUT_STATIC_ASSERT_FAILED<static_cast<bool>(Condition)>) \
-	    }
+#define GDUT_SA1(a, b) a##b
+#define GDUT_SA2(a, b) GDUT_SA1(a, b)
+#define GDUT_STATIC_ASSERT(Condition, Message)                                 \
+  enum {                                                                       \
+    GDUT_SA2(dummy, __LINE__) =                                                \
+        sizeof(GDUT_GDUT_STATIC_ASSERT_FAILED<static_cast<bool>(Condition)>)   \
+  }
 #endif
 
 #endif

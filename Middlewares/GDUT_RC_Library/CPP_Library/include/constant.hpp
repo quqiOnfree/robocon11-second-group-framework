@@ -38,20 +38,15 @@ SOFTWARE.
 ///\ingroup utilities
 //*****************************************************************************
 
-namespace gdut
-{
-  template <typename T, const T VALUE>
-  class constant
-  {
-  public:
+namespace gdut {
+template <typename T, const T VALUE> class constant {
+public:
+  typedef T value_type;
 
-    typedef T value_type;
+  static GDUT_CONSTANT T value = VALUE;
+};
 
-    static GDUT_CONSTANT T value = VALUE;
-  };
-
-  template <typename T, const T VALUE>
-  const T constant<T, VALUE>::value;
-}
+template <typename T, const T VALUE> const T constant<T, VALUE>::value;
+} // namespace gdut
 
 #endif

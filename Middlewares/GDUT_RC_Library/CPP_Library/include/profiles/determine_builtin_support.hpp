@@ -31,174 +31,194 @@ SOFTWARE.
 #ifndef GDUT_DETERMINE_BUILTIN_SUPPORT_H_INCLUDED
 #define GDUT_DETERMINE_BUILTIN_SUPPORT_H_INCLUDED
 
-#if defined(GDUT_USE_TYPE_TRAITS_BUILTINS) // Set all of them to be true if not already defined
-  #if !defined(GDUT_USING_BUILTIN_IS_ASSIGNABLE)
-    #define GDUT_USING_BUILTIN_IS_ASSIGNABLE 1
-  #endif
-
-  #if !defined(GDUT_USING_BUILTIN_IS_CONSTRUCTIBLE)
-    #define GDUT_USING_BUILTIN_IS_CONSTRUCTIBLE 1
-  #endif
-
-  #if !defined(GDUT_USING_BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE)
-    #define GDUT_USING_BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE 1
-  #endif
-
-  #if !defined(GDUT_USING_BUILTIN_IS_TRIVIALLY_DESTRUCTIBLE)
-    #define GDUT_USING_BUILTIN_IS_TRIVIALLY_DESTRUCTIBLE 1
-  #endif
-
-  #if !defined(GDUT_USING_BUILTIN_IS_TRIVIALLY_COPYABLE)
-    #define GDUT_USING_BUILTIN_IS_TRIVIALLY_COPYABLE 1
-  #endif
-
-  #if !defined(GDUT_USING_BUILTIN_UNDERLYING_TYPE)
-    #define GDUT_USING_BUILTIN_UNDERLYING_TYPE 1
-  #endif
-
-  #if !defined(GDUT_USING_BUILTIN_IS_CONSTANT_EVALUATED)
-    #define GDUT_USING_BUILTIN_IS_CONSTANT_EVALUATED 1
-  #endif
-
-  #if !defined(GDUT_USING_BUILTIN_MEMCPY)
-    #define GDUT_USING_BUILTIN_MEMCPY 1
-  #endif
-
-  #if !defined(GDUT_USING_BUILTIN_MEMMOVE)
-    #define GDUT_USING_BUILTIN_MEMMOVE 1
-  #endif
-
-  #if !defined(GDUT_USING_BUILTIN_MEMSET)
-    #define GDUT_USING_BUILTIN_MEMSET 1
-  #endif
-
-  #if !defined(GDUT_USING_BUILTIN_MEMCMP)
-    #define GDUT_USING_BUILTIN_MEMCMP 1
-  #endif
-
-  #if !defined(GDUT_USING_BUILTIN_MEMCHR)
-    #define GDUT_USING_BUILTIN_MEMCHR 1
-  #endif
+#if defined(GDUT_USE_TYPE_TRAITS_BUILTINS) // Set all of them to be true if not
+                                           // already defined
+#if !defined(GDUT_USING_BUILTIN_IS_ASSIGNABLE)
+#define GDUT_USING_BUILTIN_IS_ASSIGNABLE 1
 #endif
 
-#if defined(__has_builtin) && !defined(GDUT_COMPILER_MICROSOFT) // Use __has_builtin to check for existence of builtin functions? Fix VS2022 intellisense issue.
-  #if !defined(GDUT_USING_BUILTIN_IS_ASSIGNABLE)
-    #define GDUT_USING_BUILTIN_IS_ASSIGNABLE __has_builtin(__is_assignable)
-  #endif
+#if !defined(GDUT_USING_BUILTIN_IS_CONSTRUCTIBLE)
+#define GDUT_USING_BUILTIN_IS_CONSTRUCTIBLE 1
+#endif
 
-  #if !defined(GDUT_USING_BUILTIN_IS_CONSTRUCTIBLE)
-    #define GDUT_USING_BUILTIN_IS_CONSTRUCTIBLE __has_builtin(__is_constructible)
-  #endif
+#if !defined(GDUT_USING_BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE)
+#define GDUT_USING_BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE 1
+#endif
 
-  #if !defined(GDUT_USING_BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE)
-    #define GDUT_USING_BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE (__has_builtin(__has_trivial_constructor) || __has_builtin(__is_trivially_constructible))
-  #endif
+#if !defined(GDUT_USING_BUILTIN_IS_TRIVIALLY_DESTRUCTIBLE)
+#define GDUT_USING_BUILTIN_IS_TRIVIALLY_DESTRUCTIBLE 1
+#endif
 
-  #if !defined(GDUT_USING_BUILTIN_IS_TRIVIALLY_DESTRUCTIBLE)
-    #define GDUT_USING_BUILTIN_IS_TRIVIALLY_DESTRUCTIBLE (__has_builtin(__has_trivial_destructor) || __has_builtin(__is_trivially_destructible))
-  #endif
+#if !defined(GDUT_USING_BUILTIN_IS_TRIVIALLY_COPYABLE)
+#define GDUT_USING_BUILTIN_IS_TRIVIALLY_COPYABLE 1
+#endif
 
-  #if !defined(GDUT_USING_BUILTIN_IS_TRIVIALLY_COPYABLE)
-    #define GDUT_USING_BUILTIN_IS_TRIVIALLY_COPYABLE (__has_builtin(__has_trivial_copy) || __has_builtin(__is_trivially_copyable))
-  #endif
+#if !defined(GDUT_USING_BUILTIN_UNDERLYING_TYPE)
+#define GDUT_USING_BUILTIN_UNDERLYING_TYPE 1
+#endif
 
-  #if !defined(GDUT_USING_BUILTIN_UNDERLYING_TYPE)
-    #define GDUT_USING_BUILTIN_UNDERLYING_TYPE __has_builtin(__underlying_type)
-  #endif
+#if !defined(GDUT_USING_BUILTIN_IS_CONSTANT_EVALUATED)
+#define GDUT_USING_BUILTIN_IS_CONSTANT_EVALUATED 1
+#endif
 
-  #if !defined(GDUT_USING_BUILTIN_IS_CONSTANT_EVALUATED)
-    #define GDUT_USING_BUILTIN_IS_CONSTANT_EVALUATED __has_builtin(__builtin_is_constant_evaluated)
-  #endif
+#if !defined(GDUT_USING_BUILTIN_MEMCPY)
+#define GDUT_USING_BUILTIN_MEMCPY 1
+#endif
 
-  #if !defined(GDUT_USING_BUILTIN_MEMCPY)
-    #define GDUT_USING_BUILTIN_MEMCPY __has_builtin(__builtin_memcpy)
-   #endif
+#if !defined(GDUT_USING_BUILTIN_MEMMOVE)
+#define GDUT_USING_BUILTIN_MEMMOVE 1
+#endif
 
-  #if !defined(GDUT_USING_BUILTIN_MEMMOVE)
-    #define GDUT_USING_BUILTIN_MEMMOVE __has_builtin(__builtin_memmove)
-  #endif
+#if !defined(GDUT_USING_BUILTIN_MEMSET)
+#define GDUT_USING_BUILTIN_MEMSET 1
+#endif
 
-  #if !defined(GDUT_USING_BUILTIN_MEMSET)
-    #define GDUT_USING_BUILTIN_MEMSET __has_builtin(__builtin_memset)
-  #endif
+#if !defined(GDUT_USING_BUILTIN_MEMCMP)
+#define GDUT_USING_BUILTIN_MEMCMP 1
+#endif
 
-  #if !defined(GDUT_USING_BUILTIN_MEMCMP)
-    #define GDUT_USING_BUILTIN_MEMCMP __has_builtin(__builtin_memcmp)
-  #endif
+#if !defined(GDUT_USING_BUILTIN_MEMCHR)
+#define GDUT_USING_BUILTIN_MEMCHR 1
+#endif
+#endif
 
-  #if !defined(GDUT_USING_BUILTIN_MEMCHR)
-    #define GDUT_USING_BUILTIN_MEMCHR __has_builtin(__builtin_memchr)
-  #endif
+#if defined(__has_builtin) &&                                                  \
+    !defined(GDUT_COMPILER_MICROSOFT) // Use __has_builtin to check for
+                                      // existence of builtin functions? Fix
+                                      // VS2022 intellisense issue.
+#if !defined(GDUT_USING_BUILTIN_IS_ASSIGNABLE)
+#define GDUT_USING_BUILTIN_IS_ASSIGNABLE __has_builtin(__is_assignable)
+#endif
+
+#if !defined(GDUT_USING_BUILTIN_IS_CONSTRUCTIBLE)
+#define GDUT_USING_BUILTIN_IS_CONSTRUCTIBLE __has_builtin(__is_constructible)
+#endif
+
+#if !defined(GDUT_USING_BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE)
+#define GDUT_USING_BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE                          \
+  (__has_builtin(__has_trivial_constructor) ||                                 \
+   __has_builtin(__is_trivially_constructible))
+#endif
+
+#if !defined(GDUT_USING_BUILTIN_IS_TRIVIALLY_DESTRUCTIBLE)
+#define GDUT_USING_BUILTIN_IS_TRIVIALLY_DESTRUCTIBLE                           \
+  (__has_builtin(__has_trivial_destructor) ||                                  \
+   __has_builtin(__is_trivially_destructible))
+#endif
+
+#if !defined(GDUT_USING_BUILTIN_IS_TRIVIALLY_COPYABLE)
+#define GDUT_USING_BUILTIN_IS_TRIVIALLY_COPYABLE                               \
+  (__has_builtin(__has_trivial_copy) || __has_builtin(__is_trivially_copyable))
+#endif
+
+#if !defined(GDUT_USING_BUILTIN_UNDERLYING_TYPE)
+#define GDUT_USING_BUILTIN_UNDERLYING_TYPE __has_builtin(__underlying_type)
+#endif
+
+#if !defined(GDUT_USING_BUILTIN_IS_CONSTANT_EVALUATED)
+#define GDUT_USING_BUILTIN_IS_CONSTANT_EVALUATED                               \
+  __has_builtin(__builtin_is_constant_evaluated)
+#endif
+
+#if !defined(GDUT_USING_BUILTIN_MEMCPY)
+#define GDUT_USING_BUILTIN_MEMCPY __has_builtin(__builtin_memcpy)
+#endif
+
+#if !defined(GDUT_USING_BUILTIN_MEMMOVE)
+#define GDUT_USING_BUILTIN_MEMMOVE __has_builtin(__builtin_memmove)
+#endif
+
+#if !defined(GDUT_USING_BUILTIN_MEMSET)
+#define GDUT_USING_BUILTIN_MEMSET __has_builtin(__builtin_memset)
+#endif
+
+#if !defined(GDUT_USING_BUILTIN_MEMCMP)
+#define GDUT_USING_BUILTIN_MEMCMP __has_builtin(__builtin_memcmp)
+#endif
+
+#if !defined(GDUT_USING_BUILTIN_MEMCHR)
+#define GDUT_USING_BUILTIN_MEMCHR __has_builtin(__builtin_memchr)
+#endif
 #endif
 
 // The default. Set to 0, if not already set.
 #if !defined(GDUT_USING_BUILTIN_IS_ASSIGNABLE)
-  #define GDUT_USING_BUILTIN_IS_ASSIGNABLE 0
+#define GDUT_USING_BUILTIN_IS_ASSIGNABLE 0
 #endif
 
 #if !defined(GDUT_USING_BUILTIN_IS_CONSTRUCTIBLE)
-  #define GDUT_USING_BUILTIN_IS_CONSTRUCTIBLE 0
+#define GDUT_USING_BUILTIN_IS_CONSTRUCTIBLE 0
 #endif
 
 #if !defined(GDUT_USING_BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE)
-  #define GDUT_USING_BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE 0
+#define GDUT_USING_BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE 0
 #endif
 
 #if !defined(GDUT_USING_BUILTIN_IS_TRIVIALLY_DESTRUCTIBLE)
-  #define GDUT_USING_BUILTIN_IS_TRIVIALLY_DESTRUCTIBLE 0
+#define GDUT_USING_BUILTIN_IS_TRIVIALLY_DESTRUCTIBLE 0
 #endif
 
 #if !defined(GDUT_USING_BUILTIN_IS_TRIVIALLY_COPYABLE)
-  #define GDUT_USING_BUILTIN_IS_TRIVIALLY_COPYABLE 0
+#define GDUT_USING_BUILTIN_IS_TRIVIALLY_COPYABLE 0
 #endif
 
 #if !defined(GDUT_USING_BUILTIN_UNDERLYING_TYPE)
-  #define GDUT_USING_BUILTIN_UNDERLYING_TYPE 0
+#define GDUT_USING_BUILTIN_UNDERLYING_TYPE 0
 #endif
 
 #if !defined(GDUT_USING_BUILTIN_IS_CONSTANT_EVALUATED)
-  #define GDUT_USING_BUILTIN_IS_CONSTANT_EVALUATED 0
+#define GDUT_USING_BUILTIN_IS_CONSTANT_EVALUATED 0
 #endif
 
 #if !defined(GDUT_USING_BUILTIN_MEMCPY)
-  #define GDUT_USING_BUILTIN_MEMCPY 0
+#define GDUT_USING_BUILTIN_MEMCPY 0
 #endif
 
 #if !defined(GDUT_USING_BUILTIN_MEMMOVE)
-  #define GDUT_USING_BUILTIN_MEMMOVE 0
+#define GDUT_USING_BUILTIN_MEMMOVE 0
 #endif
 
 #if !defined(GDUT_USING_BUILTIN_MEMSET)
-  #define GDUT_USING_BUILTIN_MEMSET 0
+#define GDUT_USING_BUILTIN_MEMSET 0
 #endif
 
 #if !defined(GDUT_USING_BUILTIN_MEMCMP)
-  #define GDUT_USING_BUILTIN_MEMCMP 0
+#define GDUT_USING_BUILTIN_MEMCMP 0
 #endif
 
 #if !defined(GDUT_USING_BUILTIN_MEMCHR)
-  #define GDUT_USING_BUILTIN_MEMCHR 0
+#define GDUT_USING_BUILTIN_MEMCHR 0
 #endif
 
-namespace gdut
-{
-  namespace traits
-  {
-    // Documentation: https://www.etlcpp.com/etl_traits.html
+namespace gdut {
+namespace traits {
+// Documentation: https://www.etlcpp.com/etl_traits.html
 
-    static GDUT_CONSTANT bool using_builtin_is_assignable              = (GDUT_USING_BUILTIN_IS_ASSIGNABLE == 1);
-    static GDUT_CONSTANT bool using_builtin_is_constructible           = (GDUT_USING_BUILTIN_IS_CONSTRUCTIBLE == 1);
-    static GDUT_CONSTANT bool using_builtin_is_trivially_constructible = (GDUT_USING_BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE == 1);
-    static GDUT_CONSTANT bool using_builtin_is_trivially_destructible  = (GDUT_USING_BUILTIN_IS_TRIVIALLY_DESTRUCTIBLE == 1);
-    static GDUT_CONSTANT bool using_builtin_is_trivially_copyable      = (GDUT_USING_BUILTIN_IS_TRIVIALLY_COPYABLE == 1);
-    static GDUT_CONSTANT bool using_builtin_underlying_type            = (GDUT_USING_BUILTIN_UNDERLYING_TYPE == 1);
-    static GDUT_CONSTANT bool using_builtin_is_constant_evaluated      = (GDUT_USING_BUILTIN_IS_CONSTANT_EVALUATED == 1);
-    static GDUT_CONSTANT bool using_builtin_memcpy                     = (GDUT_USING_BUILTIN_MEMCPY == 1);
-    static GDUT_CONSTANT bool using_builtin_memmove                    = (GDUT_USING_BUILTIN_MEMMOVE == 1);
-    static GDUT_CONSTANT bool using_builtin_memset                     = (GDUT_USING_BUILTIN_MEMSET == 1);
-    static GDUT_CONSTANT bool using_builtin_memcmp                     = (GDUT_USING_BUILTIN_MEMCMP == 1);
-    static GDUT_CONSTANT bool using_builtin_memchr                     = (GDUT_USING_BUILTIN_MEMCHR == 1);
-  }
-}
+static GDUT_CONSTANT bool using_builtin_is_assignable =
+    (GDUT_USING_BUILTIN_IS_ASSIGNABLE == 1);
+static GDUT_CONSTANT bool using_builtin_is_constructible =
+    (GDUT_USING_BUILTIN_IS_CONSTRUCTIBLE == 1);
+static GDUT_CONSTANT bool using_builtin_is_trivially_constructible =
+    (GDUT_USING_BUILTIN_IS_TRIVIALLY_CONSTRUCTIBLE == 1);
+static GDUT_CONSTANT bool using_builtin_is_trivially_destructible =
+    (GDUT_USING_BUILTIN_IS_TRIVIALLY_DESTRUCTIBLE == 1);
+static GDUT_CONSTANT bool using_builtin_is_trivially_copyable =
+    (GDUT_USING_BUILTIN_IS_TRIVIALLY_COPYABLE == 1);
+static GDUT_CONSTANT bool using_builtin_underlying_type =
+    (GDUT_USING_BUILTIN_UNDERLYING_TYPE == 1);
+static GDUT_CONSTANT bool using_builtin_is_constant_evaluated =
+    (GDUT_USING_BUILTIN_IS_CONSTANT_EVALUATED == 1);
+static GDUT_CONSTANT bool using_builtin_memcpy =
+    (GDUT_USING_BUILTIN_MEMCPY == 1);
+static GDUT_CONSTANT bool using_builtin_memmove =
+    (GDUT_USING_BUILTIN_MEMMOVE == 1);
+static GDUT_CONSTANT bool using_builtin_memset =
+    (GDUT_USING_BUILTIN_MEMSET == 1);
+static GDUT_CONSTANT bool using_builtin_memcmp =
+    (GDUT_USING_BUILTIN_MEMCMP == 1);
+static GDUT_CONSTANT bool using_builtin_memchr =
+    (GDUT_USING_BUILTIN_MEMCHR == 1);
+} // namespace traits
+} // namespace gdut
 
 #endif

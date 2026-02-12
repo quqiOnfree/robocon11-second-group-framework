@@ -31,990 +31,2477 @@ SOFTWARE.
 // do not support template fold expressions.
 //***************************************************************************
 
-namespace private_variant
-{
-  //***************************************************************************
-  // Selects a do_visitor inplementation that is configured for the number of types.
-  //***************************************************************************
-  template <size_t NTypes>
-  struct select_do_visitor;
+namespace private_variant {
+//***************************************************************************
+// Selects a do_visitor inplementation that is configured for the number of
+// types.
+//***************************************************************************
+template <size_t NTypes> struct select_do_visitor;
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<1>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0: { visitor.visit(gdut::get<0>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<1> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<2>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0: { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1: { visitor.visit(gdut::get<1>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<2> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<3>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0: { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1: { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2: { visitor.visit(gdut::get<2>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<3> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<4>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0: { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1: { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2: { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3: { visitor.visit(gdut::get<3>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<4> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<5>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0: { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1: { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2: { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3: { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4: { visitor.visit(gdut::get<4>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<5> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<6>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0: { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1: { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2: { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3: { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4: { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5: { visitor.visit(gdut::get<5>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<6> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<7>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0: { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1: { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2: { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3: { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4: { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5: { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6: { visitor.visit(gdut::get<6>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<7> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<8>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0: { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1: { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2: { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3: { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4: { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5: { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6: { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7: { visitor.visit(gdut::get<7>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<8> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 #if !defined(GDUT_VARIANT_CPP11_MAX_8_TYPES)
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<9>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0: { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1: { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2: { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3: { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4: { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5: { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6: { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7: { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8: { visitor.visit(gdut::get<8>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<9> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<10>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0: { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1: { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2: { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3: { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4: { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5: { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6: { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7: { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8: { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9: { visitor.visit(gdut::get<9>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<10> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<11>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<11> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<12>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<12> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<13>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<13> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<14>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<14> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<15>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<15> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<16>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<16> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 #if !defined(GDUT_VARIANT_CPP11_MAX_16_TYPES)
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<17>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<17> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<18>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        case 17: { visitor.visit(gdut::get<17>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<18> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    case 17: {
+      visitor.visit(gdut::get<17>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<19>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        case 17: { visitor.visit(gdut::get<17>(the_variant)); break; }
-        case 18: { visitor.visit(gdut::get<18>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<19> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    case 17: {
+      visitor.visit(gdut::get<17>(the_variant));
+      break;
+    }
+    case 18: {
+      visitor.visit(gdut::get<18>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<20>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        case 17: { visitor.visit(gdut::get<17>(the_variant)); break; }
-        case 18: { visitor.visit(gdut::get<18>(the_variant)); break; }
-        case 19: { visitor.visit(gdut::get<19>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<20> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    case 17: {
+      visitor.visit(gdut::get<17>(the_variant));
+      break;
+    }
+    case 18: {
+      visitor.visit(gdut::get<18>(the_variant));
+      break;
+    }
+    case 19: {
+      visitor.visit(gdut::get<19>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<21>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        case 17: { visitor.visit(gdut::get<17>(the_variant)); break; }
-        case 18: { visitor.visit(gdut::get<18>(the_variant)); break; }
-        case 19: { visitor.visit(gdut::get<19>(the_variant)); break; }
-        case 20: { visitor.visit(gdut::get<20>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<21> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    case 17: {
+      visitor.visit(gdut::get<17>(the_variant));
+      break;
+    }
+    case 18: {
+      visitor.visit(gdut::get<18>(the_variant));
+      break;
+    }
+    case 19: {
+      visitor.visit(gdut::get<19>(the_variant));
+      break;
+    }
+    case 20: {
+      visitor.visit(gdut::get<20>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<22>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        case 17: { visitor.visit(gdut::get<17>(the_variant)); break; }
-        case 18: { visitor.visit(gdut::get<18>(the_variant)); break; }
-        case 19: { visitor.visit(gdut::get<19>(the_variant)); break; }
-        case 20: { visitor.visit(gdut::get<20>(the_variant)); break; }
-        case 21: { visitor.visit(gdut::get<21>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<22> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    case 17: {
+      visitor.visit(gdut::get<17>(the_variant));
+      break;
+    }
+    case 18: {
+      visitor.visit(gdut::get<18>(the_variant));
+      break;
+    }
+    case 19: {
+      visitor.visit(gdut::get<19>(the_variant));
+      break;
+    }
+    case 20: {
+      visitor.visit(gdut::get<20>(the_variant));
+      break;
+    }
+    case 21: {
+      visitor.visit(gdut::get<21>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<23>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        case 17: { visitor.visit(gdut::get<17>(the_variant)); break; }
-        case 18: { visitor.visit(gdut::get<18>(the_variant)); break; }
-        case 19: { visitor.visit(gdut::get<19>(the_variant)); break; }
-        case 20: { visitor.visit(gdut::get<20>(the_variant)); break; }
-        case 21: { visitor.visit(gdut::get<21>(the_variant)); break; }
-        case 22: { visitor.visit(gdut::get<22>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<23> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    case 17: {
+      visitor.visit(gdut::get<17>(the_variant));
+      break;
+    }
+    case 18: {
+      visitor.visit(gdut::get<18>(the_variant));
+      break;
+    }
+    case 19: {
+      visitor.visit(gdut::get<19>(the_variant));
+      break;
+    }
+    case 20: {
+      visitor.visit(gdut::get<20>(the_variant));
+      break;
+    }
+    case 21: {
+      visitor.visit(gdut::get<21>(the_variant));
+      break;
+    }
+    case 22: {
+      visitor.visit(gdut::get<22>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<24>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        case 17: { visitor.visit(gdut::get<17>(the_variant)); break; }
-        case 18: { visitor.visit(gdut::get<18>(the_variant)); break; }
-        case 19: { visitor.visit(gdut::get<19>(the_variant)); break; }
-        case 20: { visitor.visit(gdut::get<20>(the_variant)); break; }
-        case 21: { visitor.visit(gdut::get<21>(the_variant)); break; }
-        case 22: { visitor.visit(gdut::get<22>(the_variant)); break; }
-        case 23: { visitor.visit(gdut::get<23>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<24> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    case 17: {
+      visitor.visit(gdut::get<17>(the_variant));
+      break;
+    }
+    case 18: {
+      visitor.visit(gdut::get<18>(the_variant));
+      break;
+    }
+    case 19: {
+      visitor.visit(gdut::get<19>(the_variant));
+      break;
+    }
+    case 20: {
+      visitor.visit(gdut::get<20>(the_variant));
+      break;
+    }
+    case 21: {
+      visitor.visit(gdut::get<21>(the_variant));
+      break;
+    }
+    case 22: {
+      visitor.visit(gdut::get<22>(the_variant));
+      break;
+    }
+    case 23: {
+      visitor.visit(gdut::get<23>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 #if !defined(GDUT_VARIANT_CPP11_MAX_24_TYPES)
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<25>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        case 17: { visitor.visit(gdut::get<17>(the_variant)); break; }
-        case 18: { visitor.visit(gdut::get<18>(the_variant)); break; }
-        case 19: { visitor.visit(gdut::get<19>(the_variant)); break; }
-        case 20: { visitor.visit(gdut::get<20>(the_variant)); break; }
-        case 21: { visitor.visit(gdut::get<21>(the_variant)); break; }
-        case 22: { visitor.visit(gdut::get<22>(the_variant)); break; }
-        case 23: { visitor.visit(gdut::get<23>(the_variant)); break; }
-        case 24: { visitor.visit(gdut::get<24>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<25> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    case 17: {
+      visitor.visit(gdut::get<17>(the_variant));
+      break;
+    }
+    case 18: {
+      visitor.visit(gdut::get<18>(the_variant));
+      break;
+    }
+    case 19: {
+      visitor.visit(gdut::get<19>(the_variant));
+      break;
+    }
+    case 20: {
+      visitor.visit(gdut::get<20>(the_variant));
+      break;
+    }
+    case 21: {
+      visitor.visit(gdut::get<21>(the_variant));
+      break;
+    }
+    case 22: {
+      visitor.visit(gdut::get<22>(the_variant));
+      break;
+    }
+    case 23: {
+      visitor.visit(gdut::get<23>(the_variant));
+      break;
+    }
+    case 24: {
+      visitor.visit(gdut::get<24>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<26>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        case 17: { visitor.visit(gdut::get<17>(the_variant)); break; }
-        case 18: { visitor.visit(gdut::get<18>(the_variant)); break; }
-        case 19: { visitor.visit(gdut::get<19>(the_variant)); break; }
-        case 20: { visitor.visit(gdut::get<20>(the_variant)); break; }
-        case 21: { visitor.visit(gdut::get<21>(the_variant)); break; }
-        case 22: { visitor.visit(gdut::get<22>(the_variant)); break; }
-        case 23: { visitor.visit(gdut::get<23>(the_variant)); break; }
-        case 24: { visitor.visit(gdut::get<24>(the_variant)); break; }
-        case 25: { visitor.visit(gdut::get<25>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<26> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    case 17: {
+      visitor.visit(gdut::get<17>(the_variant));
+      break;
+    }
+    case 18: {
+      visitor.visit(gdut::get<18>(the_variant));
+      break;
+    }
+    case 19: {
+      visitor.visit(gdut::get<19>(the_variant));
+      break;
+    }
+    case 20: {
+      visitor.visit(gdut::get<20>(the_variant));
+      break;
+    }
+    case 21: {
+      visitor.visit(gdut::get<21>(the_variant));
+      break;
+    }
+    case 22: {
+      visitor.visit(gdut::get<22>(the_variant));
+      break;
+    }
+    case 23: {
+      visitor.visit(gdut::get<23>(the_variant));
+      break;
+    }
+    case 24: {
+      visitor.visit(gdut::get<24>(the_variant));
+      break;
+    }
+    case 25: {
+      visitor.visit(gdut::get<25>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<27>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        case 17: { visitor.visit(gdut::get<17>(the_variant)); break; }
-        case 18: { visitor.visit(gdut::get<18>(the_variant)); break; }
-        case 19: { visitor.visit(gdut::get<19>(the_variant)); break; }
-        case 20: { visitor.visit(gdut::get<20>(the_variant)); break; }
-        case 21: { visitor.visit(gdut::get<21>(the_variant)); break; }
-        case 22: { visitor.visit(gdut::get<22>(the_variant)); break; }
-        case 23: { visitor.visit(gdut::get<23>(the_variant)); break; }
-        case 24: { visitor.visit(gdut::get<24>(the_variant)); break; }
-        case 25: { visitor.visit(gdut::get<25>(the_variant)); break; }
-        case 26: { visitor.visit(gdut::get<26>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<27> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    case 17: {
+      visitor.visit(gdut::get<17>(the_variant));
+      break;
+    }
+    case 18: {
+      visitor.visit(gdut::get<18>(the_variant));
+      break;
+    }
+    case 19: {
+      visitor.visit(gdut::get<19>(the_variant));
+      break;
+    }
+    case 20: {
+      visitor.visit(gdut::get<20>(the_variant));
+      break;
+    }
+    case 21: {
+      visitor.visit(gdut::get<21>(the_variant));
+      break;
+    }
+    case 22: {
+      visitor.visit(gdut::get<22>(the_variant));
+      break;
+    }
+    case 23: {
+      visitor.visit(gdut::get<23>(the_variant));
+      break;
+    }
+    case 24: {
+      visitor.visit(gdut::get<24>(the_variant));
+      break;
+    }
+    case 25: {
+      visitor.visit(gdut::get<25>(the_variant));
+      break;
+    }
+    case 26: {
+      visitor.visit(gdut::get<26>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<28>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        case 17: { visitor.visit(gdut::get<17>(the_variant)); break; }
-        case 18: { visitor.visit(gdut::get<18>(the_variant)); break; }
-        case 19: { visitor.visit(gdut::get<19>(the_variant)); break; }
-        case 20: { visitor.visit(gdut::get<20>(the_variant)); break; }
-        case 21: { visitor.visit(gdut::get<21>(the_variant)); break; }
-        case 22: { visitor.visit(gdut::get<22>(the_variant)); break; }
-        case 23: { visitor.visit(gdut::get<23>(the_variant)); break; }
-        case 24: { visitor.visit(gdut::get<24>(the_variant)); break; }
-        case 25: { visitor.visit(gdut::get<25>(the_variant)); break; }
-        case 26: { visitor.visit(gdut::get<26>(the_variant)); break; }
-        case 27: { visitor.visit(gdut::get<27>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<28> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    case 17: {
+      visitor.visit(gdut::get<17>(the_variant));
+      break;
+    }
+    case 18: {
+      visitor.visit(gdut::get<18>(the_variant));
+      break;
+    }
+    case 19: {
+      visitor.visit(gdut::get<19>(the_variant));
+      break;
+    }
+    case 20: {
+      visitor.visit(gdut::get<20>(the_variant));
+      break;
+    }
+    case 21: {
+      visitor.visit(gdut::get<21>(the_variant));
+      break;
+    }
+    case 22: {
+      visitor.visit(gdut::get<22>(the_variant));
+      break;
+    }
+    case 23: {
+      visitor.visit(gdut::get<23>(the_variant));
+      break;
+    }
+    case 24: {
+      visitor.visit(gdut::get<24>(the_variant));
+      break;
+    }
+    case 25: {
+      visitor.visit(gdut::get<25>(the_variant));
+      break;
+    }
+    case 26: {
+      visitor.visit(gdut::get<26>(the_variant));
+      break;
+    }
+    case 27: {
+      visitor.visit(gdut::get<27>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<29>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        case 17: { visitor.visit(gdut::get<17>(the_variant)); break; }
-        case 18: { visitor.visit(gdut::get<18>(the_variant)); break; }
-        case 19: { visitor.visit(gdut::get<19>(the_variant)); break; }
-        case 20: { visitor.visit(gdut::get<20>(the_variant)); break; }
-        case 21: { visitor.visit(gdut::get<21>(the_variant)); break; }
-        case 22: { visitor.visit(gdut::get<22>(the_variant)); break; }
-        case 23: { visitor.visit(gdut::get<23>(the_variant)); break; }
-        case 24: { visitor.visit(gdut::get<24>(the_variant)); break; }
-        case 25: { visitor.visit(gdut::get<25>(the_variant)); break; }
-        case 26: { visitor.visit(gdut::get<26>(the_variant)); break; }
-        case 27: { visitor.visit(gdut::get<27>(the_variant)); break; }
-        case 28: { visitor.visit(gdut::get<28>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<29> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    case 17: {
+      visitor.visit(gdut::get<17>(the_variant));
+      break;
+    }
+    case 18: {
+      visitor.visit(gdut::get<18>(the_variant));
+      break;
+    }
+    case 19: {
+      visitor.visit(gdut::get<19>(the_variant));
+      break;
+    }
+    case 20: {
+      visitor.visit(gdut::get<20>(the_variant));
+      break;
+    }
+    case 21: {
+      visitor.visit(gdut::get<21>(the_variant));
+      break;
+    }
+    case 22: {
+      visitor.visit(gdut::get<22>(the_variant));
+      break;
+    }
+    case 23: {
+      visitor.visit(gdut::get<23>(the_variant));
+      break;
+    }
+    case 24: {
+      visitor.visit(gdut::get<24>(the_variant));
+      break;
+    }
+    case 25: {
+      visitor.visit(gdut::get<25>(the_variant));
+      break;
+    }
+    case 26: {
+      visitor.visit(gdut::get<26>(the_variant));
+      break;
+    }
+    case 27: {
+      visitor.visit(gdut::get<27>(the_variant));
+      break;
+    }
+    case 28: {
+      visitor.visit(gdut::get<28>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<30>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        case 17: { visitor.visit(gdut::get<17>(the_variant)); break; }
-        case 18: { visitor.visit(gdut::get<18>(the_variant)); break; }
-        case 19: { visitor.visit(gdut::get<19>(the_variant)); break; }
-        case 20: { visitor.visit(gdut::get<20>(the_variant)); break; }
-        case 21: { visitor.visit(gdut::get<21>(the_variant)); break; }
-        case 22: { visitor.visit(gdut::get<22>(the_variant)); break; }
-        case 23: { visitor.visit(gdut::get<23>(the_variant)); break; }
-        case 24: { visitor.visit(gdut::get<24>(the_variant)); break; }
-        case 25: { visitor.visit(gdut::get<25>(the_variant)); break; }
-        case 26: { visitor.visit(gdut::get<26>(the_variant)); break; }
-        case 27: { visitor.visit(gdut::get<27>(the_variant)); break; }
-        case 28: { visitor.visit(gdut::get<28>(the_variant)); break; }
-        case 29: { visitor.visit(gdut::get<29>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<30> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    case 17: {
+      visitor.visit(gdut::get<17>(the_variant));
+      break;
+    }
+    case 18: {
+      visitor.visit(gdut::get<18>(the_variant));
+      break;
+    }
+    case 19: {
+      visitor.visit(gdut::get<19>(the_variant));
+      break;
+    }
+    case 20: {
+      visitor.visit(gdut::get<20>(the_variant));
+      break;
+    }
+    case 21: {
+      visitor.visit(gdut::get<21>(the_variant));
+      break;
+    }
+    case 22: {
+      visitor.visit(gdut::get<22>(the_variant));
+      break;
+    }
+    case 23: {
+      visitor.visit(gdut::get<23>(the_variant));
+      break;
+    }
+    case 24: {
+      visitor.visit(gdut::get<24>(the_variant));
+      break;
+    }
+    case 25: {
+      visitor.visit(gdut::get<25>(the_variant));
+      break;
+    }
+    case 26: {
+      visitor.visit(gdut::get<26>(the_variant));
+      break;
+    }
+    case 27: {
+      visitor.visit(gdut::get<27>(the_variant));
+      break;
+    }
+    case 28: {
+      visitor.visit(gdut::get<28>(the_variant));
+      break;
+    }
+    case 29: {
+      visitor.visit(gdut::get<29>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<31>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        case 17: { visitor.visit(gdut::get<17>(the_variant)); break; }
-        case 18: { visitor.visit(gdut::get<18>(the_variant)); break; }
-        case 19: { visitor.visit(gdut::get<19>(the_variant)); break; }
-        case 20: { visitor.visit(gdut::get<20>(the_variant)); break; }
-        case 21: { visitor.visit(gdut::get<21>(the_variant)); break; }
-        case 22: { visitor.visit(gdut::get<22>(the_variant)); break; }
-        case 23: { visitor.visit(gdut::get<23>(the_variant)); break; }
-        case 24: { visitor.visit(gdut::get<24>(the_variant)); break; }
-        case 25: { visitor.visit(gdut::get<25>(the_variant)); break; }
-        case 26: { visitor.visit(gdut::get<26>(the_variant)); break; }
-        case 27: { visitor.visit(gdut::get<27>(the_variant)); break; }
-        case 28: { visitor.visit(gdut::get<28>(the_variant)); break; }
-        case 29: { visitor.visit(gdut::get<29>(the_variant)); break; }
-        case 30: { visitor.visit(gdut::get<30>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<31> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    case 17: {
+      visitor.visit(gdut::get<17>(the_variant));
+      break;
+    }
+    case 18: {
+      visitor.visit(gdut::get<18>(the_variant));
+      break;
+    }
+    case 19: {
+      visitor.visit(gdut::get<19>(the_variant));
+      break;
+    }
+    case 20: {
+      visitor.visit(gdut::get<20>(the_variant));
+      break;
+    }
+    case 21: {
+      visitor.visit(gdut::get<21>(the_variant));
+      break;
+    }
+    case 22: {
+      visitor.visit(gdut::get<22>(the_variant));
+      break;
+    }
+    case 23: {
+      visitor.visit(gdut::get<23>(the_variant));
+      break;
+    }
+    case 24: {
+      visitor.visit(gdut::get<24>(the_variant));
+      break;
+    }
+    case 25: {
+      visitor.visit(gdut::get<25>(the_variant));
+      break;
+    }
+    case 26: {
+      visitor.visit(gdut::get<26>(the_variant));
+      break;
+    }
+    case 27: {
+      visitor.visit(gdut::get<27>(the_variant));
+      break;
+    }
+    case 28: {
+      visitor.visit(gdut::get<28>(the_variant));
+      break;
+    }
+    case 29: {
+      visitor.visit(gdut::get<29>(the_variant));
+      break;
+    }
+    case 30: {
+      visitor.visit(gdut::get<30>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 
-  //***************************************************************************
-  template <>
-  struct select_do_visitor<32>
-  {
-    template <typename TVariant, typename TVisitor>
-    static void do_visitor(TVariant& the_variant, TVisitor& visitor)
-    {
-      switch (the_variant.index())
-      {
-        case 0:  { visitor.visit(gdut::get<0>(the_variant)); break; }
-        case 1:  { visitor.visit(gdut::get<1>(the_variant)); break; }
-        case 2:  { visitor.visit(gdut::get<2>(the_variant)); break; }
-        case 3:  { visitor.visit(gdut::get<3>(the_variant)); break; }
-        case 4:  { visitor.visit(gdut::get<4>(the_variant)); break; }
-        case 5:  { visitor.visit(gdut::get<5>(the_variant)); break; }
-        case 6:  { visitor.visit(gdut::get<6>(the_variant)); break; }
-        case 7:  { visitor.visit(gdut::get<7>(the_variant)); break; }
-        case 8:  { visitor.visit(gdut::get<8>(the_variant)); break; }
-        case 9:  { visitor.visit(gdut::get<9>(the_variant)); break; }
-        case 10: { visitor.visit(gdut::get<10>(the_variant)); break; }
-        case 11: { visitor.visit(gdut::get<11>(the_variant)); break; }
-        case 12: { visitor.visit(gdut::get<12>(the_variant)); break; }
-        case 13: { visitor.visit(gdut::get<13>(the_variant)); break; }
-        case 14: { visitor.visit(gdut::get<14>(the_variant)); break; }
-        case 15: { visitor.visit(gdut::get<15>(the_variant)); break; }
-        case 16: { visitor.visit(gdut::get<16>(the_variant)); break; }
-        case 17: { visitor.visit(gdut::get<17>(the_variant)); break; }
-        case 18: { visitor.visit(gdut::get<18>(the_variant)); break; }
-        case 19: { visitor.visit(gdut::get<19>(the_variant)); break; }
-        case 20: { visitor.visit(gdut::get<20>(the_variant)); break; }
-        case 21: { visitor.visit(gdut::get<21>(the_variant)); break; }
-        case 22: { visitor.visit(gdut::get<22>(the_variant)); break; }
-        case 23: { visitor.visit(gdut::get<23>(the_variant)); break; }
-        case 24: { visitor.visit(gdut::get<24>(the_variant)); break; }
-        case 25: { visitor.visit(gdut::get<25>(the_variant)); break; }
-        case 26: { visitor.visit(gdut::get<26>(the_variant)); break; }
-        case 27: { visitor.visit(gdut::get<27>(the_variant)); break; }
-        case 28: { visitor.visit(gdut::get<28>(the_variant)); break; }
-        case 29: { visitor.visit(gdut::get<29>(the_variant)); break; }
-        case 30: { visitor.visit(gdut::get<30>(the_variant)); break; }
-        case 31: { visitor.visit(gdut::get<31>(the_variant)); break; }
-        default: break;
-      }
+//***************************************************************************
+template <> struct select_do_visitor<32> {
+  template <typename TVariant, typename TVisitor>
+  static void do_visitor(TVariant &the_variant, TVisitor &visitor) {
+    switch (the_variant.index()) {
+    case 0: {
+      visitor.visit(gdut::get<0>(the_variant));
+      break;
     }
-  };
+    case 1: {
+      visitor.visit(gdut::get<1>(the_variant));
+      break;
+    }
+    case 2: {
+      visitor.visit(gdut::get<2>(the_variant));
+      break;
+    }
+    case 3: {
+      visitor.visit(gdut::get<3>(the_variant));
+      break;
+    }
+    case 4: {
+      visitor.visit(gdut::get<4>(the_variant));
+      break;
+    }
+    case 5: {
+      visitor.visit(gdut::get<5>(the_variant));
+      break;
+    }
+    case 6: {
+      visitor.visit(gdut::get<6>(the_variant));
+      break;
+    }
+    case 7: {
+      visitor.visit(gdut::get<7>(the_variant));
+      break;
+    }
+    case 8: {
+      visitor.visit(gdut::get<8>(the_variant));
+      break;
+    }
+    case 9: {
+      visitor.visit(gdut::get<9>(the_variant));
+      break;
+    }
+    case 10: {
+      visitor.visit(gdut::get<10>(the_variant));
+      break;
+    }
+    case 11: {
+      visitor.visit(gdut::get<11>(the_variant));
+      break;
+    }
+    case 12: {
+      visitor.visit(gdut::get<12>(the_variant));
+      break;
+    }
+    case 13: {
+      visitor.visit(gdut::get<13>(the_variant));
+      break;
+    }
+    case 14: {
+      visitor.visit(gdut::get<14>(the_variant));
+      break;
+    }
+    case 15: {
+      visitor.visit(gdut::get<15>(the_variant));
+      break;
+    }
+    case 16: {
+      visitor.visit(gdut::get<16>(the_variant));
+      break;
+    }
+    case 17: {
+      visitor.visit(gdut::get<17>(the_variant));
+      break;
+    }
+    case 18: {
+      visitor.visit(gdut::get<18>(the_variant));
+      break;
+    }
+    case 19: {
+      visitor.visit(gdut::get<19>(the_variant));
+      break;
+    }
+    case 20: {
+      visitor.visit(gdut::get<20>(the_variant));
+      break;
+    }
+    case 21: {
+      visitor.visit(gdut::get<21>(the_variant));
+      break;
+    }
+    case 22: {
+      visitor.visit(gdut::get<22>(the_variant));
+      break;
+    }
+    case 23: {
+      visitor.visit(gdut::get<23>(the_variant));
+      break;
+    }
+    case 24: {
+      visitor.visit(gdut::get<24>(the_variant));
+      break;
+    }
+    case 25: {
+      visitor.visit(gdut::get<25>(the_variant));
+      break;
+    }
+    case 26: {
+      visitor.visit(gdut::get<26>(the_variant));
+      break;
+    }
+    case 27: {
+      visitor.visit(gdut::get<27>(the_variant));
+      break;
+    }
+    case 28: {
+      visitor.visit(gdut::get<28>(the_variant));
+      break;
+    }
+    case 29: {
+      visitor.visit(gdut::get<29>(the_variant));
+      break;
+    }
+    case 30: {
+      visitor.visit(gdut::get<30>(the_variant));
+      break;
+    }
+    case 31: {
+      visitor.visit(gdut::get<31>(the_variant));
+      break;
+    }
+    default:
+      break;
+    }
+  }
+};
 #endif
 #endif
 #endif
-}
+} // namespace private_variant

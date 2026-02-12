@@ -33,117 +33,127 @@ SOFTWARE.
 
 ///\ingroup string
 
-#include "platform.hpp"
-#include "type_traits.hpp"
-#include "string.hpp"
 #include "format_spec.hpp"
+#include "platform.hpp"
 #include "private/to_string_helper.hpp"
+#include "string.hpp"
+#include "type_traits.hpp"
 
-namespace gdut
-{
-  //***************************************************************************
-  /// Default format spec.
-  /// !gdut::istring && !gdut::string_view
-  //***************************************************************************
-  template <typename T>
-  typename gdut::enable_if<!gdut::is_same<T, gdut::istring>::value && !gdut::is_same<T, gdut::string_view>::value, const gdut::istring&>::type
-    to_string(const T value, gdut::istring& str, bool append = false)
-  {
-    gdut::format_spec format;
+namespace gdut {
+//***************************************************************************
+/// Default format spec.
+/// !gdut::istring && !gdut::string_view
+//***************************************************************************
+template <typename T>
+typename gdut::enable_if<!gdut::is_same<T, gdut::istring>::value &&
+                             !gdut::is_same<T, gdut::string_view>::value,
+                         const gdut::istring &>::type
+to_string(const T value, gdut::istring &str, bool append = false) {
+  gdut::format_spec format;
 
-    return private_to_string::to_string(value, str, format, append);
-  }
-
-  //***************************************************************************
-  /// Supplied format spec.
-  /// !gdut::istring && !gdut::string_view
-  //***************************************************************************
-  template <typename T>
-  typename gdut::enable_if<!gdut::is_same<T, gdut::istring>::value && !gdut::is_same<T, gdut::string_view>::value, const gdut::istring&>::type
-    to_string(const T value, gdut::istring& str, const gdut::format_spec& format, bool append = false)
-  {
-    return private_to_string::to_string(value, str, format, append);
-  }
-
-  //***************************************************************************
-  /// Default format spec.
-  /// !gdut::istring && !gdut::string_view
-  //***************************************************************************
-  template <typename T>
-  typename gdut::enable_if<!gdut::is_same<T, gdut::istring>::value && !gdut::is_same<T, gdut::string_view>::value, const gdut::istring&>::type
-    to_string(const T value, uint32_t denominator_exponent, gdut::istring& str, bool append = false)
-  {
-    gdut::format_spec format;
-
-    return private_to_string::to_string(value, denominator_exponent, str, format, append);
-  }
-
-  //***************************************************************************
-  /// Supplied format spec.
-  /// !gdut::istring && !gdut::string_view
-  //***************************************************************************
-  template <typename T>
-  typename gdut::enable_if<!gdut::is_same<T, gdut::istring>::value && !gdut::is_same<T, gdut::string_view>::value, const gdut::istring&>::type
-    to_string(const T value, uint32_t denominator_exponent, gdut::istring& str, const gdut::format_spec& format, bool append = false)
-  {
-    return private_to_string::to_string(value, denominator_exponent, str, format, append);
-  }
-
-  //***************************************************************************
-  /// Default format spec.
-  /// gdut::istring
-  //***************************************************************************
-  template <typename T>
-  typename gdut::enable_if<gdut::is_same<T, gdut::istring>::value, const gdut::istring&>::type
-    to_string(const T& value, gdut::istring& str, bool append = false)
-  {
-    gdut::format_spec format;
-
-    private_to_string::add_string(value, str, format, append);
-
-    return str;
-  }
-
-  //***************************************************************************
-  /// Supplied format spec.
-  /// gdut::istring
-  //***************************************************************************
-  template <typename T>
-  typename gdut::enable_if<gdut::is_same<T, gdut::istring>::value, const gdut::istring&>::type
-    to_string(const gdut::istring& value, T& str, const gdut::format_spec& format, bool append = false)
-  {
-    private_to_string::add_string(value, str, format, append);
-
-    return str;
-  }
-
-  //***************************************************************************
-  /// Default format spec.
-  /// gdut::string_view
-  //***************************************************************************
-  template <typename T>
-  typename gdut::enable_if<gdut::is_same<T, gdut::string_view>::value, const gdut::istring&>::type
-    to_string(T value, gdut::istring& str, bool append = false)
-  {
-    gdut::format_spec format;
-
-    private_to_string::add_string_view(value, str, format, append);
-
-    return str;
-  }
-
-  //***************************************************************************
-  /// Supplied format spec.
-  /// gdut::string_view
-  //***************************************************************************
-  template <typename T>
-  typename gdut::enable_if<gdut::is_same<T, gdut::string_view>::value, const gdut::istring&>::type
-    to_string(T value, gdut::istring& str, const gdut::format_spec& format, bool append = false)
-  {
-    private_to_string::add_string_view(value, str, format, append);
-
-    return str;
-  }
+  return private_to_string::to_string(value, str, format, append);
 }
+
+//***************************************************************************
+/// Supplied format spec.
+/// !gdut::istring && !gdut::string_view
+//***************************************************************************
+template <typename T>
+typename gdut::enable_if<!gdut::is_same<T, gdut::istring>::value &&
+                             !gdut::is_same<T, gdut::string_view>::value,
+                         const gdut::istring &>::type
+to_string(const T value, gdut::istring &str, const gdut::format_spec &format,
+          bool append = false) {
+  return private_to_string::to_string(value, str, format, append);
+}
+
+//***************************************************************************
+/// Default format spec.
+/// !gdut::istring && !gdut::string_view
+//***************************************************************************
+template <typename T>
+typename gdut::enable_if<!gdut::is_same<T, gdut::istring>::value &&
+                             !gdut::is_same<T, gdut::string_view>::value,
+                         const gdut::istring &>::type
+to_string(const T value, uint32_t denominator_exponent, gdut::istring &str,
+          bool append = false) {
+  gdut::format_spec format;
+
+  return private_to_string::to_string(value, denominator_exponent, str, format,
+                                      append);
+}
+
+//***************************************************************************
+/// Supplied format spec.
+/// !gdut::istring && !gdut::string_view
+//***************************************************************************
+template <typename T>
+typename gdut::enable_if<!gdut::is_same<T, gdut::istring>::value &&
+                             !gdut::is_same<T, gdut::string_view>::value,
+                         const gdut::istring &>::type
+to_string(const T value, uint32_t denominator_exponent, gdut::istring &str,
+          const gdut::format_spec &format, bool append = false) {
+  return private_to_string::to_string(value, denominator_exponent, str, format,
+                                      append);
+}
+
+//***************************************************************************
+/// Default format spec.
+/// gdut::istring
+//***************************************************************************
+template <typename T>
+typename gdut::enable_if<gdut::is_same<T, gdut::istring>::value,
+                         const gdut::istring &>::type
+to_string(const T &value, gdut::istring &str, bool append = false) {
+  gdut::format_spec format;
+
+  private_to_string::add_string(value, str, format, append);
+
+  return str;
+}
+
+//***************************************************************************
+/// Supplied format spec.
+/// gdut::istring
+//***************************************************************************
+template <typename T>
+typename gdut::enable_if<gdut::is_same<T, gdut::istring>::value,
+                         const gdut::istring &>::type
+to_string(const gdut::istring &value, T &str, const gdut::format_spec &format,
+          bool append = false) {
+  private_to_string::add_string(value, str, format, append);
+
+  return str;
+}
+
+//***************************************************************************
+/// Default format spec.
+/// gdut::string_view
+//***************************************************************************
+template <typename T>
+typename gdut::enable_if<gdut::is_same<T, gdut::string_view>::value,
+                         const gdut::istring &>::type
+to_string(T value, gdut::istring &str, bool append = false) {
+  gdut::format_spec format;
+
+  private_to_string::add_string_view(value, str, format, append);
+
+  return str;
+}
+
+//***************************************************************************
+/// Supplied format spec.
+/// gdut::string_view
+//***************************************************************************
+template <typename T>
+typename gdut::enable_if<gdut::is_same<T, gdut::string_view>::value,
+                         const gdut::istring &>::type
+to_string(T value, gdut::istring &str, const gdut::format_spec &format,
+          bool append = false) {
+  private_to_string::add_string_view(value, str, format, append);
+
+  return str;
+}
+} // namespace gdut
 
 #endif

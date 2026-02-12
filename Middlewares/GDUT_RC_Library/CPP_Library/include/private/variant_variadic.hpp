@@ -28,1830 +28,1746 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ******************************************************************************/
 
-#include "../platform.hpp"
-#include "../utility.hpp"
-#include "../largest.hpp"
-#include "../nth_type.hpp"
-#include "../exception.hpp"
-#include "../type_traits.hpp"
-#include "../integral_limits.hpp"
-#include "../static_assert.hpp"
 #include "../alignment.hpp"
-#include "../error_handler.hpp"
-#include "../type_list.hpp"
-#include "../placement_new.hpp"
-#include "../visitor.hpp"
-#include "../memory.hpp"
 #include "../compare.hpp"
+#include "../error_handler.hpp"
+#include "../exception.hpp"
 #include "../initializer_list.hpp"
+#include "../integral_limits.hpp"
+#include "../largest.hpp"
+#include "../memory.hpp"
 #include "../monostate.hpp"
+#include "../nth_type.hpp"
+#include "../placement_new.hpp"
+#include "../platform.hpp"
+#include "../static_assert.hpp"
+#include "../type_list.hpp"
+#include "../type_traits.hpp"
+#include "../utility.hpp"
+#include "../visitor.hpp"
 
 #include <stdint.h>
 
 #if defined(GDUT_COMPILER_KEIL)
-  #pragma diag_suppress 940
-  #pragma diag_suppress 111
+#pragma diag_suppress 940
+#pragma diag_suppress 111
 #endif
 
 #if GDUT_CPP11_NOT_SUPPORTED
-  #if !defined(GDUT_IN_UNIT_TEST)
-    #error NOT SUPPORTED FOR C++03 OR BELOW
-  #endif
+#if !defined(GDUT_IN_UNIT_TEST)
+#error NOT SUPPORTED FOR C++03 OR BELOW
+#endif
 #else
 //*****************************************************************************
 ///\defgroup variant variant
-/// A class that can contain one a several specified types in a type safe manner.
+/// A class that can contain one a several specified types in a type safe
+/// manner.
 ///\ingroup containers
 //*****************************************************************************
 
-namespace gdut
-{
-  namespace private_variant
-  {
-    //*******************************************
-    // The traits an object may have.
-    //*******************************************
-    static constexpr bool Copyable = true;
-    static constexpr bool Non_Copyable = false;
-    static constexpr bool Moveable = true;
-    static constexpr bool Non_Moveable = false;
+namespace gdut {
+namespace private_variant {
+//*******************************************
+// The traits an object may have.
+//*******************************************
+static constexpr bool Copyable = true;
+static constexpr bool Non_Copyable = false;
+static constexpr bool Moveable = true;
+static constexpr bool Non_Moveable = false;
 
-    //*******************************************
-    // The types of operations we can perform.
-    //*******************************************
-    static constexpr int Copy = 0;
-    static constexpr int Move = 1;
-    static constexpr int Destroy = 2;
+//*******************************************
+// The types of operations we can perform.
+//*******************************************
+static constexpr int Copy = 0;
+static constexpr int Move = 1;
+static constexpr int Destroy = 2;
 
-    //*******************************************
-    // operation_type
-    //*******************************************
-    template <typename T, bool IsCopyable, bool IsMoveable>
-    struct operation_type;
+//*******************************************
+// operation_type
+//*******************************************
+template <typename T, bool IsCopyable, bool IsMoveable> struct operation_type;
 
-    //*******************************************
-    // Specialisation for null operation.
-    template <>
-    struct operation_type<void, Non_Copyable, Non_Moveable>
-    {
-      static void do_operation(int, char*, const char*)
-      {
-        // This should never occur.
+//*******************************************
+// Specialisation for null operation.
+template <> struct operation_type<void, Non_Copyable, Non_Moveable> {
+  static void do_operation(int, char *, const char *) {
+    // This should never occur.
 #if defined(GDUT_IN_UNIT_TEST)
-        assert(false);
+    assert(false);
 #endif
-      }
-    };
-
-    //*******************************************
-    // Specialisation for no-copyable & non-moveable types.
-    template <typename T>
-    struct operation_type<T, Non_Copyable, Non_Moveable>
-    {
-      static void do_operation(int operation, char* pstorage, const char* /*pvalue*/)
-      {
-        switch (operation)
-        {
-          case Destroy:
-          {
-            reinterpret_cast<const T*>(pstorage)->~T();
-            break;
-          }
-
-          default:
-          {
-            // This should never occur.
-#if defined(GDUT_IN_UNIT_TEST)
-            assert(false);
-#endif
-            break;
-          }
-        }
-      }
-    };
-
-    //*******************************************
-    // Specialisation for no-copyable & moveable types.
-    template <typename T>
-    struct operation_type<T, Non_Copyable, Moveable>
-    {
-      static void do_operation(int operation, char* pstorage, const char* pvalue)
-      {
-        switch (operation)
-        {
-          case Move:
-          {
-            ::new (pstorage) T(gdut::move(*reinterpret_cast<T*>(const_cast<char*>(pvalue))));
-            break;
-          }
-
-          case Destroy:
-          {
-            reinterpret_cast<const T*>(pstorage)->~T();
-            break;
-          }
-
-          default:
-          {
-            // This should never occur.
-#if defined(GDUT_IN_UNIT_TEST)
-            assert(false);
-#endif
-            break;
-          }
-        }
-      }
-    };
-
-    //*******************************************
-    // Specialisation for copyable & non-moveable types.
-    template <typename T>
-    struct operation_type<T, Copyable, Non_Moveable>
-    {
-      static void do_operation(int operation, char* pstorage, const char* pvalue)
-      {
-        switch (operation)
-        {
-          case Copy:
-          {
-            ::new (pstorage) T(*reinterpret_cast<const T*>(pvalue));
-            break;
-          }
-
-          case Destroy:
-          {
-            reinterpret_cast<const T*>(pstorage)->~T();
-            break;
-          }
-
-          default:
-          {
-            // This should never occur.
-#if defined(GDUT_IN_UNIT_TEST)
-            assert(false);
-#endif
-            break;
-          }
-        }
-      }
-    };
-
-    //*******************************************
-    // Specialisation for copyable & moveable types.
-    template <typename T>
-    struct operation_type<T, Copyable, Moveable>
-    {
-      static void do_operation(int operation, char* pstorage, const char* pvalue)
-      {
-        switch (operation)
-        {
-          case Copy:
-          {
-            ::new (pstorage) T(*reinterpret_cast<const T*>(pvalue));
-            break;
-          }
-
-          case Move:
-          {
-            ::new (pstorage) T(gdut::move(*reinterpret_cast<T*>(const_cast<char*>(pvalue))));
-            break;
-          }
-
-          case Destroy:
-          {
-            reinterpret_cast<const T*>(pstorage)->~T();
-            break;
-          }
-
-          default:
-          {
-            // This should never occur.
-#if defined(GDUT_IN_UNIT_TEST)
-            assert(false);
-#endif
-            break;
-          }
-        }
-      }
-    };
   }
+};
 
-  /// Definition of variant_npos.
-  constexpr size_t variant_npos = gdut::integral_limits<size_t>::max;
+//*******************************************
+// Specialisation for no-copyable & non-moveable types.
+template <typename T> struct operation_type<T, Non_Copyable, Non_Moveable> {
+  static void do_operation(int operation, char *pstorage,
+                           const char * /*pvalue*/) {
+    switch (operation) {
+    case Destroy: {
+      reinterpret_cast<const T *>(pstorage)->~T();
+      break;
+    }
 
-  //***********************************
-  // variant. Forward declaration
-  template <typename... TTypes>
-  class variant;
+    default: {
+      // This should never occur.
+#if defined(GDUT_IN_UNIT_TEST)
+      assert(false);
+#endif
+      break;
+    }
+    }
+  }
+};
 
-  //***************************************************************************
-  /// variant_alternative
-  //*************************************************************************** 
-  template <size_t Index, typename T>
-  struct variant_alternative;
+//*******************************************
+// Specialisation for no-copyable & moveable types.
+template <typename T> struct operation_type<T, Non_Copyable, Moveable> {
+  static void do_operation(int operation, char *pstorage, const char *pvalue) {
+    switch (operation) {
+    case Move: {
+      ::new (pstorage)
+          T(gdut::move(*reinterpret_cast<T *>(const_cast<char *>(pvalue))));
+      break;
+    }
 
-  template <size_t Index, typename... TTypes>
-  struct variant_alternative<Index, gdut::variant<TTypes...>>
-  {
-    using type = gdut::nth_type_t<Index, TTypes...>;
-  };
+    case Destroy: {
+      reinterpret_cast<const T *>(pstorage)->~T();
+      break;
+    }
 
-  template <size_t Index, typename T>
-  struct variant_alternative<Index, const T>
-  {
-    using type = typename variant_alternative<Index, T>::type;
-  };
+    default: {
+      // This should never occur.
+#if defined(GDUT_IN_UNIT_TEST)
+      assert(false);
+#endif
+      break;
+    }
+    }
+  }
+};
 
-  template <size_t Index, typename T>
-  using variant_alternative_t = typename variant_alternative<Index, T>::type;
+//*******************************************
+// Specialisation for copyable & non-moveable types.
+template <typename T> struct operation_type<T, Copyable, Non_Moveable> {
+  static void do_operation(int operation, char *pstorage, const char *pvalue) {
+    switch (operation) {
+    case Copy: {
+      ::new (pstorage) T(*reinterpret_cast<const T *>(pvalue));
+      break;
+    }
 
-  //***********************************
-  // holds_alternative. Forward declaration
-  template <typename T, typename... TTypes>
-  GDUT_CONSTEXPR14 bool holds_alternative(const gdut::variant<TTypes...>& v) GDUT_NOEXCEPT;
+    case Destroy: {
+      reinterpret_cast<const T *>(pstorage)->~T();
+      break;
+    }
 
-  //***********************************
-  // get. Forward declarations
-  template <size_t Index, typename... VTypes>
-  GDUT_CONSTEXPR14 gdut::variant_alternative_t<Index, gdut::variant<VTypes...>>&
-    get(gdut::variant<VTypes...>& v);
+    default: {
+      // This should never occur.
+#if defined(GDUT_IN_UNIT_TEST)
+      assert(false);
+#endif
+      break;
+    }
+    }
+  }
+};
 
-  template <size_t Index, typename... VTypes>
-  GDUT_CONSTEXPR14 gdut::variant_alternative_t<Index, gdut::variant<VTypes...>>&&
-    get(gdut::variant<VTypes...>&& v);
+//*******************************************
+// Specialisation for copyable & moveable types.
+template <typename T> struct operation_type<T, Copyable, Moveable> {
+  static void do_operation(int operation, char *pstorage, const char *pvalue) {
+    switch (operation) {
+    case Copy: {
+      ::new (pstorage) T(*reinterpret_cast<const T *>(pvalue));
+      break;
+    }
 
-  template <size_t Index, typename... VTypes>
-  GDUT_CONSTEXPR14 const gdut::variant_alternative_t<Index, const gdut::variant<VTypes...>>&
-    get(const gdut::variant<VTypes...>& v);
+    case Move: {
+      ::new (pstorage)
+          T(gdut::move(*reinterpret_cast<T *>(const_cast<char *>(pvalue))));
+      break;
+    }
 
-  template <size_t Index, typename... VTypes>
-  GDUT_CONSTEXPR14 const gdut::variant_alternative_t<Index, const gdut::variant<VTypes...>>&&
-    get(const gdut::variant<VTypes...>&& v);
+    case Destroy: {
+      reinterpret_cast<const T *>(pstorage)->~T();
+      break;
+    }
 
-  template <typename T, typename... VTypes>
-  GDUT_CONSTEXPR14 T& get(gdut::variant<VTypes...>& v);
+    default: {
+      // This should never occur.
+#if defined(GDUT_IN_UNIT_TEST)
+      assert(false);
+#endif
+      break;
+    }
+    }
+  }
+};
+} // namespace private_variant
 
-  template <typename T, typename... VTypes>
-  GDUT_CONSTEXPR14 T&& get(gdut::variant<VTypes...>&& v);
+/// Definition of variant_npos.
+constexpr size_t variant_npos = gdut::integral_limits<size_t>::max;
 
-  template <typename T, typename... VTypes>
-  GDUT_CONSTEXPR14 const T& get(const gdut::variant<VTypes...>& v);
+//***********************************
+// variant. Forward declaration
+template <typename... TTypes> class variant;
 
-  template <typename T, typename... VTypes>
-  GDUT_CONSTEXPR14 const T&& get(const gdut::variant<VTypes...>&& v);
+//***************************************************************************
+/// variant_alternative
+//***************************************************************************
+template <size_t Index, typename T> struct variant_alternative;
+
+template <size_t Index, typename... TTypes>
+struct variant_alternative<Index, gdut::variant<TTypes...>> {
+  using type = gdut::nth_type_t<Index, TTypes...>;
+};
+
+template <size_t Index, typename T> struct variant_alternative<Index, const T> {
+  using type = typename variant_alternative<Index, T>::type;
+};
+
+template <size_t Index, typename T>
+using variant_alternative_t = typename variant_alternative<Index, T>::type;
+
+//***********************************
+// holds_alternative. Forward declaration
+template <typename T, typename... TTypes>
+GDUT_CONSTEXPR14 bool
+holds_alternative(const gdut::variant<TTypes...> &v) GDUT_NOEXCEPT;
+
+//***********************************
+// get. Forward declarations
+template <size_t Index, typename... VTypes>
+GDUT_CONSTEXPR14 gdut::variant_alternative_t<Index, gdut::variant<VTypes...>> &
+get(gdut::variant<VTypes...> &v);
+
+template <size_t Index, typename... VTypes>
+GDUT_CONSTEXPR14 gdut::variant_alternative_t<Index, gdut::variant<VTypes...>> &&
+get(gdut::variant<VTypes...> &&v);
+
+template <size_t Index, typename... VTypes>
+GDUT_CONSTEXPR14 const
+    gdut::variant_alternative_t<Index, const gdut::variant<VTypes...>> &
+    get(const gdut::variant<VTypes...> &v);
+
+template <size_t Index, typename... VTypes>
+GDUT_CONSTEXPR14 const
+    gdut::variant_alternative_t<Index, const gdut::variant<VTypes...>> &&
+    get(const gdut::variant<VTypes...> &&v);
+
+template <typename T, typename... VTypes>
+GDUT_CONSTEXPR14 T &get(gdut::variant<VTypes...> &v);
+
+template <typename T, typename... VTypes>
+GDUT_CONSTEXPR14 T &&get(gdut::variant<VTypes...> &&v);
+
+template <typename T, typename... VTypes>
+GDUT_CONSTEXPR14 const T &get(const gdut::variant<VTypes...> &v);
+
+template <typename T, typename... VTypes>
+GDUT_CONSTEXPR14 const T &&get(const gdut::variant<VTypes...> &&v);
 
 #if GDUT_NOT_USING_CPP17
-  #include "variant_select_do_visitor.hpp"
-  #include "variant_select_do_operator.hpp"
+#include "variant_select_do_operator.hpp"
+#include "variant_select_do_visitor.hpp"
 #endif
 
-  constexpr bool operator >(gdut::monostate, gdut::monostate) GDUT_NOEXCEPT { return false; }
-	constexpr bool operator <(gdut::monostate, gdut::monostate) GDUT_NOEXCEPT { return false; }
-	constexpr bool operator !=(gdut::monostate, gdut::monostate) GDUT_NOEXCEPT { return false; }
-	constexpr bool operator <=(gdut::monostate, gdut::monostate) GDUT_NOEXCEPT { return true; }
-	constexpr bool operator >=(gdut::monostate, gdut::monostate) GDUT_NOEXCEPT { return true; }
-	constexpr bool operator ==(gdut::monostate, gdut::monostate) GDUT_NOEXCEPT { return true; }
-#if GDUT_USING_CPP20 && GDUT_USING_STL && !(defined(GDUT_DEVELOPMENT_OS_APPLE) && defined(GDUT_COMPILER_CLANG))
-  constexpr std::strong_ordering operator<=>(monostate, monostate) GDUT_NOEXCEPT
-  {
-    return std::strong_ordering::equal;
-  }
+constexpr bool operator>(gdut::monostate, gdut::monostate) GDUT_NOEXCEPT {
+  return false;
+}
+constexpr bool operator<(gdut::monostate, gdut::monostate) GDUT_NOEXCEPT {
+  return false;
+}
+constexpr bool operator!=(gdut::monostate, gdut::monostate) GDUT_NOEXCEPT {
+  return false;
+}
+constexpr bool operator<=(gdut::monostate, gdut::monostate) GDUT_NOEXCEPT {
+  return true;
+}
+constexpr bool operator>=(gdut::monostate, gdut::monostate) GDUT_NOEXCEPT {
+  return true;
+}
+constexpr bool operator==(gdut::monostate, gdut::monostate) GDUT_NOEXCEPT {
+  return true;
+}
+#if GDUT_USING_CPP20 && GDUT_USING_STL &&                                      \
+    !(defined(GDUT_DEVELOPMENT_OS_APPLE) && defined(GDUT_COMPILER_CLANG))
+constexpr std::strong_ordering operator<=>(monostate, monostate) GDUT_NOEXCEPT {
+  return std::strong_ordering::equal;
+}
 #endif
 
 #if GDUT_NOT_USING_STL && !defined(GDUT_USE_TYPE_TRAITS_BUILTINS)
-  template <>
-  struct is_copy_constructible<gdut::monostate> : public gdut::true_type
-  {
-  };
+template <>
+struct is_copy_constructible<gdut::monostate> : public gdut::true_type {};
 
-  template <>
-  struct is_move_constructible<gdut::monostate> : public gdut::true_type
-  {
-  };
+template <>
+struct is_move_constructible<gdut::monostate> : public gdut::true_type {};
 #endif
 
+//***************************************************************************
+/// Base exception for the variant class.
+///\ingroup variant
+//***************************************************************************
+class variant_exception : public exception {
+public:
+  variant_exception(string_type reason_, string_type file_name_,
+                    numeric_type line_number_)
+      : exception(reason_, file_name_, line_number_) {}
+};
+
+//***************************************************************************
+/// 'Unsupported type' exception for the variant class.
+///\ingroup variant
+//***************************************************************************
+class variant_incorrect_type_exception : public variant_exception {
+public:
+  variant_incorrect_type_exception(string_type file_name_,
+                                   numeric_type line_number_)
+      : variant_exception(GDUT_ERROR_TEXT("variant:unsupported type",
+                                          GDUT_VARIANT_FILE_ID "A"),
+                          file_name_, line_number_) {}
+};
+
+//***************************************************************************
+/// 'Bad variant access' exception for the variant class.
+///\ingroup variant
+//***************************************************************************
+class bad_variant_access : public variant_exception {
+public:
+  bad_variant_access(string_type file_name_, numeric_type line_number_)
+      : variant_exception(GDUT_ERROR_TEXT("variant:bad variant access",
+                                          GDUT_VARIANT_FILE_ID "B"),
+                          file_name_, line_number_) {}
+};
+
+//***************************************************************************
+/// A template class that can store any of the types defined in the template
+/// parameter list. Supports up to 8 types.
+///\ingroup variant
+//***************************************************************************
+template <typename... TTypes> class variant {
+public:
   //***************************************************************************
-  /// Base exception for the variant class.
-  ///\ingroup variant
+  /// get() is a friend function.
   //***************************************************************************
-  class variant_exception : public exception
-  {
-  public:
-    variant_exception(string_type reason_, string_type file_name_, numeric_type line_number_)
-      : exception(reason_, file_name_, line_number_)
-    {
-    }
-  };
+  template <size_t Index, typename... VTypes>
+  friend GDUT_CONSTEXPR14
+      gdut::variant_alternative_t<Index, gdut::variant<VTypes...>> &
+      get(gdut::variant<VTypes...> &v);
+
+  template <size_t Index, typename... VTypes>
+  friend GDUT_CONSTEXPR14
+      gdut::variant_alternative_t<Index, gdut::variant<VTypes...>> &&
+      get(gdut::variant<VTypes...> &&v);
+
+  template <size_t Index, typename... VTypes>
+  friend GDUT_CONSTEXPR14 const
+      gdut::variant_alternative_t<Index, const gdut::variant<VTypes...>> &
+      get(const gdut::variant<VTypes...> &v);
+
+  template <size_t Index, typename... VTypes>
+  friend GDUT_CONSTEXPR14 const
+      gdut::variant_alternative_t<Index, const gdut::variant<VTypes...>> &&
+      get(const gdut::variant<VTypes...> &&v);
+
+  template <typename T, typename... VTypes>
+  friend GDUT_CONSTEXPR14 T &get(gdut::variant<VTypes...> &v);
+
+  template <typename T, typename... VTypes>
+  friend GDUT_CONSTEXPR14 T &&get(gdut::variant<VTypes...> &&v);
+
+  template <typename T, typename... VTypes>
+  friend GDUT_CONSTEXPR14 const T &get(const gdut::variant<VTypes...> &v);
+
+  template <typename T, typename... VTypes>
+  friend GDUT_CONSTEXPR14 const T &&get(const gdut::variant<VTypes...> &&v);
+
+private:
+  // All types of variant are friends.
+  template <typename... UTypes> friend class variant;
 
   //***************************************************************************
-  /// 'Unsupported type' exception for the variant class.
-  ///\ingroup variant
+  /// The largest type.
   //***************************************************************************
-  class variant_incorrect_type_exception : public variant_exception
-  {
-  public:
-    variant_incorrect_type_exception(string_type file_name_, numeric_type line_number_)
-      : variant_exception(GDUT_ERROR_TEXT("variant:unsupported type", GDUT_VARIANT_FILE_ID"A"), file_name_, line_number_)
-    {
-    }
-  };
+  using largest_t = typename largest_type<TTypes...>::type;
 
   //***************************************************************************
-  /// 'Bad variant access' exception for the variant class.
-  ///\ingroup variant
+  /// The largest size.
   //***************************************************************************
-  class bad_variant_access : public variant_exception
-  {
-  public:
-    bad_variant_access(string_type file_name_, numeric_type line_number_)
-    : variant_exception(GDUT_ERROR_TEXT("variant:bad variant access", GDUT_VARIANT_FILE_ID"B"), file_name_, line_number_)
-    {}
-  };
+  static const size_t Size = sizeof(largest_t);
 
   //***************************************************************************
-  /// A template class that can store any of the types defined in the template parameter list.
-  /// Supports up to 8 types.
-  ///\ingroup variant
+  /// The largest alignment.
   //***************************************************************************
-  template <typename... TTypes>
-  class variant
-  {
-  public:
+  static const size_t Alignment = gdut::largest_alignment<TTypes...>::value;
 
-    //***************************************************************************
-    /// get() is a friend function.
-    //***************************************************************************
-    template <size_t Index, typename... VTypes>
-    friend GDUT_CONSTEXPR14 gdut::variant_alternative_t<Index, gdut::variant<VTypes...>>&
-      get(gdut::variant<VTypes...>& v);
+  //***************************************************************************
+  /// The operation templates.
+  //***************************************************************************
+  template <typename T, bool IsCopyable, bool IsMoveable>
+  using operation_type =
+      private_variant::operation_type<T, IsCopyable, IsMoveable>;
 
-    template <size_t Index, typename... VTypes>
-    friend GDUT_CONSTEXPR14 gdut::variant_alternative_t<Index, gdut::variant<VTypes...>>&&
-      get(gdut::variant<VTypes...>&& v);
+  //*******************************************
+  // The types of operations we can perform.
+  //*******************************************
+  static constexpr int Copy = private_variant::Copy;
+  static constexpr int Move = private_variant::Move;
+  static constexpr int Destroy = private_variant::Destroy;
 
-    template <size_t Index, typename... VTypes>
-    friend GDUT_CONSTEXPR14 const gdut::variant_alternative_t<Index, const gdut::variant<VTypes...>>&
-      get(const gdut::variant<VTypes...>& v);
+  //*******************************************
+  // Get the index of a type.
+  //*******************************************
+  template <typename T>
+  using index_of_type =
+      gdut::type_list_index_of_type<gdut::type_list<TTypes...>,
+                                    gdut::remove_cvref_t<T>>;
 
-    template <size_t Index, typename... VTypes>
-    friend GDUT_CONSTEXPR14 const gdut::variant_alternative_t<Index, const gdut::variant<VTypes...>>&&
-      get(const gdut::variant<VTypes...>&& v);
+  //*******************************************
+  // Get the type from the index.
+  //*******************************************
+  template <size_t Index>
+  using type_from_index =
+      typename gdut::type_list_type_at_index<gdut::type_list<TTypes...>,
+                                             Index>::type;
 
-    template <typename T, typename... VTypes>
-    friend GDUT_CONSTEXPR14 T& get(gdut::variant<VTypes...>& v);
-
-    template <typename T, typename... VTypes>
-    friend GDUT_CONSTEXPR14 T&& get(gdut::variant<VTypes...>&& v);
-
-    template <typename T, typename... VTypes>
-    friend GDUT_CONSTEXPR14 const T& get(const gdut::variant<VTypes...>& v);
-
-    template <typename T, typename... VTypes>
-    friend GDUT_CONSTEXPR14 const T&& get(const gdut::variant<VTypes...>&& v);
-
-  private:
-
-    // All types of variant are friends.
-    template <typename... UTypes>
-    friend class variant;
-
-    //***************************************************************************
-    /// The largest type.
-    //***************************************************************************
-    using largest_t = typename largest_type<TTypes...>::type;
-
-    //***************************************************************************
-    /// The largest size.
-    //***************************************************************************
-    static const size_t Size = sizeof(largest_t);
-
-    //***************************************************************************
-    /// The largest alignment.
-    //***************************************************************************
-    static const size_t Alignment = gdut::largest_alignment<TTypes...>::value;
-
-    //***************************************************************************
-    /// The operation templates.
-    //***************************************************************************
-    template <typename T, bool IsCopyable, bool IsMoveable>
-    using operation_type = private_variant::operation_type<T, IsCopyable, IsMoveable>;
-
-    //*******************************************
-    // The types of operations we can perform.
-    //*******************************************
-    static constexpr int Copy    = private_variant::Copy;
-    static constexpr int Move    = private_variant::Move;
-    static constexpr int Destroy = private_variant::Destroy;
-
-    //*******************************************
-    // Get the index of a type.
-    //*******************************************
-    template <typename T>
-    using index_of_type = gdut::type_list_index_of_type<gdut::type_list<TTypes...>, gdut::remove_cvref_t<T>>;
-
-    //*******************************************
-    // Get the type from the index.
-    //*******************************************
-    template <size_t Index>
-    using type_from_index = typename gdut::type_list_type_at_index<gdut::type_list<TTypes...>, Index>::type;
-
-  public:
-
-    //***************************************************************************
-    /// Default constructor.
-    /// Constructs a variant holding the value-initialized value of the first alternative (index() is zero). 
-    //***************************************************************************
+public:
+  //***************************************************************************
+  /// Default constructor.
+  /// Constructs a variant holding the value-initialized value of the first
+  /// alternative (index() is zero).
+  //***************************************************************************
 #include "diagnostic_uninitialized_push.hpp"
-    GDUT_CONSTEXPR14 variant()
-    {
-      using type = type_from_index<0U>;
+  GDUT_CONSTEXPR14 variant() {
+    using type = type_from_index<0U>;
 
-      default_construct_in_place<type>(data);
-      operation = operation_type<type, gdut::is_copy_constructible<type>::value, gdut::is_move_constructible<type>::value>::do_operation;
-      type_id   = 0U;
-    }
+    default_construct_in_place<type>(data);
+    operation =
+        operation_type<type, gdut::is_copy_constructible<type>::value,
+                       gdut::is_move_constructible<type>::value>::do_operation;
+    type_id = 0U;
+  }
 #include "diagnostic_pop.hpp"
 
-    //***************************************************************************
-    /// Construct from a value.
-    //***************************************************************************
+  //***************************************************************************
+  /// Construct from a value.
+  //***************************************************************************
 #include "diagnostic_uninitialized_push.hpp"
-    template <typename T, gdut::enable_if_t<!gdut::is_same<gdut::remove_cvref_t<T>, variant>::value, int> = 0>
-    GDUT_CONSTEXPR14 variant(T&& value)
-      : operation(operation_type<gdut::remove_cvref_t<T>, gdut::is_copy_constructible<gdut::remove_cvref_t<T>>::value, gdut::is_move_constructible<gdut::remove_cvref_t<T>>::value>::do_operation)
-      , type_id(index_of_type<T>::value)
-    {
-      static_assert(gdut::is_one_of<gdut::remove_cvref_t<T>, TTypes...>::value, "Unsupported type");
+  template <
+      typename T,
+      gdut::enable_if_t<!gdut::is_same<gdut::remove_cvref_t<T>, variant>::value,
+                        int> = 0>
+  GDUT_CONSTEXPR14 variant(T &&value)
+      : operation(operation_type<
+                  gdut::remove_cvref_t<T>,
+                  gdut::is_copy_constructible<gdut::remove_cvref_t<T>>::value,
+                  gdut::is_move_constructible<gdut::remove_cvref_t<T>>::value>::
+                      do_operation),
+        type_id(index_of_type<T>::value) {
+    static_assert(gdut::is_one_of<gdut::remove_cvref_t<T>, TTypes...>::value,
+                  "Unsupported type");
 
-      construct_in_place<gdut::remove_cvref_t<T>>(data, gdut::forward<T>(value));
-    }
+    construct_in_place<gdut::remove_cvref_t<T>>(data, gdut::forward<T>(value));
+  }
 #include "diagnostic_pop.hpp"
 
-    //***************************************************************************
-    /// Construct from arguments.
-    //***************************************************************************
+  //***************************************************************************
+  /// Construct from arguments.
+  //***************************************************************************
 #include "diagnostic_uninitialized_push.hpp"
-    template <typename T, typename... TArgs>
-    GDUT_CONSTEXPR14 explicit variant(gdut::in_place_type_t<T>, TArgs&&... args)
-      : operation(operation_type<gdut::remove_cvref_t<T>, gdut::is_copy_constructible<gdut::remove_cvref_t<T>>::value, gdut::is_move_constructible<gdut::remove_cvref_t<T>>::value>::do_operation)
-      , type_id(index_of_type<T>::value)
-    {
-      static_assert(gdut::is_one_of<gdut::remove_cvref_t<T>, TTypes...>::value, "Unsupported type");
+  template <typename T, typename... TArgs>
+  GDUT_CONSTEXPR14 explicit variant(gdut::in_place_type_t<T>, TArgs &&...args)
+      : operation(operation_type<
+                  gdut::remove_cvref_t<T>,
+                  gdut::is_copy_constructible<gdut::remove_cvref_t<T>>::value,
+                  gdut::is_move_constructible<gdut::remove_cvref_t<T>>::value>::
+                      do_operation),
+        type_id(index_of_type<T>::value) {
+    static_assert(gdut::is_one_of<gdut::remove_cvref_t<T>, TTypes...>::value,
+                  "Unsupported type");
 
-      construct_in_place_args<gdut::remove_cvref_t<T>>(data, gdut::forward<TArgs>(args)...);
-    }
+    construct_in_place_args<gdut::remove_cvref_t<T>>(
+        data, gdut::forward<TArgs>(args)...);
+  }
 #include "diagnostic_pop.hpp"
 
-    //***************************************************************************
-    /// Construct from arguments.
-    //***************************************************************************
+  //***************************************************************************
+  /// Construct from arguments.
+  //***************************************************************************
 #include "diagnostic_uninitialized_push.hpp"
-    template <size_t Index, typename... TArgs>
-    GDUT_CONSTEXPR14 explicit variant(gdut::in_place_index_t<Index>, TArgs&&... args)
-      : type_id(Index)
-    {
-      using type = type_from_index<Index>;
-      static_assert(gdut::is_one_of<type, TTypes...> ::value, "Unsupported type");
+  template <size_t Index, typename... TArgs>
+  GDUT_CONSTEXPR14 explicit variant(gdut::in_place_index_t<Index>,
+                                    TArgs &&...args)
+      : type_id(Index) {
+    using type = type_from_index<Index>;
+    static_assert(gdut::is_one_of<type, TTypes...>::value, "Unsupported type");
 
-      construct_in_place_args<type>(data, gdut::forward<TArgs>(args)...);
+    construct_in_place_args<type>(data, gdut::forward<TArgs>(args)...);
 
-      operation = operation_type<type, gdut::is_copy_constructible<type>::value, gdut::is_move_constructible<type>::value>::do_operation;
-    }
+    operation =
+        operation_type<type, gdut::is_copy_constructible<type>::value,
+                       gdut::is_move_constructible<type>::value>::do_operation;
+  }
 #include "diagnostic_pop.hpp"
 
 #if GDUT_HAS_INITIALIZER_LIST
-    //***************************************************************************
-    /// Construct from type, initializer_list and arguments.
-    //***************************************************************************
+  //***************************************************************************
+  /// Construct from type, initializer_list and arguments.
+  //***************************************************************************
 #include "diagnostic_uninitialized_push.hpp"
-    template <typename T, typename U, typename... TArgs >
-    GDUT_CONSTEXPR14 explicit variant(gdut::in_place_type_t<T>, std::initializer_list<U> init, TArgs&&... args)
-      : operation(operation_type<gdut::remove_cvref_t<T>, gdut::is_copy_constructible<gdut::remove_cvref_t<T>>::value, gdut::is_move_constructible<gdut::remove_cvref_t<T>>::value>::do_operation)
-      , type_id(index_of_type<T>::value)
-    {
-      static_assert(gdut::is_one_of<gdut::remove_cvref_t<T>, TTypes...> ::value, "Unsupported type");
+  template <typename T, typename U, typename... TArgs>
+  GDUT_CONSTEXPR14 explicit variant(gdut::in_place_type_t<T>,
+                                    std::initializer_list<U> init,
+                                    TArgs &&...args)
+      : operation(operation_type<
+                  gdut::remove_cvref_t<T>,
+                  gdut::is_copy_constructible<gdut::remove_cvref_t<T>>::value,
+                  gdut::is_move_constructible<gdut::remove_cvref_t<T>>::value>::
+                      do_operation),
+        type_id(index_of_type<T>::value) {
+    static_assert(gdut::is_one_of<gdut::remove_cvref_t<T>, TTypes...>::value,
+                  "Unsupported type");
 
-      construct_in_place_args<gdut::remove_cvref_t<T>>(data, init, gdut::forward<TArgs>(args)...);
-    }
+    construct_in_place_args<gdut::remove_cvref_t<T>>(
+        data, init, gdut::forward<TArgs>(args)...);
+  }
 #include "diagnostic_pop.hpp"
 
-    //***************************************************************************
-    /// Construct from index, initializer_list and arguments.
-    //***************************************************************************
+  //***************************************************************************
+  /// Construct from index, initializer_list and arguments.
+  //***************************************************************************
 #include "diagnostic_uninitialized_push.hpp"
-    template <size_t Index, typename U, typename... TArgs >
-    GDUT_CONSTEXPR14 explicit variant(gdut::in_place_index_t<Index>, std::initializer_list<U> init, TArgs&&... args)
-      : type_id(Index)
-    {
-      using type = type_from_index<Index>;
-      static_assert(gdut::is_one_of<type, TTypes...> ::value, "Unsupported type");
+  template <size_t Index, typename U, typename... TArgs>
+  GDUT_CONSTEXPR14 explicit variant(gdut::in_place_index_t<Index>,
+                                    std::initializer_list<U> init,
+                                    TArgs &&...args)
+      : type_id(Index) {
+    using type = type_from_index<Index>;
+    static_assert(gdut::is_one_of<type, TTypes...>::value, "Unsupported type");
 
-      construct_in_place_args<type>(data, init, gdut::forward<TArgs>(args)...);
+    construct_in_place_args<type>(data, init, gdut::forward<TArgs>(args)...);
 
-      operation = operation_type<type, gdut::is_copy_constructible<type>::value, gdut::is_move_constructible<type>::value>::do_operation;
-    }
+    operation =
+        operation_type<type, gdut::is_copy_constructible<type>::value,
+                       gdut::is_move_constructible<type>::value>::do_operation;
+  }
 #include "diagnostic_pop.hpp"
 #endif
 
-    //***************************************************************************
-    /// Copy constructor.
-    ///\param other The other variant object to copy.
-    //***************************************************************************
+  //***************************************************************************
+  /// Copy constructor.
+  ///\param other The other variant object to copy.
+  //***************************************************************************
 #include "diagnostic_uninitialized_push.hpp"
-    GDUT_CONSTEXPR14 variant(const variant& other)
-      : operation(other.operation)
-      , type_id(other.type_id)
-    {
-      if (this != &other)
-      {
-        if (other.index() == variant_npos)
-        {
-          type_id = variant_npos;
-        }
-        else
-        {
-          operation(private_variant::Copy, data, other.data);
-        }
-      }
-    }
-#include "diagnostic_pop.hpp"
-
-    //***************************************************************************
-    /// Move constructor.
-    ///\param other The other variant object to copy.
-    //***************************************************************************
-#include "diagnostic_uninitialized_push.hpp"
-    GDUT_CONSTEXPR14 variant(variant&& other)
-      : operation(other.operation)
-      , type_id(other.type_id)
-    {
-      if (this != &other)
-      {
-        if (other.index() == variant_npos)
-        {
-          type_id = variant_npos;
-        }
-        else
-        {
-          operation(private_variant::Move, data, other.data);
-        }
-      }
-      else
-      {
+  GDUT_CONSTEXPR14 variant(const variant &other)
+      : operation(other.operation), type_id(other.type_id) {
+    if (this != &other) {
+      if (other.index() == variant_npos) {
         type_id = variant_npos;
+      } else {
+        operation(private_variant::Copy, data, other.data);
       }
     }
+  }
 #include "diagnostic_pop.hpp"
 
-    //***************************************************************************
-    /// Destructor.
-    //***************************************************************************
-    ~variant()
-    {
-      if (index() != variant_npos)
-      {
-        operation(private_variant::Destroy, data, nullptr);
+  //***************************************************************************
+  /// Move constructor.
+  ///\param other The other variant object to copy.
+  //***************************************************************************
+#include "diagnostic_uninitialized_push.hpp"
+  GDUT_CONSTEXPR14 variant(variant &&other)
+      : operation(other.operation), type_id(other.type_id) {
+    if (this != &other) {
+      if (other.index() == variant_npos) {
+        type_id = variant_npos;
+      } else {
+        operation(private_variant::Move, data, other.data);
       }
-
-      operation = operation_type<void, false, false>::do_operation; // Null operation.
+    } else {
       type_id = variant_npos;
     }
+  }
+#include "diagnostic_pop.hpp"
 
-    //***************************************************************************
-    /// Emplace by type with variadic constructor parameters.
-    //***************************************************************************
-    template <typename T, typename... TArgs>
-    T& emplace(TArgs&&... args)
-    {
-      static_assert(gdut::is_one_of<T, TTypes...>::value, "Unsupported type");
-
-      using type = gdut::remove_cvref_t<T>;
-
+  //***************************************************************************
+  /// Destructor.
+  //***************************************************************************
+  ~variant() {
+    if (index() != variant_npos) {
       operation(private_variant::Destroy, data, nullptr);
-
-      construct_in_place_args<type>(data, gdut::forward<TArgs>(args)...);
-
-      operation = operation_type<type, gdut::is_copy_constructible<type>::value, gdut::is_move_constructible<type>::value>::do_operation;
-
-      type_id = index_of_type<T>::value;
-
-      return *static_cast<T*>(data);
     }
+
+    operation =
+        operation_type<void, false, false>::do_operation; // Null operation.
+    type_id = variant_npos;
+  }
+
+  //***************************************************************************
+  /// Emplace by type with variadic constructor parameters.
+  //***************************************************************************
+  template <typename T, typename... TArgs> T &emplace(TArgs &&...args) {
+    static_assert(gdut::is_one_of<T, TTypes...>::value, "Unsupported type");
+
+    using type = gdut::remove_cvref_t<T>;
+
+    operation(private_variant::Destroy, data, nullptr);
+
+    construct_in_place_args<type>(data, gdut::forward<TArgs>(args)...);
+
+    operation =
+        operation_type<type, gdut::is_copy_constructible<type>::value,
+                       gdut::is_move_constructible<type>::value>::do_operation;
+
+    type_id = index_of_type<T>::value;
+
+    return *static_cast<T *>(data);
+  }
 
 #if GDUT_HAS_INITIALIZER_LIST
-    //***************************************************************************
-    /// Emplace by type with variadic constructor parameters.
-    //***************************************************************************
-    template <typename T, typename U, typename... TArgs>
-    T& emplace(std::initializer_list<U> il, TArgs&&... args)
-    {
-      static_assert(gdut::is_one_of<T, TTypes...>::value, "Unsupported type");
+  //***************************************************************************
+  /// Emplace by type with variadic constructor parameters.
+  //***************************************************************************
+  template <typename T, typename U, typename... TArgs>
+  T &emplace(std::initializer_list<U> il, TArgs &&...args) {
+    static_assert(gdut::is_one_of<T, TTypes...>::value, "Unsupported type");
 
-      using type = gdut::remove_cvref_t<T>;
+    using type = gdut::remove_cvref_t<T>;
 
-      operation(private_variant::Destroy, data, nullptr);
+    operation(private_variant::Destroy, data, nullptr);
 
-      construct_in_place_args<type>(data, il, gdut::forward<TArgs>(args)...);
+    construct_in_place_args<type>(data, il, gdut::forward<TArgs>(args)...);
 
-      operation = operation_type<type, gdut::is_copy_constructible<type>::value, gdut::is_move_constructible<type>::value>::do_operation;
+    operation =
+        operation_type<type, gdut::is_copy_constructible<type>::value,
+                       gdut::is_move_constructible<type>::value>::do_operation;
 
-      type_id = index_of_type<T>::value;
+    type_id = index_of_type<T>::value;
 
-      return *static_cast<T*>(data);
-    }
+    return *static_cast<T *>(data);
+  }
 #endif
 
-    //***************************************************************************
-    /// Emplace by index with variadic constructor parameters.
-    //***************************************************************************
-    template <size_t Index, typename... TArgs>
-    typename gdut::variant_alternative_t<Index, variant<TTypes...>>& emplace(TArgs&&... args)
-    {
-      static_assert(Index < sizeof...(TTypes), "Index out of range");
+  //***************************************************************************
+  /// Emplace by index with variadic constructor parameters.
+  //***************************************************************************
+  template <size_t Index, typename... TArgs>
+  typename gdut::variant_alternative_t<Index, variant<TTypes...>> &
+  emplace(TArgs &&...args) {
+    static_assert(Index < sizeof...(TTypes), "Index out of range");
 
-      using type = type_from_index<Index>;
+    using type = type_from_index<Index>;
 
-      operation(private_variant::Destroy, data, nullptr);
+    operation(private_variant::Destroy, data, nullptr);
 
-      construct_in_place_args<type>(data, gdut::forward<TArgs>(args)...);
+    construct_in_place_args<type>(data, gdut::forward<TArgs>(args)...);
 
-      operation = operation_type<type, gdut::is_copy_constructible<type>::value, gdut::is_move_constructible<type>::value>::do_operation;
+    operation =
+        operation_type<type, gdut::is_copy_constructible<type>::value,
+                       gdut::is_move_constructible<type>::value>::do_operation;
 
-      type_id = Index;
+    type_id = Index;
 
-      return *static_cast<type*>(data);
-    }
+    return *static_cast<type *>(data);
+  }
 
 #if GDUT_HAS_INITIALIZER_LIST
-    //***************************************************************************
-    /// Emplace by index with variadic constructor parameters.
-    //***************************************************************************
-    template <size_t Index, typename U, typename... TArgs>
-    typename gdut::variant_alternative_t<Index, variant<TTypes...>>& emplace(std::initializer_list<U> il, TArgs&&... args)
-    {
-      static_assert(Index < sizeof...(TTypes), "Index out of range");
+  //***************************************************************************
+  /// Emplace by index with variadic constructor parameters.
+  //***************************************************************************
+  template <size_t Index, typename U, typename... TArgs>
+  typename gdut::variant_alternative_t<Index, variant<TTypes...>> &
+  emplace(std::initializer_list<U> il, TArgs &&...args) {
+    static_assert(Index < sizeof...(TTypes), "Index out of range");
 
-      using type = type_from_index<Index>;
+    using type = type_from_index<Index>;
 
-      operation(private_variant::Destroy, data, nullptr);
+    operation(private_variant::Destroy, data, nullptr);
 
-      construct_in_place_args<type>(data, il, gdut::forward<TArgs>(args)...);
+    construct_in_place_args<type>(data, il, gdut::forward<TArgs>(args)...);
 
-      operation = operation_type<type, gdut::is_copy_constructible<type>::value, gdut::is_move_constructible<type>::value>::do_operation;
+    operation =
+        operation_type<type, gdut::is_copy_constructible<type>::value,
+                       gdut::is_move_constructible<type>::value>::do_operation;
 
-      type_id = Index;
+    type_id = Index;
 
-      return *static_cast<type*>(data);
-    }
+    return *static_cast<type *>(data);
+  }
 #endif
 
-    //***************************************************************************
-    /// Move assignment operator for type.
-    ///\param value The value to assign.
-    //***************************************************************************
-    template <typename T, gdut::enable_if_t<!gdut::is_same<gdut::remove_cvref_t<T>, variant>::value, int> = 0>
-    variant& operator =(T&& value)
-    {
-      using type = gdut::remove_cvref_t<T>;
+  //***************************************************************************
+  /// Move assignment operator for type.
+  ///\param value The value to assign.
+  //***************************************************************************
+  template <
+      typename T,
+      gdut::enable_if_t<!gdut::is_same<gdut::remove_cvref_t<T>, variant>::value,
+                        int> = 0>
+  variant &operator=(T &&value) {
+    using type = gdut::remove_cvref_t<T>;
 
-      static_assert(gdut::is_one_of<type, TTypes...>::value, "Unsupported type");
+    static_assert(gdut::is_one_of<type, TTypes...>::value, "Unsupported type");
 
-      operation(private_variant::Destroy, data, nullptr);
+    operation(private_variant::Destroy, data, nullptr);
 
-      construct_in_place<type>(data, gdut::forward<T>(value));
+    construct_in_place<type>(data, gdut::forward<T>(value));
 
-      operation = operation_type<type, gdut::is_copy_constructible<type>::value, gdut::is_move_constructible<type>::value>::do_operation;
-      type_id   = index_of_type<type>::value;
+    operation =
+        operation_type<type, gdut::is_copy_constructible<type>::value,
+                       gdut::is_move_constructible<type>::value>::do_operation;
+    type_id = index_of_type<type>::value;
 
-      return *this;
-    }
+    return *this;
+  }
 
-    //***************************************************************************
-    /// Assignment operator for variant type.
-    ///\param other The variant to assign.
-    //***************************************************************************
-    variant& operator =(const variant& other)
-    {
-      if (this != &other)
-      {
-        if (other.index() == variant_npos)
-        {
-          type_id = variant_npos;
-        }
-        else
-        {
-          operation(Destroy, data, nullptr);
+  //***************************************************************************
+  /// Assignment operator for variant type.
+  ///\param other The variant to assign.
+  //***************************************************************************
+  variant &operator=(const variant &other) {
+    if (this != &other) {
+      if (other.index() == variant_npos) {
+        type_id = variant_npos;
+      } else {
+        operation(Destroy, data, nullptr);
 
-          operation = other.operation;
-          operation(Copy, data, other.data);
+        operation = other.operation;
+        operation(Copy, data, other.data);
 
-          type_id = other.type_id;
-        }
+        type_id = other.type_id;
       }
-
-      return *this;
     }
 
-    //***************************************************************************
-    /// Assignment operator for variant type.
-    ///\param other The variant to assign.
-    //***************************************************************************
-    variant& operator =(variant&& other)
-    {
-      if (this != &other)
-      {
-        if (other.index() == variant_npos)
-        {
-          type_id = variant_npos;
-        }
-        else
-        {
-          operation(Destroy, data, nullptr);
+    return *this;
+  }
 
-          operation = other.operation;
-          operation(Move, data, other.data);
+  //***************************************************************************
+  /// Assignment operator for variant type.
+  ///\param other The variant to assign.
+  //***************************************************************************
+  variant &operator=(variant &&other) {
+    if (this != &other) {
+      if (other.index() == variant_npos) {
+        type_id = variant_npos;
+      } else {
+        operation(Destroy, data, nullptr);
 
-          type_id = other.type_id;
-        }
+        operation = other.operation;
+        operation(Move, data, other.data);
+
+        type_id = other.type_id;
       }
-
-      return *this;
     }
 
-    //***************************************************************************
-    /// Checks whether the variant doesn't contain a valid value.
-    ///\return <b>true</b> if the value is invalid, otherwise <b>false</b>.
-    //***************************************************************************
-    constexpr bool valueless_by_exception() const GDUT_NOEXCEPT
-    {
-      return type_id == variant_npos;
-    }
+    return *this;
+  }
 
-    //***************************************************************************
-    /// Gets the index of the type currently stored or variant_npos
-    //***************************************************************************
-    constexpr size_t index() const GDUT_NOEXCEPT
-    {
-      return type_id;
-    }
+  //***************************************************************************
+  /// Checks whether the variant doesn't contain a valid value.
+  ///\return <b>true</b> if the value is invalid, otherwise <b>false</b>.
+  //***************************************************************************
+  constexpr bool valueless_by_exception() const GDUT_NOEXCEPT {
+    return type_id == variant_npos;
+  }
 
-    //***************************************************************************
-    /// Checks to see if the type T is one of the variant's supported types.
-    /// For compatibility with legacy variant API.
-    ///\return <b>true</b> if it is, otherwise <b>false</b>.
-    //***************************************************************************
-    template <typename T>
-    static constexpr bool is_supported_type()
-    {
-      return gdut::is_one_of<gdut::remove_cvref_t<T>, TTypes...>::value;
-    }
+  //***************************************************************************
+  /// Gets the index of the type currently stored or variant_npos
+  //***************************************************************************
+  constexpr size_t index() const GDUT_NOEXCEPT { return type_id; }
 
-    //***************************************************************************
-    /// Checks to see if the type currently stored is the same as that specified in the template parameter.
-    /// For compatibility with legacy variant API.
-    ///\return <b>true</b> if it is the specified type, otherwise <b>false</b>.
-    //***************************************************************************
-    template <typename T, gdut::enable_if_t<is_supported_type<T>(), int> = 0>
-    constexpr bool is_type() const GDUT_NOEXCEPT
-    {
-      return (type_id == index_of_type<T>::value);
-    }
+  //***************************************************************************
+  /// Checks to see if the type T is one of the variant's supported types.
+  /// For compatibility with legacy variant API.
+  ///\return <b>true</b> if it is, otherwise <b>false</b>.
+  //***************************************************************************
+  template <typename T> static constexpr bool is_supported_type() {
+    return gdut::is_one_of<gdut::remove_cvref_t<T>, TTypes...>::value;
+  }
 
-    //***************************************************************************
-    template <typename T, gdut::enable_if_t<!is_supported_type<T>(), int> = 0>
-    constexpr bool is_type() const GDUT_NOEXCEPT
-    {
+  //***************************************************************************
+  /// Checks to see if the type currently stored is the same as that specified
+  /// in the template parameter. For compatibility with legacy variant API.
+  ///\return <b>true</b> if it is the specified type, otherwise <b>false</b>.
+  //***************************************************************************
+  template <typename T, gdut::enable_if_t<is_supported_type<T>(), int> = 0>
+  constexpr bool is_type() const GDUT_NOEXCEPT {
+    return (type_id == index_of_type<T>::value);
+  }
+
+  //***************************************************************************
+  template <typename T, gdut::enable_if_t<!is_supported_type<T>(), int> = 0>
+  constexpr bool is_type() const GDUT_NOEXCEPT {
+    return false;
+  }
+
+  //***************************************************************************
+  /// Checks if the other variant holds the same type as the current stored
+  /// type. For variants with the same type declarations. For compatibility with
+  /// legacy variant API.
+  ///\return <b>true</b> if the types are the same, otherwise <b>false</b>.
+  //***************************************************************************
+  constexpr bool is_same_type(const variant &other) const {
+    return type_id == other.type_id;
+  }
+
+  //***************************************************************************
+  /// Swaps this variant with another.
+  //***************************************************************************
+  void swap(variant &rhs) GDUT_NOEXCEPT {
+    variant temp(gdut::move(*this));
+    *this = gdut::move(rhs);
+    rhs = gdut::move(temp);
+  }
+
+  //***************************************************************************
+  /// Accept an gdut::visitor.
+  //***************************************************************************
+  template <typename TVisitor>
+  gdut::enable_if_t<gdut::is_visitor<TVisitor>::value, void>
+  accept(TVisitor &v) {
+#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
+    do_visitor(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
+#else
+    do_visitor<sizeof...(TTypes)>(v);
+#endif
+  }
+
+  //***************************************************************************
+  /// Accept an gdut::visitor.
+  //***************************************************************************
+  template <typename TVisitor>
+  gdut::enable_if_t<gdut::is_visitor<TVisitor>::value, void>
+  accept(TVisitor &v) const {
+#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
+    do_visitor(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
+#else
+    do_visitor<sizeof...(TTypes)>(v);
+#endif
+  }
+
+  //***************************************************************************
+  /// Accept a generic functor.
+  //***************************************************************************
+  template <typename TVisitor>
+  gdut::enable_if_t<!gdut::is_visitor<TVisitor>::value, void>
+  accept(TVisitor &v) {
+#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
+    do_operator(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
+#else
+    do_operator<sizeof...(TTypes)>(v);
+#endif
+  }
+
+  //***************************************************************************
+  /// Accept a generic functor.
+  //***************************************************************************
+  template <typename TVisitor>
+  gdut::enable_if_t<!gdut::is_visitor<TVisitor>::value, void>
+  accept(TVisitor &v) const {
+#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
+    do_operator(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
+#else
+    do_operator<sizeof...(TTypes)>(v);
+#endif
+  }
+
+  //***************************************************************************
+  /// Accept an gdut::visitor.
+  /// Deprecated.
+  //***************************************************************************
+  template <typename TVisitor>
+#if !defined(GDUT_IN_UNIT_TEST)
+  GDUT_DEPRECATED_REASON("Replace with accept()")
+#endif
+  void accept_visitor(TVisitor &v) {
+#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
+    do_visitor(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
+#else
+    do_visitor<sizeof...(TTypes)>(v);
+#endif
+  }
+
+  //***************************************************************************
+  /// Accept an gdut::visitor.
+  /// Deprecated.
+  //***************************************************************************
+  template <typename TVisitor>
+#if !defined(GDUT_IN_UNIT_TEST)
+  GDUT_DEPRECATED_REASON("Replace with accept()")
+#endif
+  void accept_visitor(TVisitor &v) const {
+#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
+    do_visitor(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
+#else
+    do_visitor<sizeof...(TTypes)>(v);
+#endif
+  }
+
+  //***************************************************************************
+  /// Accept a generic functor.
+  /// Deprecated.
+  //***************************************************************************
+  template <typename TVisitor>
+#if !defined(GDUT_IN_UNIT_TEST)
+  GDUT_DEPRECATED_REASON("Replace with accept()")
+#endif
+  void accept_functor(TVisitor &v) {
+#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
+    do_operator(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
+#else
+    do_operator<sizeof...(TTypes)>(v);
+#endif
+  }
+
+  //***************************************************************************
+  /// Accept a generic functor.
+  /// Deprecated.
+  //***************************************************************************
+  template <typename TVisitor>
+#if !defined(GDUT_IN_UNIT_TEST)
+  GDUT_DEPRECATED_REASON("Replace with accept()")
+#endif
+  void accept_functor(TVisitor &v) const {
+#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
+    do_operator(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
+#else
+    do_operator<sizeof...(TTypes)>(v);
+#endif
+  }
+
+private:
+  /// The operation function type.
+  using operation_function = void (*)(int, char *, const char *);
+
+  //***************************************************************************
+  /// Construct the type in-place. lvalue reference.
+  //***************************************************************************
+  template <typename T>
+  static void construct_in_place(char *pstorage, const T &value) {
+    using type = gdut::remove_cvref_t<T>;
+
+    ::new (pstorage) type(value);
+  }
+
+  //***************************************************************************
+  /// Construct the type in-place. rvalue reference.
+  //***************************************************************************
+  template <typename T>
+  static void construct_in_place(char *pstorage, T &&value) {
+    using type = gdut::remove_cvref_t<T>;
+
+    ::new (pstorage) type(gdut::move(value));
+  }
+
+  //***************************************************************************
+  /// Construct the type in-place. Variadic args.
+  //***************************************************************************
+  template <typename T, typename... TArgs>
+  static void construct_in_place_args(char *pstorage, TArgs &&...args) {
+    using type = gdut::remove_cvref_t<T>;
+
+    ::new (pstorage) type(gdut::forward<TArgs>(args)...);
+  }
+
+  //***************************************************************************
+  /// Default construct the type in-place.
+  //***************************************************************************
+  template <typename T> static void default_construct_in_place(char *pstorage) {
+    using type = gdut::remove_cvref_t<T>;
+
+    ::new (pstorage) type();
+  }
+
+#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
+  //***************************************************************************
+  /// Call the relevant visitor by attempting each one.
+  //***************************************************************************
+  template <typename TVisitor, size_t... I>
+  void do_visitor(TVisitor &visitor, gdut::index_sequence<I...>) {
+    (attempt_visitor<I>(visitor) || ...);
+  }
+
+  //***************************************************************************
+  /// Call the relevant visitor by attempting each one.
+  //***************************************************************************
+  template <typename TVisitor, size_t... I>
+  void do_visitor(TVisitor &visitor, gdut::index_sequence<I...>) const {
+    (attempt_visitor<I>(visitor) || ...);
+  }
+#else
+  //***************************************************************************
+  /// Call the relevant visitor.
+  //***************************************************************************
+  template <size_t NTypes, typename TVisitor>
+  void do_visitor(TVisitor &visitor) {
+    gdut::private_variant::select_do_visitor<NTypes>::do_visitor(*this,
+                                                                 visitor);
+  }
+
+  //***************************************************************************
+  /// Call the relevant visitor.
+  //***************************************************************************
+  template <size_t NTypes, typename TVisitor>
+  void do_visitor(TVisitor &visitor) const {
+    gdut::private_variant::select_do_visitor<NTypes>::do_visitor(*this,
+                                                                 visitor);
+  }
+#endif
+
+  //***************************************************************************
+  /// Attempt to call a visitor.
+  //***************************************************************************
+  template <size_t Index, typename TVisitor>
+  bool attempt_visitor(TVisitor &visitor) {
+    if (Index == index()) {
+      // Workaround for MSVC (2023/05/13)
+      // It doesn't compile 'visitor.visit(gdut::get<Index>(*this))' correctly
+      // for C++17 & C++20. Changed all of the instances for consistency.
+      auto &v = gdut::get<Index>(*this);
+      visitor.visit(v);
+      return true;
+    } else {
       return false;
     }
+  }
 
-    //***************************************************************************
-    /// Checks if the other variant holds the same type as the current stored type.
-    /// For variants with the same type declarations.
-    /// For compatibility with legacy variant API.
-    ///\return <b>true</b> if the types are the same, otherwise <b>false</b>.
-    //***************************************************************************
-    constexpr bool is_same_type(const variant& other) const
-    {
-      return type_id == other.type_id;
+  //***************************************************************************
+  /// Attempt to call a visitor.
+  //***************************************************************************
+  template <size_t Index, typename TVisitor>
+  bool attempt_visitor(TVisitor &visitor) const {
+    if (Index == index()) {
+      // Workaround for MSVC (2023/05/13)
+      // It doesn't compile 'visitor.visit(gdut::get<Index>(*this))' correctly
+      // for C++17 & C++20. Changed all of the instances for consistency.
+      auto &v = gdut::get<Index>(*this);
+      visitor.visit(v);
+      return true;
+    } else {
+      return false;
     }
-
-    //***************************************************************************
-    /// Swaps this variant with another.
-    //***************************************************************************
-    void swap(variant& rhs) GDUT_NOEXCEPT
-    {
-      variant temp(gdut::move(*this));
-      *this = gdut::move(rhs);
-      rhs = gdut::move(temp);
-    }
-
-    //***************************************************************************
-    /// Accept an gdut::visitor.
-    //***************************************************************************
-    template <typename TVisitor>
-    gdut::enable_if_t<gdut::is_visitor<TVisitor>::value, void>
-      accept(TVisitor& v)
-    {
-#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
-      do_visitor(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
-#else
-      do_visitor<sizeof...(TTypes)>(v);
-#endif
-    }
-
-    //***************************************************************************
-    /// Accept an gdut::visitor.
-    //***************************************************************************
-    template <typename TVisitor>
-    gdut::enable_if_t<gdut::is_visitor<TVisitor>::value, void>
-      accept(TVisitor& v) const
-    {
-#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
-      do_visitor(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
-#else
-      do_visitor<sizeof...(TTypes)>(v);
-#endif
-    }
-
-    //***************************************************************************
-    /// Accept a generic functor.
-    //***************************************************************************
-    template <typename TVisitor>
-    gdut::enable_if_t<!gdut::is_visitor<TVisitor>::value, void>
-      accept(TVisitor& v)
-    {
-#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
-      do_operator(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
-#else
-      do_operator<sizeof...(TTypes)>(v);
-#endif
-    }
-
-    //***************************************************************************
-    /// Accept a generic functor.
-    //***************************************************************************
-    template <typename TVisitor>
-    gdut::enable_if_t<!gdut::is_visitor<TVisitor>::value, void>
-      accept(TVisitor& v) const
-    {
-#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
-      do_operator(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
-#else
-      do_operator<sizeof...(TTypes)>(v);
-#endif
-    }
-
-    //***************************************************************************
-    /// Accept an gdut::visitor.
-    /// Deprecated.
-    //***************************************************************************
-    template <typename TVisitor>
-#if !defined(GDUT_IN_UNIT_TEST)
-    GDUT_DEPRECATED_REASON("Replace with accept()")
-#endif
-    void accept_visitor(TVisitor& v)
-    {
-#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
-      do_visitor(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
-#else
-      do_visitor<sizeof...(TTypes)>(v);
-#endif
-    }
-
-    //***************************************************************************
-    /// Accept an gdut::visitor.
-    /// Deprecated.
-    //***************************************************************************
-    template <typename TVisitor>
-#if !defined(GDUT_IN_UNIT_TEST)
-    GDUT_DEPRECATED_REASON("Replace with accept()")
-#endif
-    void accept_visitor(TVisitor& v) const
-    {
-#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
-      do_visitor(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
-#else
-      do_visitor<sizeof...(TTypes)>(v);
-#endif
-    }
-
-    //***************************************************************************
-    /// Accept a generic functor.
-    /// Deprecated.
-    //***************************************************************************
-    template <typename TVisitor>
-#if !defined(GDUT_IN_UNIT_TEST)
-    GDUT_DEPRECATED_REASON("Replace with accept()")
-#endif
-    void accept_functor(TVisitor& v)
-    {
-#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
-      do_operator(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
-#else
-      do_operator<sizeof...(TTypes)>(v);
-#endif
-    }
-
-    //***************************************************************************
-    /// Accept a generic functor.
-    /// Deprecated.
-    //***************************************************************************
-    template <typename TVisitor>
-#if !defined(GDUT_IN_UNIT_TEST)
-    GDUT_DEPRECATED_REASON("Replace with accept()")
-#endif
-    void accept_functor(TVisitor& v) const
-    {
-#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
-      do_operator(v, gdut::make_index_sequence<sizeof...(TTypes)>{});
-#else
-      do_operator<sizeof...(TTypes)>(v);
-#endif
-    }
-
-  private:
-
-    /// The operation function type.
-    using operation_function = void(*)(int, char*, const char*);
-
-    //***************************************************************************
-    /// Construct the type in-place. lvalue reference.
-    //***************************************************************************
-    template <typename T>
-    static void construct_in_place(char* pstorage, const T& value)
-    {
-      using type = gdut::remove_cvref_t<T>;
-
-      ::new (pstorage) type(value);
-    }
-
-    //***************************************************************************
-    /// Construct the type in-place. rvalue reference.
-    //***************************************************************************
-    template <typename T>
-    static void construct_in_place(char* pstorage, T&& value)
-    {
-      using type = gdut::remove_cvref_t<T>;
-
-      ::new (pstorage) type(gdut::move(value));
-    }
-
-    //***************************************************************************
-    /// Construct the type in-place. Variadic args.
-    //***************************************************************************
-    template <typename T, typename... TArgs>
-    static void construct_in_place_args(char* pstorage, TArgs&&... args)
-    {
-      using type = gdut::remove_cvref_t<T>;
-
-      ::new (pstorage) type(gdut::forward<TArgs>(args)...);
-    }
-
-    //***************************************************************************
-    /// Default construct the type in-place.
-    //***************************************************************************
-    template <typename T>
-    static void default_construct_in_place(char* pstorage)
-    {
-      using type = gdut::remove_cvref_t<T>;
-
-      ::new (pstorage) type();
-    }
+  }
 
 #if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
-    //***************************************************************************
-    /// Call the relevant visitor by attempting each one.
-    //***************************************************************************
-    template <typename TVisitor, size_t... I>
-    void do_visitor(TVisitor& visitor, gdut::index_sequence<I...>)
-    {
-      (attempt_visitor<I>(visitor) || ...);
-    }
+  //***************************************************************************
+  /// Call the relevant visitor by attempting each one.
+  //***************************************************************************
+  template <typename TVisitor, size_t... I>
+  void do_operator(TVisitor &visitor, gdut::index_sequence<I...>) {
+    (attempt_operator<I>(visitor) || ...);
+  }
 
-    //***************************************************************************
-    /// Call the relevant visitor by attempting each one.
-    //***************************************************************************
-    template <typename TVisitor, size_t... I>
-    void do_visitor(TVisitor& visitor, gdut::index_sequence<I...>) const
-    {
-      (attempt_visitor<I>(visitor) || ...);
-    }
+  //***************************************************************************
+  /// Call the relevant visitor by attempting each one.
+  //***************************************************************************
+  template <typename TVisitor, size_t... I>
+  void do_operator(TVisitor &visitor, gdut::index_sequence<I...>) const {
+    (attempt_operator<I>(visitor) || ...);
+  }
 #else
-    //***************************************************************************
-    /// Call the relevant visitor.
-    //***************************************************************************
-    template <size_t NTypes, typename TVisitor>
-    void do_visitor(TVisitor& visitor)
-    {
-      gdut::private_variant::select_do_visitor<NTypes>::do_visitor(*this, visitor);
-    }
-
-    //***************************************************************************
-    /// Call the relevant visitor.
-    //***************************************************************************
-    template <size_t NTypes, typename TVisitor>
-    void do_visitor(TVisitor& visitor) const
-    {
-      gdut::private_variant::select_do_visitor<NTypes>::do_visitor(*this, visitor);
-    }
-#endif
-
-    //***************************************************************************
-    /// Attempt to call a visitor.
-    //***************************************************************************
-    template <size_t Index, typename TVisitor>
-    bool attempt_visitor(TVisitor& visitor)
-    {
-      if (Index == index())
-      {
-        // Workaround for MSVC (2023/05/13)
-        // It doesn't compile 'visitor.visit(gdut::get<Index>(*this))' correctly for C++17 & C++20.
-        // Changed all of the instances for consistency.
-        auto& v = gdut::get<Index>(*this);
-        visitor.visit(v);
-        return true;
-      }
-      else
-      {
-        return false;
-      }
-    }
-
-    //***************************************************************************
-    /// Attempt to call a visitor.
-    //***************************************************************************
-    template <size_t Index, typename TVisitor>
-    bool attempt_visitor(TVisitor& visitor) const
-    {
-      if (Index == index())
-      {
-        // Workaround for MSVC (2023/05/13)
-        // It doesn't compile 'visitor.visit(gdut::get<Index>(*this))' correctly for C++17 & C++20.
-        // Changed all of the instances for consistency.
-        auto& v = gdut::get<Index>(*this);
-        visitor.visit(v);
-        return true;
-      }
-      else
-      {
-        return false;
-      }
-    }
-
-#if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
-    //***************************************************************************
-    /// Call the relevant visitor by attempting each one.
-    //***************************************************************************
-    template <typename TVisitor, size_t... I>
-    void do_operator(TVisitor& visitor, gdut::index_sequence<I...>)
-    {
-      (attempt_operator<I>(visitor) || ...);
-    }
-
-    //***************************************************************************
-    /// Call the relevant visitor by attempting each one.
-    //***************************************************************************
-    template <typename TVisitor, size_t... I>
-    void do_operator(TVisitor& visitor, gdut::index_sequence<I...>) const
-    {
-      (attempt_operator<I>(visitor) || ...);
-    }
-#else
-    //***************************************************************************
-    /// Call the relevant operator.
-    //***************************************************************************
-    template <size_t NTypes, typename TVisitor>
-    void do_operator(TVisitor& visitor)
-    {
+  //***************************************************************************
+  /// Call the relevant operator.
+  //***************************************************************************
+  template <size_t NTypes, typename TVisitor>
+  void do_operator(TVisitor &visitor) {
 #if defined(GDUT_VARIANT_CPP11_MAX_8_TYPES)
-      GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 8U, "GDUT_VARIANT_CPP11_MAX_8_TYPES - Only a maximum of 8 types are allowed in this variant");
+    GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 8U,
+                       "GDUT_VARIANT_CPP11_MAX_8_TYPES - Only a maximum of 8 "
+                       "types are allowed in this variant");
 #endif
 
 #if defined(GDUT_VARIANT_CPP11_MAX_16_TYPES)
-      GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 16U, "GDUT_VARIANT_CPP11_MAX_16_TYPES - Only a maximum of 16 types are allowed in this variant");
+    GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 16U,
+                       "GDUT_VARIANT_CPP11_MAX_16_TYPES - Only a maximum of 16 "
+                       "types are allowed in this variant");
 #endif
 
 #if defined(GDUT_VARIANT_CPP11_MAX_24_TYPES)
-      GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 24U, "GDUT_VARIANT_CPP11_MAX_24_TYPES - Only a maximum of 24 types are allowed in this variant");
+    GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 24U,
+                       "GDUT_VARIANT_CPP11_MAX_24_TYPES - Only a maximum of 24 "
+                       "types are allowed in this variant");
 #endif
 
-      GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 32U, "A maximum of 32 types are allowed in this variant");
+    GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 32U,
+                       "A maximum of 32 types are allowed in this variant");
 
-      gdut::private_variant::select_do_operator<NTypes>::do_operator(*this, visitor);
-    }
+    gdut::private_variant::select_do_operator<NTypes>::do_operator(*this,
+                                                                   visitor);
+  }
 
-    //***************************************************************************
-    /// Call the relevant operator.
-    //***************************************************************************
-    template <size_t NTypes, typename TVisitor>
-    void do_operator(TVisitor& visitor) const
-    {
+  //***************************************************************************
+  /// Call the relevant operator.
+  //***************************************************************************
+  template <size_t NTypes, typename TVisitor>
+  void do_operator(TVisitor &visitor) const {
 #if defined(GDUT_VARIANT_CPP11_MAX_8_TYPES)
-      GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 8U, "GDUT_VARIANT_CPP11_MAX_8_TYPES - Only a maximum of 8 types are allowed in this variant");
+    GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 8U,
+                       "GDUT_VARIANT_CPP11_MAX_8_TYPES - Only a maximum of 8 "
+                       "types are allowed in this variant");
 #endif
 
 #if defined(GDUT_VARIANT_CPP11_MAX_16_TYPES)
-      GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 16U, "GDUT_VARIANT_CPP11_MAX_16_TYPES - Only a maximum of 16 types are allowed in this variant");
+    GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 16U,
+                       "GDUT_VARIANT_CPP11_MAX_16_TYPES - Only a maximum of 16 "
+                       "types are allowed in this variant");
 #endif
 
 #if defined(GDUT_VARIANT_CPP11_MAX_24_TYPES)
-      GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 24U, "GDUT_VARIANT_CPP11_MAX_24_TYPES - Only a maximum of 24 types are allowed in this variant");
+    GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 24U,
+                       "GDUT_VARIANT_CPP11_MAX_24_TYPES - Only a maximum of 24 "
+                       "types are allowed in this variant");
 #endif
 
-      GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 32U, "A maximum of 32 types are allowed in this variant");
+    GDUT_STATIC_ASSERT(sizeof...(TTypes) <= 32U,
+                       "A maximum of 32 types are allowed in this variant");
 
-      gdut::private_variant::select_do_operator<NTypes>::do_operator(*this, visitor);
+    gdut::private_variant::select_do_operator<NTypes>::do_operator(*this,
+                                                                   visitor);
+  }
+#endif
+
+  //***************************************************************************
+  /// Attempt to call a visitor.
+  //***************************************************************************
+  template <size_t Index, typename TVisitor>
+  bool attempt_operator(TVisitor &visitor) {
+    if (Index == index()) {
+      auto &v = gdut::get<Index>(*this);
+      visitor(v);
+      return true;
+    } else {
+      return false;
     }
-#endif
+  }
 
-    //***************************************************************************
-    /// Attempt to call a visitor.
-    //***************************************************************************
-    template <size_t Index, typename TVisitor>
-    bool attempt_operator(TVisitor& visitor)
-    {
-      if (Index == index())
-      {
-        auto& v = gdut::get<Index>(*this);
-        visitor(v);
-        return true;
-      }
-      else
-      {
-        return false;
-      }
+  //***************************************************************************
+  /// Attempt to call a visitor.
+  //***************************************************************************
+  template <size_t Index, typename TVisitor>
+  bool attempt_operator(TVisitor &visitor) const {
+    if (Index == index()) {
+      auto &v = gdut::get<Index>(*this);
+      visitor(v);
+      return true;
+    } else {
+      return false;
     }
-
-    //***************************************************************************
-    /// Attempt to call a visitor.
-    //***************************************************************************
-    template <size_t Index, typename TVisitor>
-    bool attempt_operator(TVisitor& visitor) const
-    {
-      if (Index == index())
-      {
-        auto& v = gdut::get<Index>(*this);
-        visitor(v);
-        return true;
-      }
-      else
-      {
-        return false;
-      }
-    }
-
-    //***************************************************************************
-    /// The internal storage.
-    /// Aligned on a suitable boundary, which should be good for all types.
-    //***************************************************************************
-    gdut::uninitialized_buffer<Size, 1U, Alignment> data;
-
-    //***************************************************************************
-    /// The operation function.
-    //***************************************************************************
-    operation_function operation;
-
-    //***************************************************************************
-    /// The id of the current stored type.
-    //***************************************************************************
-    size_t type_id;
-  };
-
-  //***************************************************************************
-  /// Checks if the variant v holds the alternative T.
-  //***************************************************************************
-	template <typename T, typename... TTypes>
-	GDUT_CONSTEXPR14 bool holds_alternative(const gdut::variant<TTypes...>& v) GDUT_NOEXCEPT
-	{
-    constexpr size_t Index = gdut::type_list_index_of_type<gdut::type_list<TTypes...>, T>::value;
-
-    return (Index == variant_npos) ? false : (v.index() == Index);
-	}
-
-  //***************************************************************************
-  /// Checks if the variant v holds the alternative Index.
-  //***************************************************************************
-  template <size_t Index, typename... TTypes>
-  GDUT_CONSTEXPR14 bool holds_alternative(const gdut::variant<TTypes...>& v) GDUT_NOEXCEPT
-  {
-    return (Index == v.index());
   }
 
   //***************************************************************************
-  /// Checks if the variant v holds the alternative Index. (Runtime)
+  /// The internal storage.
+  /// Aligned on a suitable boundary, which should be good for all types.
   //***************************************************************************
-  template <typename... TTypes>
-  GDUT_CONSTEXPR14 bool holds_alternative(size_t index, const gdut::variant<TTypes...>& v) GDUT_NOEXCEPT
-  {
-    return (index == v.index());
-  }
+  gdut::uninitialized_buffer<Size, 1U, Alignment> data;
 
   //***************************************************************************
-  /// get
+  /// The operation function.
   //***************************************************************************
-  template <size_t Index, typename... TTypes>
-  GDUT_CONSTEXPR14 gdut::variant_alternative_t<Index, gdut::variant<TTypes...>>&
-    get(gdut::variant<TTypes...>& v)
-  {
+  operation_function operation;
+
+  //***************************************************************************
+  /// The id of the current stored type.
+  //***************************************************************************
+  size_t type_id;
+};
+
+//***************************************************************************
+/// Checks if the variant v holds the alternative T.
+//***************************************************************************
+template <typename T, typename... TTypes>
+GDUT_CONSTEXPR14 bool
+holds_alternative(const gdut::variant<TTypes...> &v) GDUT_NOEXCEPT {
+  constexpr size_t Index =
+      gdut::type_list_index_of_type<gdut::type_list<TTypes...>, T>::value;
+
+  return (Index == variant_npos) ? false : (v.index() == Index);
+}
+
+//***************************************************************************
+/// Checks if the variant v holds the alternative Index.
+//***************************************************************************
+template <size_t Index, typename... TTypes>
+GDUT_CONSTEXPR14 bool
+holds_alternative(const gdut::variant<TTypes...> &v) GDUT_NOEXCEPT {
+  return (Index == v.index());
+}
+
+//***************************************************************************
+/// Checks if the variant v holds the alternative Index. (Runtime)
+//***************************************************************************
+template <typename... TTypes>
+GDUT_CONSTEXPR14 bool
+holds_alternative(size_t index,
+                  const gdut::variant<TTypes...> &v) GDUT_NOEXCEPT {
+  return (index == v.index());
+}
+
+//***************************************************************************
+/// get
+//***************************************************************************
+template <size_t Index, typename... TTypes>
+GDUT_CONSTEXPR14 gdut::variant_alternative_t<Index, gdut::variant<TTypes...>> &
+get(gdut::variant<TTypes...> &v) {
 #if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
-    static_assert(Index < sizeof...(TTypes), "Index out of range");
+  static_assert(Index < sizeof...(TTypes), "Index out of range");
 #endif
 
-    GDUT_ASSERT(Index == v.index(), GDUT_ERROR(gdut::variant_incorrect_type_exception));
+  GDUT_ASSERT(Index == v.index(),
+              GDUT_ERROR(gdut::variant_incorrect_type_exception));
 
-		using type = gdut::variant_alternative_t<Index, gdut::variant<TTypes...>>;
+  using type = gdut::variant_alternative_t<Index, gdut::variant<TTypes...>>;
 
-    return *static_cast<type*>(v.data);
-  }
+  return *static_cast<type *>(v.data);
+}
 
-  //***********************************
-  template <size_t Index, typename... TTypes>
-  GDUT_CONSTEXPR14 gdut::variant_alternative_t<Index, gdut::variant<TTypes...>>&&
-    get(gdut::variant<TTypes...>&& v)
-  {
+//***********************************
+template <size_t Index, typename... TTypes>
+GDUT_CONSTEXPR14 gdut::variant_alternative_t<Index, gdut::variant<TTypes...>> &&
+get(gdut::variant<TTypes...> &&v) {
 #if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
-    static_assert(Index < sizeof...(TTypes), "Index out of range");
+  static_assert(Index < sizeof...(TTypes), "Index out of range");
 #endif
 
-		using type = gdut::variant_alternative_t<Index, gdut::variant<TTypes...>>;
+  using type = gdut::variant_alternative_t<Index, gdut::variant<TTypes...>>;
 
-    return gdut::move(*static_cast<type*>(v.data));
-  }
+  return gdut::move(*static_cast<type *>(v.data));
+}
 
-  //***********************************
-  template <size_t Index, typename... TTypes>
-  GDUT_CONSTEXPR14 const gdut::variant_alternative_t<Index, const gdut::variant<TTypes...>>&
-    get(const gdut::variant<TTypes...>& v)
-  {
+//***********************************
+template <size_t Index, typename... TTypes>
+GDUT_CONSTEXPR14 const
+    gdut::variant_alternative_t<Index, const gdut::variant<TTypes...>> &
+    get(const gdut::variant<TTypes...> &v) {
 #if GDUT_USING_CPP17 && !defined(GDUT_VARIANT_FORCE_CPP11)
-    static_assert(Index < sizeof...(TTypes), "Index out of range");
+  static_assert(Index < sizeof...(TTypes), "Index out of range");
 #endif
 
-    GDUT_ASSERT(Index == v.index(), GDUT_ERROR(gdut::variant_incorrect_type_exception));
+  GDUT_ASSERT(Index == v.index(),
+              GDUT_ERROR(gdut::variant_incorrect_type_exception));
 
-		using type = gdut::variant_alternative_t<Index, gdut::variant<TTypes...>>;
+  using type = gdut::variant_alternative_t<Index, gdut::variant<TTypes...>>;
 
-    return *static_cast<const type*>(v.data);
-  }
+  return *static_cast<const type *>(v.data);
+}
 
-  //***********************************
-  template <size_t Index, typename... TTypes>
-  GDUT_CONSTEXPR14 const gdut::variant_alternative_t<Index, const gdut::variant<TTypes...>>&&
-    get(const gdut::variant<TTypes...>&& v)
-  {
+//***********************************
+template <size_t Index, typename... TTypes>
+GDUT_CONSTEXPR14 const
+    gdut::variant_alternative_t<Index, const gdut::variant<TTypes...>> &&
+    get(const gdut::variant<TTypes...> &&v) {
 #if GDUT_USING_CPP17 & !defined(GDUT_VARIANT_FORCE_CPP11)
-    static_assert(Index < sizeof...(TTypes), "Index out of range");
+  static_assert(Index < sizeof...(TTypes), "Index out of range");
 #endif
 
-    GDUT_ASSERT(Index == v.index(), GDUT_ERROR(gdut::variant_incorrect_type_exception));
+  GDUT_ASSERT(Index == v.index(),
+              GDUT_ERROR(gdut::variant_incorrect_type_exception));
 
-		using type = gdut::variant_alternative_t<Index, gdut::variant<TTypes...>>;
+  using type = gdut::variant_alternative_t<Index, gdut::variant<TTypes...>>;
 
-    return gdut::move(*static_cast<const type*>(v.data));
+  return gdut::move(*static_cast<const type *>(v.data));
+}
+
+//***********************************
+template <typename T, typename... TTypes>
+GDUT_CONSTEXPR14 T &get(gdut::variant<TTypes...> &v) {
+  constexpr size_t Index =
+      gdut::type_list_index_of_type<gdut::type_list<TTypes...>, T>::value;
+
+  return get<Index>(v);
+}
+
+//***********************************
+template <typename T, typename... TTypes>
+GDUT_CONSTEXPR14 T &&get(gdut::variant<TTypes...> &&v) {
+  constexpr size_t Index =
+      gdut::type_list_index_of_type<gdut::type_list<TTypes...>, T>::value;
+
+  return get<Index>(gdut::move(v));
+}
+
+//***********************************
+template <typename T, typename... TTypes>
+GDUT_CONSTEXPR14 const T &get(const gdut::variant<TTypes...> &v) {
+  constexpr size_t Index =
+      gdut::type_list_index_of_type<gdut::type_list<TTypes...>, T>::value;
+
+  return get<Index>(v);
+}
+
+//***********************************
+template <typename T, typename... TTypes>
+GDUT_CONSTEXPR14 const T &&get(const gdut::variant<TTypes...> &&v) {
+  constexpr size_t Index =
+      gdut::type_list_index_of_type<gdut::type_list<TTypes...>, T>::value;
+
+  return get<Index>(gdut::move(v));
+}
+
+//***************************************************************************
+/// get_if
+//***************************************************************************
+template <size_t Index, typename... TTypes>
+GDUT_CONSTEXPR14 gdut::add_pointer_t<
+    gdut::variant_alternative_t<Index, gdut::variant<TTypes...>>>
+get_if(gdut::variant<TTypes...> *pv) GDUT_NOEXCEPT {
+  if ((pv != nullptr) && (pv->index() == Index)) {
+    return &gdut::get<Index>(*pv);
+  } else {
+    return nullptr;
   }
+}
 
-  //***********************************
-  template <typename T, typename... TTypes>
-  GDUT_CONSTEXPR14 T& get(gdut::variant<TTypes...>& v)
-  {
-    constexpr size_t Index = gdut::type_list_index_of_type<gdut::type_list<TTypes...>, T>::value;
-
-    return get<Index>(v);
+//***********************************
+template <size_t Index, typename... TTypes>
+GDUT_CONSTEXPR14 gdut::add_pointer_t<
+    const gdut::variant_alternative_t<Index, gdut::variant<TTypes...>>>
+get_if(const gdut::variant<TTypes...> *pv) GDUT_NOEXCEPT {
+  if ((pv != nullptr) && (pv->index() == Index)) {
+    return &gdut::get<Index>(*pv);
+  } else {
+    return nullptr;
   }
+}
 
-  //***********************************
-  template <typename T, typename... TTypes>
-  GDUT_CONSTEXPR14 T&& get(gdut::variant<TTypes...>&& v)
-  {
-    constexpr size_t Index = gdut::type_list_index_of_type<gdut::type_list<TTypes...>, T>::value;
+//***********************************
+template <class T, typename... TTypes>
+GDUT_CONSTEXPR14 gdut::add_pointer_t<T>
+get_if(gdut::variant<TTypes...> *pv) GDUT_NOEXCEPT {
+  constexpr size_t Index =
+      gdut::type_list_index_of_type<gdut::type_list<TTypes...>, T>::value;
 
-    return get<Index>(gdut::move(v));
+  if ((pv != nullptr) && (pv->index() == Index)) {
+    return &gdut::get<Index>(*pv);
+  } else {
+    return nullptr;
   }
+}
 
-  //***********************************
-  template <typename T, typename... TTypes>
-  GDUT_CONSTEXPR14 const T& get(const gdut::variant<TTypes...>& v)
-  {
-    constexpr size_t Index = gdut::type_list_index_of_type<gdut::type_list<TTypes...>, T>::value;
+//***********************************
+template <typename T, typename... TTypes>
+GDUT_CONSTEXPR14 gdut::add_pointer_t<const T>
+get_if(const gdut::variant<TTypes...> *pv) GDUT_NOEXCEPT {
+  constexpr size_t Index =
+      gdut::type_list_index_of_type<gdut::type_list<TTypes...>, T>::value;
 
-    return get<Index>(v);
+  if ((pv != nullptr) && (pv->index() == Index)) {
+    return &gdut::get<Index>(*pv);
+  } else {
+    return nullptr;
   }
+}
 
-  //***********************************
-  template <typename T, typename... TTypes>
-  GDUT_CONSTEXPR14 const T&& get(const gdut::variant<TTypes...>&& v)
-  {
-    constexpr size_t Index = gdut::type_list_index_of_type<gdut::type_list<TTypes...>, T>::value;
+//***************************************************************************
+/// swap
+//***************************************************************************
+template <typename... TTypes>
+void swap(gdut::variant<TTypes...> &lhs, gdut::variant<TTypes...> &rhs) {
+  lhs.swap(rhs);
+}
 
-    return get<Index>(gdut::move(v));
-  }
+//***************************************************************************
+/// variant_size
+//***************************************************************************
+template <typename T> struct variant_size;
 
-  //***************************************************************************
-  /// get_if
-  //***************************************************************************
-  template< size_t Index, typename... TTypes >
-  GDUT_CONSTEXPR14 gdut::add_pointer_t<gdut::variant_alternative_t<Index, gdut::variant<TTypes...>>>
-    get_if(gdut::variant<TTypes...>* pv) GDUT_NOEXCEPT
-  {
-    if ((pv != nullptr) && (pv->index() == Index))
-    {
-      return &gdut::get<Index>(*pv);
-    }
-    else
-    {
-      return nullptr;
-    }
-  }
+template <typename... TTypes>
+struct variant_size<gdut::variant<TTypes...>>
+    : gdut::integral_constant<size_t, sizeof...(TTypes)> {};
 
-  //***********************************
-  template< size_t Index, typename... TTypes >
-  GDUT_CONSTEXPR14 gdut::add_pointer_t<const gdut::variant_alternative_t<Index, gdut::variant<TTypes...>>>
-    get_if(const gdut::variant<TTypes...>* pv) GDUT_NOEXCEPT
-  {
-    if ((pv != nullptr) && (pv->index() == Index))
-    {
-      return &gdut::get<Index>(*pv);
-    }
-    else
-    {
-      return nullptr;
-    }
-  }
-
-  //***********************************
-  template< class T, typename... TTypes >
-  GDUT_CONSTEXPR14 gdut::add_pointer_t<T> get_if(gdut::variant<TTypes...>* pv) GDUT_NOEXCEPT
-  {
-    constexpr size_t Index = gdut::type_list_index_of_type<gdut::type_list<TTypes...>, T>::value;
-
-    if ((pv != nullptr) && (pv->index() == Index))
-    {
-      return &gdut::get<Index>(*pv);
-    }
-    else
-    {
-      return nullptr;
-    }
-  }
-
-  //***********************************
-  template< typename T, typename... TTypes >
-  GDUT_CONSTEXPR14 gdut::add_pointer_t<const T> get_if(const gdut::variant<TTypes...>* pv) GDUT_NOEXCEPT
-  {
-    constexpr size_t Index = gdut::type_list_index_of_type<gdut::type_list<TTypes...>, T>::value;
-
-    if ((pv != nullptr) && (pv->index() == Index))
-    {
-      return &gdut::get<Index>(*pv);
-    }
-    else
-    {
-      return nullptr;
-    }
-  }
-
-  //***************************************************************************
-  /// swap
-  //***************************************************************************
-  template <typename... TTypes>
-  void swap(gdut::variant<TTypes...>& lhs, gdut::variant<TTypes...>& rhs)
-  {
-    lhs.swap(rhs);
-  }
-
-  //***************************************************************************
-  /// variant_size
-  //***************************************************************************
-  template <typename T>
-  struct variant_size;
-
-  template <typename... TTypes>
-  struct variant_size<gdut::variant<TTypes...>>
-    : gdut::integral_constant<size_t, sizeof...(TTypes)>
-  {
-  };
-
-  template <typename T>
-  struct variant_size<const T>
-    : gdut::integral_constant<size_t, variant_size<T>::value>
-  {
-  };
+template <typename T>
+struct variant_size<const T>
+    : gdut::integral_constant<size_t, variant_size<T>::value> {};
 
 #if GDUT_USING_CPP17
-  template <typename... TTypes>
-  inline constexpr size_t variant_size_v = variant_size<TTypes...>::value;
+template <typename... TTypes>
+inline constexpr size_t variant_size_v = variant_size<TTypes...>::value;
 #endif
 
-  //***************************************************************************
-  /// visit
-  //***************************************************************************
-  namespace private_variant
-  {
-    template <typename TRet, typename TCallable, typename TVariant, size_t tIndex, typename TNext, typename... TVariants>
-    static GDUT_CONSTEXPR14 TRet do_visit_single(TCallable&& f, TVariant&& v, TNext&&, TVariants&&... vs);
+//***************************************************************************
+/// visit
+//***************************************************************************
+namespace private_variant {
+template <typename TRet, typename TCallable, typename TVariant, size_t tIndex,
+          typename TNext, typename... TVariants>
+static GDUT_CONSTEXPR14 TRet do_visit_single(TCallable &&f, TVariant &&v,
+                                             TNext &&, TVariants &&...vs);
 
-    //***************************************************************************
-    /// Dummy-struct used to indicate that the return type should be auto-deduced
-    /// from the callable object and the alternatives in the variants passed to
-    /// a visit. Should never explicitly be used by an user.
-    //***************************************************************************
-    struct visit_auto_return
-    {
-    };
+//***************************************************************************
+/// Dummy-struct used to indicate that the return type should be auto-deduced
+/// from the callable object and the alternatives in the variants passed to
+/// a visit. Should never explicitly be used by an user.
+//***************************************************************************
+struct visit_auto_return {};
 
-    //***************************************************************************
-    /// Deduces return type of a call to TCallable with arguments Ts.
-    /// A lite version of std::invoke_result.
-    //***************************************************************************
-    template <typename TCallable, typename... Ts>
-    struct single_visit_result_type
-    {
-      using type = decltype(declval<TCallable>()(declval<Ts>()...));
-    };
+//***************************************************************************
+/// Deduces return type of a call to TCallable with arguments Ts.
+/// A lite version of std::invoke_result.
+//***************************************************************************
+template <typename TCallable, typename... Ts> struct single_visit_result_type {
+  using type = decltype(declval<TCallable>()(declval<Ts>()...));
+};
 
-    template <typename TCallable, typename... Ts>
-    using single_visit_result_type_t = typename single_visit_result_type<TCallable, Ts...>::type;
+template <typename TCallable, typename... Ts>
+using single_visit_result_type_t =
+    typename single_visit_result_type<TCallable, Ts...>::type;
 
-    //***************************************************************************
-    /// Used to copy r/l value reference qualifier from a variant type to an
-    /// element.
-    //***************************************************************************
-    template <typename TVar, typename T>
-    using rlref_copy = conditional_t<is_reference<TVar>::value, T&, T&&>;
+//***************************************************************************
+/// Used to copy r/l value reference qualifier from a variant type to an
+/// element.
+//***************************************************************************
+template <typename TVar, typename T>
+using rlref_copy = conditional_t<is_reference<TVar>::value, T &, T &&>;
 
-    //***************************************************************************
-    /// Evaluates all permutations of calls to a callable object that can be done
-    /// based upon the variants input. Need a `index_sequence<...>` as second
-    /// argument that contains all possible indices of the first following variant.
-    /// The first argument is essentially a `single_visit_result_type`-prototype
-    /// in which every recursive instantiation of `visit_result_helper` appends
-    /// more elements and give it a pass through `common_type_t`.
-    //***************************************************************************
-    template <template <typename...> class, typename...>
-    struct visit_result_helper;
+//***************************************************************************
+/// Evaluates all permutations of calls to a callable object that can be done
+/// based upon the variants input. Need a `index_sequence<...>` as second
+/// argument that contains all possible indices of the first following variant.
+/// The first argument is essentially a `single_visit_result_type`-prototype
+/// in which every recursive instantiation of `visit_result_helper` appends
+/// more elements and give it a pass through `common_type_t`.
+//***************************************************************************
+template <template <typename...> class, typename...> struct visit_result_helper;
 
-    template <template <typename...> class TToInject, size_t... tAltIndices, typename TCur>
-    struct visit_result_helper<TToInject, index_sequence<tAltIndices...>, TCur>
-    {
-      template <size_t tIndex>
-      using var_type = rlref_copy<TCur,
-                                  variant_alternative_t<tIndex, remove_reference_t<TCur> > >;
+template <template <typename...> class TToInject, size_t... tAltIndices,
+          typename TCur>
+struct visit_result_helper<TToInject, index_sequence<tAltIndices...>, TCur> {
+  template <size_t tIndex>
+  using var_type =
+      rlref_copy<TCur, variant_alternative_t<tIndex, remove_reference_t<TCur>>>;
 
-      using type = common_type_t<TToInject<var_type<tAltIndices> >...>;
-    };
+  using type = common_type_t<TToInject<var_type<tAltIndices>>...>;
+};
 
-    template <template <typename...> class TToInject, size_t... tAltIndices, typename TCur, typename TNext, typename... TVs>
-    struct visit_result_helper<TToInject, index_sequence<tAltIndices...>, TCur, TNext, TVs...>
-    {
-      template <size_t tIndex>
-      using var_type = rlref_copy<TCur, variant_alternative_t<tIndex, remove_reference_t<TCur> > >;
+template <template <typename...> class TToInject, size_t... tAltIndices,
+          typename TCur, typename TNext, typename... TVs>
+struct visit_result_helper<TToInject, index_sequence<tAltIndices...>, TCur,
+                           TNext, TVs...> {
+  template <size_t tIndex>
+  using var_type =
+      rlref_copy<TCur, variant_alternative_t<tIndex, remove_reference_t<TCur>>>;
 
-      template <size_t tIndex>
-      struct next_inject_wrap
-      {
-        template <typename... TNextInj>
-        using next_inject = TToInject<var_type<tIndex>, TNextInj...>;
-        using recursive_result = typename visit_result_helper<next_inject, make_index_sequence<variant_size<remove_reference_t<TNext> >::value>, TNext, TVs...>::type;
-      };
+  template <size_t tIndex> struct next_inject_wrap {
+    template <typename... TNextInj>
+    using next_inject = TToInject<var_type<tIndex>, TNextInj...>;
+    using recursive_result = typename visit_result_helper<
+        next_inject,
+        make_index_sequence<variant_size<remove_reference_t<TNext>>::value>,
+        TNext, TVs...>::type;
+  };
 
-      using type = common_type_t<typename next_inject_wrap<tAltIndices>::recursive_result...>;
-    };
+  using type = common_type_t<
+      typename next_inject_wrap<tAltIndices>::recursive_result...>;
+};
 
-    //***************************************************************************
-    /// Generates the result type for visit by applying 'common_type' on the return
-    /// type from calls to function object with all possible permutations of variant
-    /// alternatives. Shortcuts to first argument unless it is 'visit_auto_return'.
-    //***************************************************************************
-    template <typename TRet, typename...>
-    struct visit_result
-    {
-      using type = TRet;
-    };
+//***************************************************************************
+/// Generates the result type for visit by applying 'common_type' on the return
+/// type from calls to function object with all possible permutations of variant
+/// alternatives. Shortcuts to first argument unless it is 'visit_auto_return'.
+//***************************************************************************
+template <typename TRet, typename...> struct visit_result {
+  using type = TRet;
+};
 
-    template <typename TCallable, typename T1, typename... Ts>
-    struct visit_result<visit_auto_return, TCallable, T1, Ts...>
-    {
-      // bind TCallable to the first argument in this variadic alias.
-      template <typename... Ts2>
-      using single_res = single_visit_result_type_t<TCallable, Ts2...>;
-      using type = typename visit_result_helper<single_res, make_index_sequence<variant_size<remove_reference_t<T1> >::value>, T1, Ts...>::type;
-    };
+template <typename TCallable, typename T1, typename... Ts>
+struct visit_result<visit_auto_return, TCallable, T1, Ts...> {
+  // bind TCallable to the first argument in this variadic alias.
+  template <typename... Ts2>
+  using single_res = single_visit_result_type_t<TCallable, Ts2...>;
+  using type = typename visit_result_helper<
+      single_res,
+      make_index_sequence<variant_size<remove_reference_t<T1>>::value>, T1,
+      Ts...>::type;
+};
 
-    template <typename... Ts>
-    using visit_result_t = typename visit_result<Ts...>::type;
+template <typename... Ts>
+using visit_result_t = typename visit_result<Ts...>::type;
 
-    //***************************************************************************
-    /// Makes a call to TCallable using tIndex alternative to the variant.
-    /// Instantiated as function pointer in the `do_visit` function.
-    //***************************************************************************
-    template <typename TRet, typename TCallable, typename TVariant, size_t tIndex>
-    constexpr TRet do_visit_single(TCallable&& f, TVariant&& v)
-    {
-      return static_cast<TCallable&&>(f)(gdut::get<tIndex>(static_cast<TVariant&&>(v)));
-    }
-
-    //***************************************************************************
-    /// Helper to instantiate the function pointers needed for the "jump table".
-    /// Embeds the 'TVarRest' (remaining variants) into its type to come around
-    /// the "double expansion" otherwise needed in "do_visit".
-    //***************************************************************************
-    template <typename TRet, typename TCallable, typename TCurVariant, typename... TVarRest>
-    struct do_visit_helper
-    {
-      using function_pointer = add_pointer_t<TRet(TCallable&&, TCurVariant&&, TVarRest&&...)>;
-
-      template <size_t tIndex>
-      static constexpr function_pointer fptr() GDUT_NOEXCEPT
-      {
-        return &do_visit_single<TRet, TCallable, TCurVariant, tIndex, TVarRest...>;
-      }
-    };
-
-    //***************************************************************************
-    /// Dispatch current variant into recursive calls to dispatch the rest.
-    //***************************************************************************
-    template <typename TRet, typename TCallable, typename TVariant, size_t... tIndices, typename... TVarRest>
-    static GDUT_CONSTEXPR14 TRet do_visit(TCallable&& f, TVariant&& v, index_sequence<tIndices...>, TVarRest&&... variants)
-    {
-      GDUT_ASSERT(!v.valueless_by_exception(), GDUT_ERROR(bad_variant_access));
-
-      using helper_t = do_visit_helper<TRet, TCallable, TVariant, TVarRest...>;
-      using func_ptr = typename helper_t::function_pointer;
-
-      constexpr func_ptr jmp_table[]
-      {
-        helper_t::template fptr<tIndices>()...
-      };
-
-      return jmp_table[v.index()](static_cast<TCallable&&>(f), static_cast<TVariant&&>(v), static_cast<TVarRest&&>(variants)...);
-    }
-
-    template <typename TRet, typename TCallable, typename TVariant, typename... TVs>
-    static GDUT_CONSTEXPR14 TRet visit(TCallable&& f, TVariant&& v, TVs&&... vs)
-    {
-      constexpr size_t variants = gdut::variant_size<typename remove_reference<TVariant>::type>::value;
-      return private_variant::do_visit<TRet>(static_cast<TCallable&&>(f),
-                                             static_cast<TVariant&&>(v),
-                                             make_index_sequence<variants>{},
-                                             static_cast<TVs&&>(vs)...);
-    }
-
-    //***************************************************************************
-    /// Allows constexpr operation in c++14, otherwise acts like a lambda to
-    /// bind a variant "get" to an argument for "TCallable".
-    //***************************************************************************
-    template <typename TRet, typename TCallable, typename TVariant, size_t tIndex>
-    class constexpr_visit_closure
-    {
-      add_pointer_t<TCallable> callable_;
-      add_pointer_t<TVariant>  variant_;
-
-    public:
-      constexpr constexpr_visit_closure(TCallable&& c, TVariant&& v)
-        : callable_(&c), variant_(&v)
-      {
-      }
-
-      template <typename... Ts>
-      GDUT_CONSTEXPR14 TRet operator()(Ts&&... args) const
-      {
-        return static_cast<TCallable&&>(*callable_)(get<tIndex>(static_cast<TVariant&&>(*variant_)), static_cast<Ts&&>(args)...);
-      }
-    };
-
-    template <typename TRet, typename TCallable, typename TVariant, size_t tIndex, typename TNext, typename... TVariants>
-    static GDUT_CONSTEXPR14 TRet do_visit_single(TCallable&& f, TVariant&& v, TNext&& next, TVariants&&... vs)
-    {
-      return private_variant::visit<TRet>(constexpr_visit_closure<TRet, TCallable, TVariant, tIndex>(static_cast<TCallable&&>(f), static_cast<TVariant&&>(v)),
-                                          static_cast<TNext&&>(next), static_cast<TVariants&&>(vs)...);
-    }
-
-  }  // namespace private_variant
-
-  //***************************************************************************
-  /// C++11/14 compatible gdut::visit for gdut::variant. Supports both c++17
-  /// "auto return type" signature and c++20 explicit template return type.
-  //***************************************************************************
-  template <typename TRet = private_variant::visit_auto_return, typename... TVariants, typename TCallable, typename TDeducedReturn = private_variant::visit_result_t<TRet, TCallable, TVariants...> >
-  static GDUT_CONSTEXPR14 TDeducedReturn visit(TCallable&& f, TVariants&&... vs)
-  {
-    return private_variant::visit<TDeducedReturn>(static_cast<TCallable&&>(f), static_cast<TVariants&&>(vs)...);
-  }
-
-  namespace private_variant
-  {
-    //***************************************************************************
-    /// C++11 compatible visitor function for testing variant equality.
-    /// Assumes that the two variants are already known to contain the same type.
-    //***************************************************************************
-    template <typename TVariant>
-    struct equality_visitor
-    {
-      equality_visitor(const TVariant& rhs_)
-        : rhs(rhs_)
-      {
-      }
-
-      template <typename TValue>
-      bool operator()(const TValue& lhs_downcasted)
-      {
-        return lhs_downcasted == gdut::get<TValue>(rhs);
-      }
-
-      const TVariant& rhs;
-    };
-
-    //***************************************************************************
-    /// C++11 compatible visitor function for testing variant '<' (less than).
-    /// Assumes that the two variants are already known to contain the same type.
-    //***************************************************************************
-    template <typename TVariant>
-    struct less_than_visitor
-    {
-      less_than_visitor(const TVariant& rhs_)
-        : rhs(rhs_)
-      {
-      }
-
-      template <typename TValue>
-      bool operator()(const TValue& lhs_downcasted)
-      {
-        return lhs_downcasted < gdut::get<TValue>(rhs);
-      }
-
-      const TVariant& rhs;
-    };
-  }
-
-  //***************************************************************************
-  /// Checks if the variants are equal.
-  /// https://en.cppreference.com/w/cpp/utility/variant/operator_cmp
-  //***************************************************************************
-  template <typename... TTypes>
-  GDUT_CONSTEXPR14 bool operator ==(const gdut::variant<TTypes...>& lhs, const gdut::variant<TTypes...>& rhs)
-  {
-    // If both variants are valueless, they are considered equal
-    if (lhs.valueless_by_exception() && rhs.valueless_by_exception())
-    {
-      return true;
-    }
-
-    // If one variant is valueless and the other is not, they are not equal
-    if (lhs.valueless_by_exception() || rhs.valueless_by_exception())
-    {
-      return false;
-    }
-
-    // If variants have different types, they are not equal
-    if (lhs.index() != rhs.index())
-    {
-      return false;
-    }
-
-    // Variants have the same type, apply the equality operator for the contained values
-    private_variant::equality_visitor<gdut::variant<TTypes...>> visitor(rhs);
-
-    return gdut::visit(visitor, lhs);
-  }
-
-  //***************************************************************************
-  /// Checks if the variants not equal.
-  /// https://en.cppreference.com/w/cpp/utility/variant/operator_cmp
-  //***************************************************************************
-  template <typename... TTypes>
-  GDUT_CONSTEXPR14 bool operator !=(const gdut::variant<TTypes...>& lhs, const gdut::variant<TTypes...>& rhs)
-  {
-    return !(lhs == rhs);
-  }
-
-  //***************************************************************************
-  /// Checks if the lhs variant is less than rhs.
-  /// https://en.cppreference.com/w/cpp/utility/variant/operator_cmp
-  //***************************************************************************
-  template <typename... TTypes>
-  GDUT_CONSTEXPR14 bool operator <(const gdut::variant<TTypes...>& lhs, const gdut::variant<TTypes...>& rhs)
-  {
-    // If both variants are valueless, they are considered equal, so not less than
-    if (lhs.valueless_by_exception() && rhs.valueless_by_exception())
-    {
-      return false;
-    }
-
-    // A valueless variant is always less than a variant with a value
-    if (lhs.valueless_by_exception())
-    {
-      return true;
-    }
-
-    // A variant with a value is never less than a valueless variant
-    if (rhs.valueless_by_exception())
-    {
-      return false;
-    }
-
-    // If variants have different types, compare the type index
-    if (lhs.index() != rhs.index())
-    {
-      return lhs.index() < rhs.index();
-    }
-
-    // Variants have the same type, apply the less than operator for the contained values
-    private_variant::less_than_visitor<gdut::variant<TTypes...>> visitor(rhs);
-
-    return gdut::visit(visitor, lhs);
-  }
-
-  //***************************************************************************
-  /// Checks if the lhs variant is greater than rhs.
-  /// https://en.cppreference.com/w/cpp/utility/variant/operator_cmp
-  //***************************************************************************
-  template <typename... TTypes>
-  GDUT_CONSTEXPR14 bool operator >(const gdut::variant<TTypes...>& lhs, const gdut::variant<TTypes...>& rhs)
-  {
-    return (rhs < lhs);
-  }
-
-  //***************************************************************************
-  /// Checks if the lhs variant is less than or equal to rhs.
-  /// https://en.cppreference.com/w/cpp/utility/variant/operator_cmp
-  //***************************************************************************
-  template <typename... TTypes>
-  GDUT_CONSTEXPR14 bool operator <=(const gdut::variant<TTypes...>& lhs, const gdut::variant<TTypes...>& rhs)
-  {
-    return  !(lhs > rhs);
-  }
-
-  //***************************************************************************
-  /// Checks if the lhs variant is greater than or equal to rhs.
-  /// https://en.cppreference.com/w/cpp/utility/variant/operator_cmp
-  //***************************************************************************
-  template <typename... TTypes>
-  GDUT_CONSTEXPR14 bool operator >=(const gdut::variant<TTypes...>& lhs, const gdut::variant<TTypes...>& rhs)
-  {
-    return !(lhs < rhs);
-  }
-
-  namespace private_variant
-  {
-#if GDUT_USING_CPP20 && GDUT_USING_STL && !(defined(GDUT_DEVELOPMENT_OS_APPLE) && defined(GDUT_COMPILER_CLANG))
-    //***************************************************************************
-    /// C++20 compatible visitor function for testing variant '<=>'.
-    /// Assumes that the two variants are already known to contain the same type.
-    //***************************************************************************
-    template <typename TVariant>
-    struct compare_visitor
-    {
-      compare_visitor(const TVariant& rhs_)
-        : rhs(rhs_)
-      {
-      }
-
-      template <typename TValue>
-      std::strong_ordering operator()(const TValue& lhs_downcasted)
-      {
-        return lhs_downcasted <=> gdut::get<TValue>(rhs);
-      }
-
-      const TVariant& rhs;
-    };
-#endif
-  }
-
-  //***************************************************************************
-  /// Defines the 'spaceship' <=> operator for comparing variants.
-  /// Only defined if using C++20 and STL.
-  /// https://en.cppreference.com/w/cpp/utility/variant/operator_cmp
-  //***************************************************************************
-#if GDUT_USING_CPP20 && GDUT_USING_STL && !(defined(GDUT_DEVELOPMENT_OS_APPLE) && defined(GDUT_COMPILER_CLANG))
-  template <typename... TTypes>
-  GDUT_CONSTEXPR14 
-  std::common_comparison_category_t<std::compare_three_way_result_t<TTypes>...>
-    operator <=>(const gdut::variant<TTypes...>& lhs, const gdut::variant<TTypes...>& rhs)
-  {
-    if (lhs.valueless_by_exception() && rhs.valueless_by_exception())
-    {
-      return std::strong_ordering::equal;
-    }
-    else if (lhs.valueless_by_exception())
-    {
-      return std::strong_ordering::less;
-    }
-    else if (rhs.valueless_by_exception())
-    {
-      return std::strong_ordering::greater;
-    }
-    else if (lhs.index() != rhs.index())
-    {
-      return lhs.index() <=> rhs.index();
-    }
-    else
-    {
-      // Variants have the same type, apply the equality operator for the contained values
-      private_variant::compare_visitor<gdut::variant<TTypes...>> visitor(rhs);
-
-      return gdut::visit(visitor, lhs);
-    }
-  }
-#endif
+//***************************************************************************
+/// Makes a call to TCallable using tIndex alternative to the variant.
+/// Instantiated as function pointer in the `do_visit` function.
+//***************************************************************************
+template <typename TRet, typename TCallable, typename TVariant, size_t tIndex>
+constexpr TRet do_visit_single(TCallable &&f, TVariant &&v) {
+  return static_cast<TCallable &&>(f)(
+      gdut::get<tIndex>(static_cast<TVariant &&>(v)));
 }
+
+//***************************************************************************
+/// Helper to instantiate the function pointers needed for the "jump table".
+/// Embeds the 'TVarRest' (remaining variants) into its type to come around
+/// the "double expansion" otherwise needed in "do_visit".
+//***************************************************************************
+template <typename TRet, typename TCallable, typename TCurVariant,
+          typename... TVarRest>
+struct do_visit_helper {
+  using function_pointer =
+      add_pointer_t<TRet(TCallable &&, TCurVariant &&, TVarRest &&...)>;
+
+  template <size_t tIndex>
+  static constexpr function_pointer fptr() GDUT_NOEXCEPT {
+    return &do_visit_single<TRet, TCallable, TCurVariant, tIndex, TVarRest...>;
+  }
+};
+
+//***************************************************************************
+/// Dispatch current variant into recursive calls to dispatch the rest.
+//***************************************************************************
+template <typename TRet, typename TCallable, typename TVariant,
+          size_t... tIndices, typename... TVarRest>
+static GDUT_CONSTEXPR14 TRet do_visit(TCallable &&f, TVariant &&v,
+                                      index_sequence<tIndices...>,
+                                      TVarRest &&...variants) {
+  GDUT_ASSERT(!v.valueless_by_exception(), GDUT_ERROR(bad_variant_access));
+
+  using helper_t = do_visit_helper<TRet, TCallable, TVariant, TVarRest...>;
+  using func_ptr = typename helper_t::function_pointer;
+
+  constexpr func_ptr jmp_table[]{helper_t::template fptr<tIndices>()...};
+
+  return jmp_table[v.index()](static_cast<TCallable &&>(f),
+                              static_cast<TVariant &&>(v),
+                              static_cast<TVarRest &&>(variants)...);
+}
+
+template <typename TRet, typename TCallable, typename TVariant, typename... TVs>
+static GDUT_CONSTEXPR14 TRet visit(TCallable &&f, TVariant &&v, TVs &&...vs) {
+  constexpr size_t variants =
+      gdut::variant_size<typename remove_reference<TVariant>::type>::value;
+  return private_variant::do_visit<TRet>(
+      static_cast<TCallable &&>(f), static_cast<TVariant &&>(v),
+      make_index_sequence<variants>{}, static_cast<TVs &&>(vs)...);
+}
+
+//***************************************************************************
+/// Allows constexpr operation in c++14, otherwise acts like a lambda to
+/// bind a variant "get" to an argument for "TCallable".
+//***************************************************************************
+template <typename TRet, typename TCallable, typename TVariant, size_t tIndex>
+class constexpr_visit_closure {
+  add_pointer_t<TCallable> callable_;
+  add_pointer_t<TVariant> variant_;
+
+public:
+  constexpr constexpr_visit_closure(TCallable &&c, TVariant &&v)
+      : callable_(&c), variant_(&v) {}
+
+  template <typename... Ts>
+  GDUT_CONSTEXPR14 TRet operator()(Ts &&...args) const {
+    return static_cast<TCallable &&>(*callable_)(
+        get<tIndex>(static_cast<TVariant &&>(*variant_)),
+        static_cast<Ts &&>(args)...);
+  }
+};
+
+template <typename TRet, typename TCallable, typename TVariant, size_t tIndex,
+          typename TNext, typename... TVariants>
+static GDUT_CONSTEXPR14 TRet do_visit_single(TCallable &&f, TVariant &&v,
+                                             TNext &&next, TVariants &&...vs) {
+  return private_variant::visit<TRet>(
+      constexpr_visit_closure<TRet, TCallable, TVariant, tIndex>(
+          static_cast<TCallable &&>(f), static_cast<TVariant &&>(v)),
+      static_cast<TNext &&>(next), static_cast<TVariants &&>(vs)...);
+}
+
+} // namespace private_variant
+
+//***************************************************************************
+/// C++11/14 compatible gdut::visit for gdut::variant. Supports both c++17
+/// "auto return type" signature and c++20 explicit template return type.
+//***************************************************************************
+template <typename TRet = private_variant::visit_auto_return,
+          typename... TVariants, typename TCallable,
+          typename TDeducedReturn =
+              private_variant::visit_result_t<TRet, TCallable, TVariants...>>
+static GDUT_CONSTEXPR14 TDeducedReturn visit(TCallable &&f, TVariants &&...vs) {
+  return private_variant::visit<TDeducedReturn>(
+      static_cast<TCallable &&>(f), static_cast<TVariants &&>(vs)...);
+}
+
+namespace private_variant {
+//***************************************************************************
+/// C++11 compatible visitor function for testing variant equality.
+/// Assumes that the two variants are already known to contain the same type.
+//***************************************************************************
+template <typename TVariant> struct equality_visitor {
+  equality_visitor(const TVariant &rhs_) : rhs(rhs_) {}
+
+  template <typename TValue> bool operator()(const TValue &lhs_downcasted) {
+    return lhs_downcasted == gdut::get<TValue>(rhs);
+  }
+
+  const TVariant &rhs;
+};
+
+//***************************************************************************
+/// C++11 compatible visitor function for testing variant '<' (less than).
+/// Assumes that the two variants are already known to contain the same type.
+//***************************************************************************
+template <typename TVariant> struct less_than_visitor {
+  less_than_visitor(const TVariant &rhs_) : rhs(rhs_) {}
+
+  template <typename TValue> bool operator()(const TValue &lhs_downcasted) {
+    return lhs_downcasted < gdut::get<TValue>(rhs);
+  }
+
+  const TVariant &rhs;
+};
+} // namespace private_variant
+
+//***************************************************************************
+/// Checks if the variants are equal.
+/// https://en.cppreference.com/w/cpp/utility/variant/operator_cmp
+//***************************************************************************
+template <typename... TTypes>
+GDUT_CONSTEXPR14 bool operator==(const gdut::variant<TTypes...> &lhs,
+                                 const gdut::variant<TTypes...> &rhs) {
+  // If both variants are valueless, they are considered equal
+  if (lhs.valueless_by_exception() && rhs.valueless_by_exception()) {
+    return true;
+  }
+
+  // If one variant is valueless and the other is not, they are not equal
+  if (lhs.valueless_by_exception() || rhs.valueless_by_exception()) {
+    return false;
+  }
+
+  // If variants have different types, they are not equal
+  if (lhs.index() != rhs.index()) {
+    return false;
+  }
+
+  // Variants have the same type, apply the equality operator for the contained
+  // values
+  private_variant::equality_visitor<gdut::variant<TTypes...>> visitor(rhs);
+
+  return gdut::visit(visitor, lhs);
+}
+
+//***************************************************************************
+/// Checks if the variants not equal.
+/// https://en.cppreference.com/w/cpp/utility/variant/operator_cmp
+//***************************************************************************
+template <typename... TTypes>
+GDUT_CONSTEXPR14 bool operator!=(const gdut::variant<TTypes...> &lhs,
+                                 const gdut::variant<TTypes...> &rhs) {
+  return !(lhs == rhs);
+}
+
+//***************************************************************************
+/// Checks if the lhs variant is less than rhs.
+/// https://en.cppreference.com/w/cpp/utility/variant/operator_cmp
+//***************************************************************************
+template <typename... TTypes>
+GDUT_CONSTEXPR14 bool operator<(const gdut::variant<TTypes...> &lhs,
+                                const gdut::variant<TTypes...> &rhs) {
+  // If both variants are valueless, they are considered equal, so not less than
+  if (lhs.valueless_by_exception() && rhs.valueless_by_exception()) {
+    return false;
+  }
+
+  // A valueless variant is always less than a variant with a value
+  if (lhs.valueless_by_exception()) {
+    return true;
+  }
+
+  // A variant with a value is never less than a valueless variant
+  if (rhs.valueless_by_exception()) {
+    return false;
+  }
+
+  // If variants have different types, compare the type index
+  if (lhs.index() != rhs.index()) {
+    return lhs.index() < rhs.index();
+  }
+
+  // Variants have the same type, apply the less than operator for the contained
+  // values
+  private_variant::less_than_visitor<gdut::variant<TTypes...>> visitor(rhs);
+
+  return gdut::visit(visitor, lhs);
+}
+
+//***************************************************************************
+/// Checks if the lhs variant is greater than rhs.
+/// https://en.cppreference.com/w/cpp/utility/variant/operator_cmp
+//***************************************************************************
+template <typename... TTypes>
+GDUT_CONSTEXPR14 bool operator>(const gdut::variant<TTypes...> &lhs,
+                                const gdut::variant<TTypes...> &rhs) {
+  return (rhs < lhs);
+}
+
+//***************************************************************************
+/// Checks if the lhs variant is less than or equal to rhs.
+/// https://en.cppreference.com/w/cpp/utility/variant/operator_cmp
+//***************************************************************************
+template <typename... TTypes>
+GDUT_CONSTEXPR14 bool operator<=(const gdut::variant<TTypes...> &lhs,
+                                 const gdut::variant<TTypes...> &rhs) {
+  return !(lhs > rhs);
+}
+
+//***************************************************************************
+/// Checks if the lhs variant is greater than or equal to rhs.
+/// https://en.cppreference.com/w/cpp/utility/variant/operator_cmp
+//***************************************************************************
+template <typename... TTypes>
+GDUT_CONSTEXPR14 bool operator>=(const gdut::variant<TTypes...> &lhs,
+                                 const gdut::variant<TTypes...> &rhs) {
+  return !(lhs < rhs);
+}
+
+namespace private_variant {
+#if GDUT_USING_CPP20 && GDUT_USING_STL &&                                      \
+    !(defined(GDUT_DEVELOPMENT_OS_APPLE) && defined(GDUT_COMPILER_CLANG))
+//***************************************************************************
+/// C++20 compatible visitor function for testing variant '<=>'.
+/// Assumes that the two variants are already known to contain the same type.
+//***************************************************************************
+template <typename TVariant> struct compare_visitor {
+  compare_visitor(const TVariant &rhs_) : rhs(rhs_) {}
+
+  template <typename TValue>
+  std::strong_ordering operator()(const TValue &lhs_downcasted) {
+    return lhs_downcasted <=> gdut::get<TValue>(rhs);
+  }
+
+  const TVariant &rhs;
+};
+#endif
+} // namespace private_variant
+
+//***************************************************************************
+/// Defines the 'spaceship' <=> operator for comparing variants.
+/// Only defined if using C++20 and STL.
+/// https://en.cppreference.com/w/cpp/utility/variant/operator_cmp
+//***************************************************************************
+#if GDUT_USING_CPP20 && GDUT_USING_STL &&                                      \
+    !(defined(GDUT_DEVELOPMENT_OS_APPLE) && defined(GDUT_COMPILER_CLANG))
+template <typename... TTypes>
+GDUT_CONSTEXPR14 std::common_comparison_category_t<
+    std::compare_three_way_result_t<TTypes>...>
+operator<=>(const gdut::variant<TTypes...> &lhs,
+            const gdut::variant<TTypes...> &rhs) {
+  if (lhs.valueless_by_exception() && rhs.valueless_by_exception()) {
+    return std::strong_ordering::equal;
+  } else if (lhs.valueless_by_exception()) {
+    return std::strong_ordering::less;
+  } else if (rhs.valueless_by_exception()) {
+    return std::strong_ordering::greater;
+  } else if (lhs.index() != rhs.index()) {
+    return lhs.index() <=> rhs.index();
+  } else {
+    // Variants have the same type, apply the equality operator for the
+    // contained values
+    private_variant::compare_visitor<gdut::variant<TTypes...>> visitor(rhs);
+
+    return gdut::visit(visitor, lhs);
+  }
+}
+#endif
+} // namespace gdut
 #endif

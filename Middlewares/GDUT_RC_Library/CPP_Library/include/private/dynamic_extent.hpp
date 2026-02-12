@@ -31,12 +31,11 @@ SOFTWARE.
 #ifndef GDUT_DYNAMIC_EXTENT_INCLUDED
 #define GDUT_DYNAMIC_EXTENT_INCLUDED
 
-#include "../platform.hpp"
 #include "../integral_limits.hpp"
+#include "../platform.hpp"
 
-namespace gdut
-{
-  static GDUT_CONSTANT size_t dynamic_extent = gdut::integral_limits<size_t>::max;
+namespace gdut {
+static GDUT_CONSTANT size_t dynamic_extent = gdut::integral_limits<size_t>::max;
 }
 
 #endif

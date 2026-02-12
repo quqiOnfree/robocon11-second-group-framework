@@ -29,24 +29,19 @@ SOFTWARE.
 ******************************************************************************/
 
 #ifndef GDUT_IN_CHRONO_H
-  #error DO NOT DIRECTLY INCLUDE THIS FILE. USE CHRONO.H
+#error DO NOT DIRECTLY INCLUDE THIS FILE. USE CHRONO.H
 #endif
 
-namespace gdut
-{
-  namespace chrono
-  {
-    struct last_spec
-    {
-      GDUT_CONSTEXPR explicit last_spec()
-      {
-      }
-    };
+namespace gdut {
+namespace chrono {
+struct last_spec {
+  GDUT_CONSTEXPR explicit last_spec() {}
+};
 
 #if GDUT_USING_CPP17
-    inline constexpr last_spec last{};
+inline constexpr last_spec last{};
 #else
-    static GDUT_CONSTANT last_spec last{};
+static GDUT_CONSTANT last_spec last{};
 #endif
-  }
-}
+} // namespace chrono
+} // namespace gdut

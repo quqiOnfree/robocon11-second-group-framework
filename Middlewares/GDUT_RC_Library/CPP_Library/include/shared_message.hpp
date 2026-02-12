@@ -31,196 +31,184 @@ SOFTWARE.
 #ifndef GDUT_SHARED_MESSAGE_INCLUDED
 #define GDUT_SHARED_MESSAGE_INCLUDED
 
-#include "platform.hpp"
-#include "utility.hpp"
-#include "reference_counted_message.hpp"
 #include "ireference_counted_message_pool.hpp"
 #include "message.hpp"
-#include "type_traits.hpp"
+#include "platform.hpp"
+#include "reference_counted_message.hpp"
 #include "static_assert.hpp"
+#include "type_traits.hpp"
+#include "utility.hpp"
 
 //*****************************************************************************
 /// A wrapper for reference counted messages.
-/// Contains pointers to a pool owner and a message defined with a ref count type.
+/// Contains pointers to a pool owner and a message defined with a ref count
+/// type.
 //*****************************************************************************
-namespace gdut
-{
-  class shared_message
-  {
-  public:
-
+namespace gdut {
+class shared_message {
+public:
 #if GDUT_USING_CPP11
-    //*************************************************************************
-    /// Creator for in-place instantiation
-    //*************************************************************************
-    template <typename TMessage, typename TPool, typename... TArgs>
-    static shared_message create(TPool& owner, TArgs&&... args)
-    {
-      return shared_message(owner, gdut::in_place_type_t<TMessage>(), gdut::forward<TArgs>(args)...);
-    }
+  //*************************************************************************
+  /// Creator for in-place instantiation
+  //*************************************************************************
+  template <typename TMessage, typename TPool, typename... TArgs>
+  static shared_message create(TPool &owner, TArgs &&...args) {
+    return shared_message(owner, gdut::in_place_type_t<TMessage>(),
+                          gdut::forward<TArgs>(args)...);
+  }
 #endif
 
-    //*************************************************************************
-    /// Constructor
-    //*************************************************************************
-    template <typename TPool, typename TMessage>
-    shared_message(TPool& owner, const TMessage& message)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_base_of<gdut::ireference_counted_message_pool, TPool>::value), "TPool not derived from gdut::ireference_counted_message_pool");
-      GDUT_STATIC_ASSERT((gdut::is_base_of<gdut::imessage, TMessage>::value), "TMessage not derived from gdut::imessage");
+  //*************************************************************************
+  /// Constructor
+  //*************************************************************************
+  template <typename TPool, typename TMessage>
+  shared_message(TPool &owner, const TMessage &message) {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_base_of<gdut::ireference_counted_message_pool, TPool>::value),
+        "TPool not derived from gdut::ireference_counted_message_pool");
+    GDUT_STATIC_ASSERT((gdut::is_base_of<gdut::imessage, TMessage>::value),
+                       "TMessage not derived from gdut::imessage");
 
-      p_rcmessage = owner.allocate(message);
+    p_rcmessage = owner.allocate(message);
 
-      if (p_rcmessage != GDUT_NULLPTR)
-      {
-        p_rcmessage->get_reference_counter().set_reference_count(1U);
-      }
-    }
-
-#if GDUT_USING_CPP11
-    //*************************************************************************
-    /// Constructor
-    //*************************************************************************
-    template <typename TPool, typename TMessage, typename... TArgs>
-    shared_message(TPool& owner, gdut::in_place_type_t<TMessage>, TArgs&&... args)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_base_of<gdut::ireference_counted_message_pool, TPool>::value), "TPool not derived from gdut::ireference_counted_message_pool");
-      GDUT_STATIC_ASSERT((gdut::is_base_of<gdut::imessage, TMessage>::value), "TMessage not derived from gdut::imessage");
-
-      p_rcmessage = owner.template allocate<TMessage>(gdut::forward<TArgs>(args)...);
-
-      if (p_rcmessage != GDUT_NULLPTR)
-      {
-        p_rcmessage->get_reference_counter().set_reference_count(1U);
-      }
-    }
-#endif
-
-    //*************************************************************************
-    /// Constructor
-    //*************************************************************************
-    shared_message(gdut::ireference_counted_message& rcm)
-    {
-      p_rcmessage = &rcm;
-
+    if (p_rcmessage != GDUT_NULLPTR) {
       p_rcmessage->get_reference_counter().set_reference_count(1U);
     }
+  }
 
-    //*************************************************************************
-    /// Copy constructor
-    //*************************************************************************
-    shared_message(const gdut::shared_message& other)
-      : p_rcmessage(other.p_rcmessage)
-    {
+#if GDUT_USING_CPP11
+  //*************************************************************************
+  /// Constructor
+  //*************************************************************************
+  template <typename TPool, typename TMessage, typename... TArgs>
+  shared_message(TPool &owner, gdut::in_place_type_t<TMessage>,
+                 TArgs &&...args) {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_base_of<gdut::ireference_counted_message_pool, TPool>::value),
+        "TPool not derived from gdut::ireference_counted_message_pool");
+    GDUT_STATIC_ASSERT((gdut::is_base_of<gdut::imessage, TMessage>::value),
+                       "TMessage not derived from gdut::imessage");
+
+    p_rcmessage =
+        owner.template allocate<TMessage>(gdut::forward<TArgs>(args)...);
+
+    if (p_rcmessage != GDUT_NULLPTR) {
+      p_rcmessage->get_reference_counter().set_reference_count(1U);
+    }
+  }
+#endif
+
+  //*************************************************************************
+  /// Constructor
+  //*************************************************************************
+  shared_message(gdut::ireference_counted_message &rcm) {
+    p_rcmessage = &rcm;
+
+    p_rcmessage->get_reference_counter().set_reference_count(1U);
+  }
+
+  //*************************************************************************
+  /// Copy constructor
+  //*************************************************************************
+  shared_message(const gdut::shared_message &other)
+      : p_rcmessage(other.p_rcmessage) {
+    p_rcmessage->get_reference_counter().increment_reference_count();
+  }
+
+#if GDUT_USING_CPP11
+  //*************************************************************************
+  /// Move constructor
+  //*************************************************************************
+  shared_message(gdut::shared_message &&other) GDUT_NOEXCEPT
+      : p_rcmessage(gdut::move(other.p_rcmessage)) {
+    other.p_rcmessage = GDUT_NULLPTR;
+  }
+#endif
+
+  //*************************************************************************
+  /// Copy assignment operator
+  //*************************************************************************
+  shared_message &operator=(const gdut::shared_message &other) {
+    if (&other != this) {
+      // Deal with the current message.
+      if (p_rcmessage->get_reference_counter().decrement_reference_count() ==
+          0U) {
+        p_rcmessage->release();
+      }
+
+      // Copy over the new one.
+      p_rcmessage = other.p_rcmessage;
       p_rcmessage->get_reference_counter().increment_reference_count();
     }
 
-#if GDUT_USING_CPP11
-    //*************************************************************************
-    /// Move constructor
-    //*************************************************************************
-    shared_message(gdut::shared_message&& other) GDUT_NOEXCEPT
-      : p_rcmessage(gdut::move(other.p_rcmessage))
-    {
-      other.p_rcmessage = GDUT_NULLPTR;
-    }
-#endif
-
-    //*************************************************************************
-    /// Copy assignment operator
-    //*************************************************************************
-    shared_message& operator =(const gdut::shared_message& other)
-    {
-      if (&other != this)
-      {
-        // Deal with the current message.
-        if (p_rcmessage->get_reference_counter().decrement_reference_count() == 0U)
-        {
-          p_rcmessage->release();
-        }
-
-        // Copy over the new one.
-        p_rcmessage = other.p_rcmessage;
-        p_rcmessage->get_reference_counter().increment_reference_count();
-       }
-
-      return *this;
-    }
+    return *this;
+  }
 
 #if GDUT_USING_CPP11
-    //*************************************************************************
-    /// Move assignment operator
-    //*************************************************************************
-    shared_message& operator =(gdut::shared_message&& other) GDUT_NOEXCEPT
-    {
-      if (&other != this)
-      {
-        // Deal with the current message.
-        if (p_rcmessage->get_reference_counter().decrement_reference_count() == 0U)
-        {
-          p_rcmessage->release();
-        }
-
-        // Move over the new one.
-        p_rcmessage = gdut::move(other.p_rcmessage);
-        other.p_rcmessage = GDUT_NULLPTR;
-      }
-
-      return *this;
-    }
-#endif
-
-    //*************************************************************************
-    /// Destructor
-    /// Returns the message back to the pool it it is the last copy.
-    //*************************************************************************
-    ~shared_message()
-    {
-      if ((p_rcmessage != GDUT_NULLPTR) &&
-          (p_rcmessage->get_reference_counter().decrement_reference_count() == 0U))
-      {       
+  //*************************************************************************
+  /// Move assignment operator
+  //*************************************************************************
+  shared_message &operator=(gdut::shared_message &&other) GDUT_NOEXCEPT {
+    if (&other != this) {
+      // Deal with the current message.
+      if (p_rcmessage->get_reference_counter().decrement_reference_count() ==
+          0U) {
         p_rcmessage->release();
       }
+
+      // Move over the new one.
+      p_rcmessage = gdut::move(other.p_rcmessage);
+      other.p_rcmessage = GDUT_NULLPTR;
     }
 
-    //*************************************************************************
-    /// Get a reference to the contained message.
-    //***********************************************************************
-    GDUT_NODISCARD gdut::imessage& get_message()
-    {
-      return p_rcmessage->get_message();
+    return *this;
+  }
+#endif
+
+  //*************************************************************************
+  /// Destructor
+  /// Returns the message back to the pool it it is the last copy.
+  //*************************************************************************
+  ~shared_message() {
+    if ((p_rcmessage != GDUT_NULLPTR) &&
+        (p_rcmessage->get_reference_counter().decrement_reference_count() ==
+         0U)) {
+      p_rcmessage->release();
     }
+  }
 
-    //*************************************************************************
-    /// Get a const reference to the contained message.
-    //*************************************************************************
-    GDUT_NODISCARD const gdut::imessage& get_message() const
-    {
-      return p_rcmessage->get_message();
-    }
+  //*************************************************************************
+  /// Get a reference to the contained message.
+  //***********************************************************************
+  GDUT_NODISCARD gdut::imessage &get_message() {
+    return p_rcmessage->get_message();
+  }
 
-    //*************************************************************************
-    /// Get the current reference count for this shared message.
-    //*************************************************************************
-    GDUT_NODISCARD uint32_t get_reference_count() const
-    {
-      return p_rcmessage->get_reference_counter().get_reference_count();
-    }
+  //*************************************************************************
+  /// Get a const reference to the contained message.
+  //*************************************************************************
+  GDUT_NODISCARD const gdut::imessage &get_message() const {
+    return p_rcmessage->get_message();
+  }
 
-    //*************************************************************************
-    /// Checks if the shared message is valid.
-    //*************************************************************************
-    GDUT_NODISCARD bool is_valid() const
-    {
-      return p_rcmessage != GDUT_NULLPTR;
-    }
+  //*************************************************************************
+  /// Get the current reference count for this shared message.
+  //*************************************************************************
+  GDUT_NODISCARD uint32_t get_reference_count() const {
+    return p_rcmessage->get_reference_counter().get_reference_count();
+  }
 
-  private:
+  //*************************************************************************
+  /// Checks if the shared message is valid.
+  //*************************************************************************
+  GDUT_NODISCARD bool is_valid() const { return p_rcmessage != GDUT_NULLPTR; }
 
-    shared_message() GDUT_DELETE;
+private:
+  shared_message() GDUT_DELETE;
 
-    gdut::ireference_counted_message* p_rcmessage; ///< A pointer to the reference  counted message.
-  };
-}
+  gdut::ireference_counted_message
+      *p_rcmessage; ///< A pointer to the reference  counted message.
+};
+} // namespace gdut
 
 #endif

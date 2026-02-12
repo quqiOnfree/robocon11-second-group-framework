@@ -69,384 +69,346 @@ cog.outl("//********************************************************************
 ///\ingroup utilities
 
 #include "platform.hpp"
-#include "type_traits.hpp"
 #include "smallest.hpp"
 #include "static_assert.hpp"
+#include "type_traits.hpp"
 
-namespace gdut
-{
+namespace gdut {
 #if GDUT_USING_CPP11 && !defined(GDUT_LARGEST_TYPE_FORCE_CPP03_IMPLEMENTATION)
-  //***************************************************************************
-  /// Template to determine the largest type and size.
-  /// Defines 'value_type' which is the type of the largest parameter.
-  /// Defines 'size' which is the size of the largest parameter.
-  ///\ingroup largest
-  //***************************************************************************
-  template <typename T1, typename... TRest>
-  class largest_type
-  {
-  private:
+//***************************************************************************
+/// Template to determine the largest type and size.
+/// Defines 'value_type' which is the type of the largest parameter.
+/// Defines 'size' which is the size of the largest parameter.
+///\ingroup largest
+//***************************************************************************
+template <typename T1, typename... TRest> class largest_type {
+private:
+  // Define 'largest_other' as 'largest_type' with all but the first parameter.
+  using largest_other = typename largest_type<TRest...>::type;
 
-    // Define 'largest_other' as 'largest_type' with all but the first parameter.
-    using largest_other = typename largest_type<TRest...>::type;
+public:
+  // Set 'type' to be the largest of the first parameter and any of the others.
+  // This is recursive.
+  using type = typename gdut::conditional<
+      (gdut::size_of<T1>::value >
+       gdut::size_of<largest_other>::value), // Boolean
+      T1,                                    // TrueType
+      largest_other>                         // FalseType
+      ::type;                                // The largest type of the two.
 
-  public:
+  // The size of the largest type.
+  enum { size = gdut::size_of<type>::value };
+};
 
-    // Set 'type' to be the largest of the first parameter and any of the others.
-    // This is recursive.
-    using type = typename gdut::conditional<(gdut::size_of<T1>::value > gdut::size_of<largest_other>::value),  // Boolean
-                                            T1,                                                             // TrueType
-                                            largest_other>                                                  // FalseType
-                                            ::type;                                                         // The largest type of the two.
+//***************************************************************************
+// Specialisation for one template parameter.
+//***************************************************************************
+template <typename T1> class largest_type<T1> {
+public:
+  using type = T1;
 
-    // The size of the largest type.
-    enum
-    {
-      size = gdut::size_of<type>::value
-    };
-  };
-
-  //***************************************************************************
-  // Specialisation for one template parameter.
-  //***************************************************************************
-  template <typename T1>
-  class largest_type<T1>
-  {
-  public:
-
-    using type = T1;
-
-    enum
-    {
-      size = gdut::size_of<type>::value
-    };
-  };
+  enum { size = gdut::size_of<type>::value };
+};
 
 #if GDUT_USING_CPP11
-  template <typename... T>
-  using largest_type_t = typename largest_type<T...>::type;
+template <typename... T>
+using largest_type_t = typename largest_type<T...>::type;
 #endif
 
 #if GDUT_USING_CPP17
-  template <typename... T>
-  constexpr size_t largest_type_v = largest_type<T...>::size;
+template <typename... T>
+constexpr size_t largest_type_v = largest_type<T...>::size;
 #endif
 
 #else
-  /*[[[cog
-  import cog
-  cog.outl("//***************************************************************************")
-  cog.outl("/// Template to determine the largest type and size.")
-  cog.outl("/// Supports up to %s types." % NTypes)
-  cog.outl("/// Defines 'value_type' which is the type of the largest parameter.")
-  cog.outl("/// Defines 'size' which is the size of the largest parameter.")
-  cog.outl("///\\ingroup largest")
-  cog.outl("//***************************************************************************")
-  cog.out("template <typename T1, ")
-  for n in range(2, int(NTypes)):
-      cog.out("typename T%s = void, " % n)
-      if n % 4 == 0:
-          cog.outl("")
-          cog.out("          ")
-  cog.outl("typename T%s = void>" % int(NTypes))
-  cog.outl("struct largest_type")
-  cog.outl("{")
-  cog.outl("  // Define 'largest_other' as 'largest_type' with all but the first parameter. ")
-  cog.out("  typedef typename largest_type<")
-  for n in range(2, int(NTypes)):
-      cog.out("T%s, " % n)
-      if n % 16 == 0:
-          cog.outl("")
-          cog.out("                                ")
-  cog.outl("T%s>::type largest_other;" % int(NTypes))
-  cog.outl("")
-  cog.outl("  // Set 'type' to be the largest of the first parameter and any of the others.")
-  cog.outl("  // This is recursive.")
-  cog.outl("  typedef typename gdut::conditional<(sizeof(T1) > sizeof(largest_other)), // Boolean")
-  cog.outl("                                     T1,                                  // TrueType")
-  cog.outl("                                     largest_other>                       // FalseType")
-  cog.outl("                                     ::type type;                         // The largest type of the two.")
-  cog.outl("")
-  cog.outl("  // The size of the largest type.")
-  cog.outl("  enum")
-  cog.outl("  {")
-  cog.outl("    size = sizeof(type)")
-  cog.outl("  };")
-  cog.outl("};")
-  cog.outl("")
-  cog.outl("//***************************************************************************")
-  cog.outl("// Specialisation for one template parameter.")
-  cog.outl("//***************************************************************************")
-  cog.outl("template <typename T1>")
-  cog.out("struct largest_type<T1,   ")
-  for n in range(2, int(NTypes)):
-      cog.out("void, ")
-      if n % 8 == 0:
-          cog.outl("")
-          cog.out("                    ")
-  cog.outl("void>")
-  cog.outl("{")
-  cog.outl("  typedef T1 type;")
-  cog.outl("")
-  cog.outl("  enum")
-  cog.outl("  {")
-  cog.outl("    size = sizeof(type)")
-  cog.outl("  };")
-  cog.outl("};")
-  ]]]*/
-  /*[[[end]]]*/
+/*[[[cog
+import cog
+cog.outl("//***************************************************************************")
+cog.outl("/// Template to determine the largest type and size.")
+cog.outl("/// Supports up to %s types." % NTypes)
+cog.outl("/// Defines 'value_type' which is the type of the largest parameter.")
+cog.outl("/// Defines 'size' which is the size of the largest parameter.")
+cog.outl("///\\ingroup largest")
+cog.outl("//***************************************************************************")
+cog.out("template <typename T1, ")
+for n in range(2, int(NTypes)):
+    cog.out("typename T%s = void, " % n)
+    if n % 4 == 0:
+        cog.outl("")
+        cog.out("          ")
+cog.outl("typename T%s = void>" % int(NTypes))
+cog.outl("struct largest_type")
+cog.outl("{")
+cog.outl("  // Define 'largest_other' as 'largest_type' with all but the first
+parameter. ") cog.out("  typedef typename largest_type<") for n in range(2,
+int(NTypes)): cog.out("T%s, " % n) if n % 16 == 0: cog.outl("") cog.out(" ")
+cog.outl("T%s>::type largest_other;" % int(NTypes))
+cog.outl("")
+cog.outl("  // Set 'type' to be the largest of the first parameter and any of
+the others.") cog.outl("  // This is recursive.") cog.outl("  typedef typename
+gdut::conditional<(sizeof(T1) > sizeof(largest_other)), // Boolean") cog.outl("
+T1,                                  // TrueType") cog.outl(" largest_other> //
+FalseType") cog.outl("                                     ::type type; // The
+largest type of the two.") cog.outl("") cog.outl("  // The size of the largest
+type.") cog.outl("  enum") cog.outl("  {") cog.outl("    size = sizeof(type)")
+cog.outl("  };")
+cog.outl("};")
+cog.outl("")
+cog.outl("//***************************************************************************")
+cog.outl("// Specialisation for one template parameter.")
+cog.outl("//***************************************************************************")
+cog.outl("template <typename T1>")
+cog.out("struct largest_type<T1,   ")
+for n in range(2, int(NTypes)):
+    cog.out("void, ")
+    if n % 8 == 0:
+        cog.outl("")
+        cog.out("                    ")
+cog.outl("void>")
+cog.outl("{")
+cog.outl("  typedef T1 type;")
+cog.outl("")
+cog.outl("  enum")
+cog.outl("  {")
+cog.outl("    size = sizeof(type)")
+cog.outl("  };")
+cog.outl("};")
+]]]*/
+/*[[[end]]]*/
 #endif
 
-#if GDUT_USING_CPP11 && !defined(GDUT_LARGEST_ALIGNMENT_FORCE_CPP03_IMPLEMENTATION)
-  //***************************************************************************
-  /// Template to determine the largest alignment.
-  /// Defines <b>value</b> which is the largest alignment of all the parameters.
-  ///\ingroup largest
-  //***************************************************************************
-  template <typename T1, typename... TRest>
-  struct largest_alignment
-  {
-    // Define 'largest_other' as 'largest_type' with all but the first parameter.
-    using largest_other = typename largest_alignment<TRest...>::type;
+#if GDUT_USING_CPP11 &&                                                        \
+    !defined(GDUT_LARGEST_ALIGNMENT_FORCE_CPP03_IMPLEMENTATION)
+//***************************************************************************
+/// Template to determine the largest alignment.
+/// Defines <b>value</b> which is the largest alignment of all the parameters.
+///\ingroup largest
+//***************************************************************************
+template <typename T1, typename... TRest> struct largest_alignment {
+  // Define 'largest_other' as 'largest_type' with all but the first parameter.
+  using largest_other = typename largest_alignment<TRest...>::type;
 
-    // Set 'type' to be the largest of the first parameter and any of the others.
-    // This is recursive.
-    using type = typename gdut::conditional<(gdut::alignment_of<T1>::value > gdut::alignment_of<largest_other>::value), // Boolean
-                                            T1,                                                                      // TrueType
-                                            largest_other>                                                           // FalseType
-                                            ::type;                                                                  // The largest type of the two.
+  // Set 'type' to be the largest of the first parameter and any of the others.
+  // This is recursive.
+  using type = typename gdut::conditional<
+      (gdut::alignment_of<T1>::value >
+       gdut::alignment_of<largest_other>::value), // Boolean
+      T1,                                         // TrueType
+      largest_other>                              // FalseType
+      ::type; // The largest type of the two.
 
-    // The largest alignment.
-    enum
-    {
-      value = gdut::alignment_of<type>::value
-    };
-  };
+  // The largest alignment.
+  enum { value = gdut::alignment_of<type>::value };
+};
 
-  //***************************************************************************
-  // Specialisation for one template parameter.
-  //***************************************************************************
-  template <typename T1>
-  struct largest_alignment<T1>
-  {
-    typedef T1 type;
+//***************************************************************************
+// Specialisation for one template parameter.
+//***************************************************************************
+template <typename T1> struct largest_alignment<T1> {
+  typedef T1 type;
 
-    enum
-    {
-      value = gdut::alignment_of<type>::value
-    };
-  };
+  enum { value = gdut::alignment_of<type>::value };
+};
 
 #if GDUT_USING_CPP17
-  template <typename... T>
-  inline constexpr size_t largest_alignment_v = largest_alignment<T...>::value;
+template <typename... T>
+inline constexpr size_t largest_alignment_v = largest_alignment<T...>::value;
 #endif
 
 #else
-  /*[[[cog
-  import cog
-  cog.outl("//***************************************************************************")
-  cog.outl("/// Template to determine the largest alignment.")
-  cog.outl("/// Supports up to %s types." % int(NTypes))
-  cog.outl("/// Defines <b>value</b> which is the largest alignment of all the parameters.")
-  cog.outl("///\\ingroup largest")
-  cog.outl("//***************************************************************************")
-  cog.out("template <typename T1, ")
-  for n in range(2, int(NTypes)):
-      cog.out("typename T%s = void, " % n)
-      if n % 4 == 0:
-          cog.outl("")
-          cog.out("          ")
-  cog.outl("typename T%s = void>" % int(NTypes))
-  cog.outl("struct largest_alignment")
-  cog.outl("{")
-  cog.outl("  // Define 'largest_other' as 'largest_type' with all but the first parameter. ")
-  cog.out("  typedef typename largest_alignment<")
-  for n in range(2, int(NTypes)):
-      cog.out("T%s, " % n)
-      if n % 16 == 0:
-          cog.outl("")
-          cog.out("                                ")
-  cog.outl("T%s>::type largest_other;" % int(NTypes))
-  cog.outl("")
-  cog.outl("  // Set 'type' to be the largest of the first parameter and any of the others.")
-  cog.outl("  // This is recursive.")
-  cog.outl("  typedef typename gdut::conditional<(gdut::alignment_of<T1>::value > gdut::alignment_of<largest_other>::value), // Boolean")
-  cog.outl("                                     T1,                                                                      // TrueType")
-  cog.outl("                                     largest_other>                                                           // FalseType")
-  cog.outl("                                     ::type type;                                                             // The largest type of the two.")
-  cog.outl("")
-  cog.outl("  // The largest alignment.")
-  cog.outl("  enum")
-  cog.outl("  {")
-  cog.outl("    value = gdut::alignment_of<type>::value")
-  cog.outl("  };")
-  cog.outl("};")
-  cog.outl("")
-  cog.outl("//***************************************************************************")
-  cog.outl("// Specialisation for one template parameter.")
-  cog.outl("//***************************************************************************")
-  cog.outl("template <typename T1>")
-  cog.out("struct largest_alignment<T1,   ")
-  for n in range(2, int(NTypes)):
-      cog.out("void, ")
-      if n % 8 == 0:
-          cog.outl("")
-          cog.out("                         ")
-  cog.outl("void>")
-  cog.outl("{")
-  cog.outl("  typedef T1 type;")
-  cog.outl("")
-  cog.outl("  enum")
-  cog.outl("  {")
-  cog.outl("    value = gdut::alignment_of<type>::value")
-  cog.outl("  };")
-  cog.outl("};")
-  ]]]*/
-  /*[[[end]]]*/
+/*[[[cog
+import cog
+cog.outl("//***************************************************************************")
+cog.outl("/// Template to determine the largest alignment.")
+cog.outl("/// Supports up to %s types." % int(NTypes))
+cog.outl("/// Defines <b>value</b> which is the largest alignment of all the
+parameters.") cog.outl("///\\ingroup largest")
+cog.outl("//***************************************************************************")
+cog.out("template <typename T1, ")
+for n in range(2, int(NTypes)):
+    cog.out("typename T%s = void, " % n)
+    if n % 4 == 0:
+        cog.outl("")
+        cog.out("          ")
+cog.outl("typename T%s = void>" % int(NTypes))
+cog.outl("struct largest_alignment")
+cog.outl("{")
+cog.outl("  // Define 'largest_other' as 'largest_type' with all but the first
+parameter. ") cog.out("  typedef typename largest_alignment<") for n in range(2,
+int(NTypes)): cog.out("T%s, " % n) if n % 16 == 0: cog.outl("") cog.out(" ")
+cog.outl("T%s>::type largest_other;" % int(NTypes))
+cog.outl("")
+cog.outl("  // Set 'type' to be the largest of the first parameter and any of
+the others.") cog.outl("  // This is recursive.") cog.outl("  typedef typename
+gdut::conditional<(gdut::alignment_of<T1>::value >
+gdut::alignment_of<largest_other>::value), // Boolean") cog.outl(" T1, //
+TrueType") cog.outl("                                     largest_other> //
+FalseType") cog.outl("                                     ::type type; // The
+largest type of the two.") cog.outl("") cog.outl("  // The largest alignment.")
+cog.outl("  enum")
+cog.outl("  {")
+cog.outl("    value = gdut::alignment_of<type>::value")
+cog.outl("  };")
+cog.outl("};")
+cog.outl("")
+cog.outl("//***************************************************************************")
+cog.outl("// Specialisation for one template parameter.")
+cog.outl("//***************************************************************************")
+cog.outl("template <typename T1>")
+cog.out("struct largest_alignment<T1,   ")
+for n in range(2, int(NTypes)):
+    cog.out("void, ")
+    if n % 8 == 0:
+        cog.outl("")
+        cog.out("                         ")
+cog.outl("void>")
+cog.outl("{")
+cog.outl("  typedef T1 type;")
+cog.outl("")
+cog.outl("  enum")
+cog.outl("  {")
+cog.outl("    value = gdut::alignment_of<type>::value")
+cog.outl("  };")
+cog.outl("};")
+]]]*/
+/*[[[end]]]*/
 #endif
 
-  //***************************************************************************
-  /// Defines a type that is as larger or larger than the specified type.
-  /// Will return the specified type is there is not a larger type.
-  ///\\ingroup largest
-  //***************************************************************************
-  template <typename T>
-  struct larger_int_type
-  {
-    GDUT_STATIC_ASSERT(gdut::is_integral<T>::value, "Must be an integral type");
+//***************************************************************************
+/// Defines a type that is as larger or larger than the specified type.
+/// Will return the specified type is there is not a larger type.
+///\\ingroup largest
+//***************************************************************************
+template <typename T> struct larger_int_type {
+  GDUT_STATIC_ASSERT(gdut::is_integral<T>::value, "Must be an integral type");
 
-    typedef typename gdut::smallest_int_for_bits<gdut::integral_limits<typename gdut::make_signed<T>::type>::bits + 1>::type type;
-  };
+  typedef typename gdut::smallest_int_for_bits<
+      gdut::integral_limits<typename gdut::make_signed<T>::type>::bits +
+      1>::type type;
+};
 
 #if GDUT_USING_CPP11
-  template <typename T>
-  using larger_int_type_t = typename larger_int_type<T>::type;
+template <typename T>
+using larger_int_type_t = typename larger_int_type<T>::type;
 #endif
 
-  //***************************************************************************
-  /// Defines a type that is as larger or larger than the specified type.
-  /// Will return the specified type is there is not a larger type.
-  ///\ingroup largest
-  //***************************************************************************
-  template <typename T>
-  struct larger_uint_type
-  {
-    GDUT_STATIC_ASSERT(gdut::is_integral<T>::value, "Must be an integral type");
+//***************************************************************************
+/// Defines a type that is as larger or larger than the specified type.
+/// Will return the specified type is there is not a larger type.
+///\ingroup largest
+//***************************************************************************
+template <typename T> struct larger_uint_type {
+  GDUT_STATIC_ASSERT(gdut::is_integral<T>::value, "Must be an integral type");
 
-    typedef typename gdut::smallest_uint_for_bits<gdut::integral_limits<typename gdut::make_unsigned<T>::type>::bits + 1>::type type;
-  };
+  typedef typename gdut::smallest_uint_for_bits<
+      gdut::integral_limits<typename gdut::make_unsigned<T>::type>::bits +
+      1>::type type;
+};
 
 #if GDUT_USING_CPP11
-  template <typename T>
-  using larger_uint_type_t = typename larger_uint_type<T>::type;
+template <typename T>
+using larger_uint_type_t = typename larger_uint_type<T>::type;
 #endif
 
-  //***************************************************************************
-  /// Defines a type that is as larger or larger than the specified type.
-  /// Will return the specified type is there is not a larger type.
-  /// The returned type will be of the same sign.
-  ///\ingroup largest
-  //***************************************************************************
-  template <typename T, bool IS_SIGNED = gdut::is_signed<T>::value>
-  struct larger_type;
+//***************************************************************************
+/// Defines a type that is as larger or larger than the specified type.
+/// Will return the specified type is there is not a larger type.
+/// The returned type will be of the same sign.
+///\ingroup largest
+//***************************************************************************
+template <typename T, bool IS_SIGNED = gdut::is_signed<T>::value>
+struct larger_type;
 
-  template <typename T>
-  struct larger_type<T, false>
-  {
-    GDUT_STATIC_ASSERT(gdut::is_integral<T>::value, "Must be an integral type");
+template <typename T> struct larger_type<T, false> {
+  GDUT_STATIC_ASSERT(gdut::is_integral<T>::value, "Must be an integral type");
 
-    typedef typename gdut::smallest_uint_for_bits<gdut::integral_limits<T>::bits + 1>::type type;
-  };
+  typedef typename gdut::smallest_uint_for_bits<gdut::integral_limits<T>::bits +
+                                                1>::type type;
+};
 
-  template <typename T>
-  struct larger_type<T, true>
-  {
-    GDUT_STATIC_ASSERT(gdut::is_integral<T>::value, "Must be an integral type");
+template <typename T> struct larger_type<T, true> {
+  GDUT_STATIC_ASSERT(gdut::is_integral<T>::value, "Must be an integral type");
 
-    typedef typename gdut::smallest_int_for_bits<gdut::integral_limits<T>::bits + 1>::type type;
-  };
+  typedef typename gdut::smallest_int_for_bits<gdut::integral_limits<T>::bits +
+                                               1>::type type;
+};
 
 #if GDUT_USING_CPP11
-  template <typename T>
-  using larger_type_t = typename larger_type<T>::type;
+template <typename T> using larger_type_t = typename larger_type<T>::type;
 #endif
 
 #if GDUT_USING_CPP11 && !defined(GDUT_LARGEST_FORCE_CPP03_IMPLEMENTATION)
-  //***************************************************************************
-  /// Template to determine the largest type, size and alignment.
-  /// Defines <b>value</b> which is the largest type, size and alignment of all the parameters.
-  ///\ingroup largest
-  //***************************************************************************
-  template <typename... T>
-  struct largest
-  {
-    using type = typename gdut::largest_type<T...>::type;
+//***************************************************************************
+/// Template to determine the largest type, size and alignment.
+/// Defines <b>value</b> which is the largest type, size and alignment of all
+/// the parameters.
+///\ingroup largest
+//***************************************************************************
+template <typename... T> struct largest {
+  using type = typename gdut::largest_type<T...>::type;
 
-    enum
-    {
-      size      = gdut::largest_type<T...>::size,
-      alignment = gdut::largest_alignment<T...>::value
-    };
+  enum {
+    size = gdut::largest_type<T...>::size,
+    alignment = gdut::largest_alignment<T...>::value
   };
+};
 
 #if GDUT_USING_CPP11
-    template <typename... T>
-    using largest_t = typename largest<T...>::type;
+template <typename... T> using largest_t = typename largest<T...>::type;
 #endif
 
 #if GDUT_USING_CPP17
-    template <typename... T>
-    inline constexpr size_t largest_size = largest<T...>::size;
+template <typename... T>
+inline constexpr size_t largest_size = largest<T...>::size;
 #endif
 
 #else
-  /*[[[cog
-  import cog
-  cog.outl("//***************************************************************************")
-  cog.outl("/// Template to determine the largest type, size and alignment.")
-  cog.outl("/// Supports up to %s types." % NTypes)
-  cog.outl("/// Defines <b>value</b> which is the largest type, size and alignment of all the parameters.")
-  cog.outl("///\\ingroup largest")
-  cog.outl("//***************************************************************************")
-  cog.out("template <typename T1, ")
-  for n in range(2, int(NTypes)):
-      cog.out("typename T%s = void, " % n)
-      if n % 4 == 0:
-          cog.outl("")
-          cog.out("          ")
-  cog.outl("typename T%s = void>" % NTypes)
-  cog.outl("struct largest")
-  cog.outl("{")
-  cog.out("  typedef typename gdut::largest_type<")
-  for n in range(1, int(NTypes)):
-      cog.out("T%s, " % n)
-      if n % 16 == 0:
-          cog.outl("")
-          cog.out("                                     ")
-  cog.outl("T%s>::type type;" % NTypes)
-  cog.outl("")
-  cog.outl("  enum")
-  cog.outl("  {")
-  cog.out("    size      = gdut::largest_type<")
-  for n in range(1, int(NTypes)):
-      cog.out("T%s, " % n)
-      if n % 16 == 0:
-          cog.outl("")
-          cog.out("                                  ")
-  cog.outl("T%s>::size," % NTypes)
-  cog.out("    alignment = gdut::largest_alignment<")
-  for n in range(1, int(NTypes)):
-      cog.out("T%s, " % n)
-      if n % 16 == 0:
-          cog.outl("")
-          cog.out("                                       ")
-  cog.outl("T%s>::value" % NTypes)
-  cog.outl("  };")
-  cog.outl("};")
-  ]]]*/
-  /*[[[end]]]*/
+/*[[[cog
+import cog
+cog.outl("//***************************************************************************")
+cog.outl("/// Template to determine the largest type, size and alignment.")
+cog.outl("/// Supports up to %s types." % NTypes)
+cog.outl("/// Defines <b>value</b> which is the largest type, size and alignment
+of all the parameters.") cog.outl("///\\ingroup largest")
+cog.outl("//***************************************************************************")
+cog.out("template <typename T1, ")
+for n in range(2, int(NTypes)):
+    cog.out("typename T%s = void, " % n)
+    if n % 4 == 0:
+        cog.outl("")
+        cog.out("          ")
+cog.outl("typename T%s = void>" % NTypes)
+cog.outl("struct largest")
+cog.outl("{")
+cog.out("  typedef typename gdut::largest_type<")
+for n in range(1, int(NTypes)):
+    cog.out("T%s, " % n)
+    if n % 16 == 0:
+        cog.outl("")
+        cog.out("                                     ")
+cog.outl("T%s>::type type;" % NTypes)
+cog.outl("")
+cog.outl("  enum")
+cog.outl("  {")
+cog.out("    size      = gdut::largest_type<")
+for n in range(1, int(NTypes)):
+    cog.out("T%s, " % n)
+    if n % 16 == 0:
+        cog.outl("")
+        cog.out("                                  ")
+cog.outl("T%s>::size," % NTypes)
+cog.out("    alignment = gdut::largest_alignment<")
+for n in range(1, int(NTypes)):
+    cog.out("T%s, " % n)
+    if n % 16 == 0:
+        cog.outl("")
+        cog.out("                                       ")
+cog.outl("T%s>::value" % NTypes)
+cog.outl("  };")
+cog.outl("};")
+]]]*/
+/*[[[end]]]*/
 #endif
-}
+} // namespace gdut
 
 #endif

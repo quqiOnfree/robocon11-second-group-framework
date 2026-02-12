@@ -31,8 +31,8 @@ SOFTWARE.
 #ifndef GDUT_DEBUG_COUNT_INCLUDED
 #define GDUT_DEBUG_COUNT_INCLUDED
 
-#include "platform.hpp"
 #include "atomic.hpp"
+#include "platform.hpp"
 
 #include <assert.h>
 #include <stdint.h>
@@ -42,132 +42,101 @@ SOFTWARE.
 
 #if defined(GDUT_DEBUG_COUNT)
 
-  #define GDUT_DECLARE_DEBUG_COUNT              gdut::debug_count etl_debug_count
-  #define GDUT_SET_DEBUG_COUNT(n)               etl_debug_count.set(n)
-  #define GDUT_GET_DEBUG_COUNT                  etl_debug_count.get()
-  #define GDUT_INCREMENT_DEBUG_COUNT            ++etl_debug_count
-  #define GDUT_DECREMENT_DEBUG_COUNT            --etl_debug_count
-  #define GDUT_ADD_DEBUG_COUNT(n)               etl_debug_count += (n)
-  #define GDUT_SUBTRACT_DEBUG_COUNT(n)          etl_debug_count -= (n)
-  #define GDUT_RESET_DEBUG_COUNT                etl_debug_count.clear()
-  #define GDUT_OBJECT_RESET_DEBUG_COUNT(object) object.etl_debug_count.clear()
-  #define GDUT_OBJECT_GET_DEBUG_COUNT(object)   object.etl_debug_count.get()
+#define GDUT_DECLARE_DEBUG_COUNT gdut::debug_count etl_debug_count
+#define GDUT_SET_DEBUG_COUNT(n) etl_debug_count.set(n)
+#define GDUT_GET_DEBUG_COUNT etl_debug_count.get()
+#define GDUT_INCREMENT_DEBUG_COUNT ++etl_debug_count
+#define GDUT_DECREMENT_DEBUG_COUNT --etl_debug_count
+#define GDUT_ADD_DEBUG_COUNT(n) etl_debug_count += (n)
+#define GDUT_SUBTRACT_DEBUG_COUNT(n) etl_debug_count -= (n)
+#define GDUT_RESET_DEBUG_COUNT etl_debug_count.clear()
+#define GDUT_OBJECT_RESET_DEBUG_COUNT(object) object.etl_debug_count.clear()
+#define GDUT_OBJECT_GET_DEBUG_COUNT(object) object.etl_debug_count.get()
 
-namespace gdut
-{
-  //***************************************************************************
-  /// Used to count instances.
-  /// Asserts if the count is decremented below zero.
-  /// Asserts if the count is not zero when destructed.
-  /// Does nothing in a non-debug build.
-  ///\ingroup reference
-  //***************************************************************************
-  class debug_count
+namespace gdut {
+//***************************************************************************
+/// Used to count instances.
+/// Asserts if the count is decremented below zero.
+/// Asserts if the count is not zero when destructed.
+/// Does nothing in a non-debug build.
+///\ingroup reference
+//***************************************************************************
+class debug_count {
+public:
+  debug_count() : count(0) {}
+
+  ~debug_count() { assert(count == 0); }
+
+  debug_count &operator++() {
+    ++count;
+    return *this;
+  }
+
+  debug_count &operator--() {
+    --count;
+    assert(count >= 0);
+    return *this;
+  }
+
+  template <typename T> debug_count &operator+=(T n) {
+    count += int32_t(n);
+    return *this;
+  }
+
+  template <typename T> debug_count &operator-=(T n) {
+    count -= int32_t(n);
+    return *this;
+  }
+
+  debug_count &operator=(const debug_count &other) {
+    count.store(other.count.load());
+
+    return *this;
+  }
+
+#if GDUT_HAS_ATOMIC
+  void swap(debug_count &other) GDUT_NOEXCEPT // NOT ATOMIC
   {
-  public:
-    debug_count()
-      : count(0)
-    {
-    }
+    int32_t temp = other.count.load();
+    other.count.store(count.load());
+    count.store(temp);
+  }
+#else
+  void swap(debug_count &other) GDUT_NOEXCEPT { swap(count, other.count); }
+#endif
 
-    ~debug_count()
-    {
-      assert(count == 0);
-    }
+  operator int32_t() const { return count; }
 
-    debug_count& operator++()
-    {
-      ++count;
-      return *this;
-    }
+  int32_t get() const { return int32_t(count); }
 
-    debug_count& operator--()
-    {
-      --count;
-      assert(count >= 0);
-      return *this;
-    }
+  void set(int32_t n) { count = n; }
 
-    template <typename T>
-    debug_count& operator+=(T n)
-    {
-      count += int32_t(n);
-      return *this;
-    }
+  void clear() { count = 0; }
 
-    template <typename T>
-    debug_count& operator-=(T n)
-    {
-      count -= int32_t(n);
-      return *this;
-    }
+private:
+#if GDUT_HAS_ATOMIC
+  gdut::atomic_int32_t count;
+#else
+  int32_t count;
+#endif
+};
+} // namespace gdut
 
-    debug_count& operator=(const debug_count& other)
-    {
-      count.store(other.count.load());
-
-      return *this;
-    }
-
-  #if GDUT_HAS_ATOMIC
-    void swap(debug_count& other) GDUT_NOEXCEPT  // NOT ATOMIC
-    {
-      int32_t temp = other.count.load();
-      other.count.store(count.load());
-      count.store(temp);
-    }
-  #else
-    void swap(debug_count& other) GDUT_NOEXCEPT
-    {
-      swap(count, other.count);
-    }
-  #endif
-
-    operator int32_t() const
-    {
-      return count;
-    }
-
-    int32_t get() const
-    {
-      return int32_t(count);
-    }
-
-    void set(int32_t n)
-    {
-      count = n;
-    }
-
-    void clear()
-    {
-      count = 0;
-    }
-
-  private:
-  #if GDUT_HAS_ATOMIC
-    gdut::atomic_int32_t count;
-  #else
-    int32_t count;
-  #endif
-  };
-}  // namespace gdut
-
-inline void swap(gdut::debug_count& lhs, gdut::debug_count& rhs)
-{
+inline void swap(gdut::debug_count &lhs, gdut::debug_count &rhs) {
   lhs.swap(rhs);
 }
 
 #else
-#define GDUT_DECLARE_DEBUG_COUNT              enum { etl_debug_count_suppressed__ = 0 }
-#define GDUT_SET_DEBUG_COUNT(n)               ((void)0)
-#define GDUT_GET_DEBUG_COUNT                  0
-#define GDUT_INCREMENT_DEBUG_COUNT            ((void)0)
-#define GDUT_DECREMENT_DEBUG_COUNT            ((void)0)
-#define GDUT_ADD_DEBUG_COUNT(n)               ((void)0)
-#define GDUT_SUBTRACT_DEBUG_COUNT(n)          ((void)0)
-#define GDUT_RESET_DEBUG_COUNT                ((void)0)
+#define GDUT_DECLARE_DEBUG_COUNT enum { etl_debug_count_suppressed__ = 0 }
+#define GDUT_SET_DEBUG_COUNT(n) ((void)0)
+#define GDUT_GET_DEBUG_COUNT 0
+#define GDUT_INCREMENT_DEBUG_COUNT ((void)0)
+#define GDUT_DECREMENT_DEBUG_COUNT ((void)0)
+#define GDUT_ADD_DEBUG_COUNT(n) ((void)0)
+#define GDUT_SUBTRACT_DEBUG_COUNT(n) ((void)0)
+#define GDUT_RESET_DEBUG_COUNT ((void)0)
 #define GDUT_OBJECT_RESET_DEBUG_COUNT(object) ((void)0)
-#define GDUT_OBJECT_GET_DEBUG_COUNT(object)   0
-#endif  // GDUT_DEBUG_COUNT
+#define GDUT_OBJECT_GET_DEBUG_COUNT(object) 0
+#endif // GDUT_DEBUG_COUNT
 
 #endif

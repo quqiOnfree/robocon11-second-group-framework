@@ -29,10 +29,10 @@ SOFTWARE.
 #ifndef GDUT_TYPE_SELECT_INCLUDED
 #define GDUT_TYPE_SELECT_INCLUDED
 
+#include "null_type.hpp"
 #include "platform.hpp"
 #include "static_assert.hpp"
 #include "type_traits.hpp"
-#include "null_type.hpp"
 
 /*[[[cog
 import cog
@@ -54,124 +54,110 @@ cog.outl("//********************************************************************
 ]]]*/
 /*[[[end]]]*/
 
-namespace gdut
-{
+namespace gdut {
 #if GDUT_USING_CPP11 && !defined(GDUT_TYPE_SELECT_FORCE_CPP03_IMPLEMENTATION)
-  //***************************************************************************
-  // Variadic version.
-  //***************************************************************************
-  template <typename... TTypes>
-  struct type_select
-  {
-  private:
-
-    //***********************************
-    template <size_t Id, size_t Index, typename T1, typename... TRest>
-    struct type_select_helper
-    {
-      using type = typename gdut::conditional<Id == Index,
-                                             T1,
-                                             typename type_select_helper<Id, Index + 1, TRest...>::type>::type;
-    };
-
-    //***********************************
-    template <size_t Id, size_t Index, typename T1>
-    struct type_select_helper<Id, Index, T1>
-    {
-      using type = T1;
-    };
-
-  public:
-
-    template <size_t Id>
-    struct select
-    {
-      static_assert(Id < sizeof...(TTypes), "Illegal type_select::select index");
-
-      using type = typename type_select_helper<Id, 0, TTypes...>::type;
-    };
-
-    template <size_t Id>
-    using select_t = typename select<Id>::type;
+//***************************************************************************
+// Variadic version.
+//***************************************************************************
+template <typename... TTypes> struct type_select {
+private:
+  //***********************************
+  template <size_t Id, size_t Index, typename T1, typename... TRest>
+  struct type_select_helper {
+    using type = typename gdut::conditional<
+        Id == Index, T1,
+        typename type_select_helper<Id, Index + 1, TRest...>::type>::type;
   };
 
-  //***************************************************************************
-  // Select type alias
-  //***************************************************************************
-  template <size_t Index, typename... TTypes>
-  using type_select_t = typename gdut::type_select<TTypes...>:: template select_t<Index>;
+  //***********************************
+  template <size_t Id, size_t Index, typename T1>
+  struct type_select_helper<Id, Index, T1> {
+    using type = T1;
+  };
+
+public:
+  template <size_t Id> struct select {
+    static_assert(Id < sizeof...(TTypes), "Illegal type_select::select index");
+
+    using type = typename type_select_helper<Id, 0, TTypes...>::type;
+  };
+
+  template <size_t Id> using select_t = typename select<Id>::type;
+};
+
+//***************************************************************************
+// Select type alias
+//***************************************************************************
+template <size_t Index, typename... TTypes>
+using type_select_t =
+    typename gdut::type_select<TTypes...>::template select_t<Index>;
 
 #else
 
-  /*[[[cog
-  import cog
-  cog.outl("//***************************************************************************")
-  cog.outl("// For %s types." % int(NTypes))
-  cog.outl("//***************************************************************************")
-  cog.outl("template <typename T0,")
-  for n in range(1, int(NTypes) - 1):
-      cog.outl("          typename T%s = void," % n)
-  cog.outl("          typename T%s = void>" %(int(NTypes) - 1))
-  cog.outl("struct type_select")
-  cog.outl("{")
-  cog.outl("public:")
-  cog.outl("")
-  cog.outl("  template <size_t Id>")
-  cog.outl("  struct select")
-  cog.outl("  {")
-  cog.outl("    typedef typename gdut::conditional<Id == 0, T0,")
-  for n in range(1, int(NTypes)) :
-      cog.outl("            typename gdut::conditional<Id == %s, T%s," % (n, n))
-  cog.outl("            gdut::null_type<0> >")
-  cog.out("            ")
-  for n in range(1, int(NTypes)) :
-      cog.out("::type>")
-      if n % 8 == 0:
-          cog.outl("")
-          cog.out("            ")
-  cog.outl("::type type;")
-  cog.outl("");
-  cog.outl("    GDUT_STATIC_ASSERT(Id < %s, \"Invalid Id\");" % int(NTypes));
-  cog.outl("  };")
-  cog.outl("};")
+/*[[[cog
+import cog
+cog.outl("//***************************************************************************")
+cog.outl("// For %s types." % int(NTypes))
+cog.outl("//***************************************************************************")
+cog.outl("template <typename T0,")
+for n in range(1, int(NTypes) - 1):
+    cog.outl("          typename T%s = void," % n)
+cog.outl("          typename T%s = void>" %(int(NTypes) - 1))
+cog.outl("struct type_select")
+cog.outl("{")
+cog.outl("public:")
+cog.outl("")
+cog.outl("  template <size_t Id>")
+cog.outl("  struct select")
+cog.outl("  {")
+cog.outl("    typedef typename gdut::conditional<Id == 0, T0,")
+for n in range(1, int(NTypes)) :
+    cog.outl("            typename gdut::conditional<Id == %s, T%s," % (n, n))
+cog.outl("            gdut::null_type<0> >")
+cog.out("            ")
+for n in range(1, int(NTypes)) :
+    cog.out("::type>")
+    if n % 8 == 0:
+        cog.outl("")
+        cog.out("            ")
+cog.outl("::type type;")
+cog.outl("");
+cog.outl("    GDUT_STATIC_ASSERT(Id < %s, \"Invalid Id\");" % int(NTypes));
+cog.outl("  };")
+cog.outl("};")
 
-  for s in range(int(NTypes) - 1, 0, -1):
-      cog.outl("")
-      cog.outl("//***************************************************************************")
-      cog.outl("// For %s types." % int(s))
-      cog.outl("//***************************************************************************")
-      cog.out("template <")
-      for n in range(0, s - 1):
-          cog.outl("typename T%s, " % n)
-          cog.out("          ")
-      cog.outl("typename T%s>" % (s - 1))
-      cog.out("struct type_select<")
-      for n in range(0, s - 1):
-          cog.out("T%s, " % n)
-      cog.outl("T%s>" % (s - 1))
-      cog.outl("{")
-      cog.outl("public:")
-      cog.outl("  template <size_t Id>")
-      cog.outl("  struct select")
-      cog.outl("  {")
-      cog.outl("    typedef typename gdut::conditional<Id == 0, T0,")
-      for n in range(1, s) :
-          cog.outl("            typename gdut::conditional<Id == %s, T%s," % (n, n))
-      cog.outl("            gdut::null_type<0> >")
-      cog.out("            ")
-      for n in range(1, s) :
-          cog.out("::type>")
-          if n % 8 == 0:
-            cog.outl("")
-            cog.out("            ")
-      cog.outl("::type type;")
-      cog.outl("");
-      cog.outl("    GDUT_STATIC_ASSERT(Id < %s, \"Invalid Id\");" % s);
-      cog.outl("  };")
-      cog.outl("};")
-  ]]]*/
-  /*[[[end]]]*/
+for s in range(int(NTypes) - 1, 0, -1):
+    cog.outl("")
+    cog.outl("//***************************************************************************")
+    cog.outl("// For %s types." % int(s))
+    cog.outl("//***************************************************************************")
+    cog.out("template <")
+    for n in range(0, s - 1):
+        cog.outl("typename T%s, " % n)
+        cog.out("          ")
+    cog.outl("typename T%s>" % (s - 1))
+    cog.out("struct type_select<")
+    for n in range(0, s - 1):
+        cog.out("T%s, " % n)
+    cog.outl("T%s>" % (s - 1))
+    cog.outl("{")
+    cog.outl("public:")
+    cog.outl("  template <size_t Id>")
+    cog.outl("  struct select")
+    cog.outl("  {")
+    cog.outl("    typedef typename gdut::conditional<Id == 0, T0,")
+    for n in range(1, s) :
+        cog.outl("            typename gdut::conditional<Id == %s, T%s," % (n,
+n)) cog.outl("            gdut::null_type<0> >") cog.out("            ") for n
+in range(1, s) : cog.out("::type>") if n % 8 == 0: cog.outl("") cog.out(" ")
+    cog.outl("::type type;")
+    cog.outl("");
+    cog.outl("    GDUT_STATIC_ASSERT(Id < %s, \"Invalid Id\");" % s);
+    cog.outl("  };")
+    cog.outl("};")
+]]]*/
+/*[[[end]]]*/
 #endif
-}
+} // namespace gdut
 
 #endif

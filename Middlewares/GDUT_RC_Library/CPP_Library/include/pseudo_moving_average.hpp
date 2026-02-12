@@ -31,396 +31,333 @@ SOFTWARE.
 #ifndef GDUT_CUMULATIVE_MOVING_AVERAGE_INCLUDED
 #define GDUT_CUMULATIVE_MOVING_AVERAGE_INCLUDED
 
+#include "iterator.hpp"
 #include "platform.hpp"
 #include "type_traits.hpp"
-#include "iterator.hpp"
 
-namespace gdut
-{
-  namespace private_pseudo_moving_average
-  {
-    //***************************************************
-    /// add_insert_iterator
-    /// An output iterator used to add new values.
-    //***************************************************
-    template <typename TPseudo_Moving_Average>
-    class add_insert_iterator : public gdut::iterator<GDUT_OR_STD::output_iterator_tag, typename TPseudo_Moving_Average::value_type, void, void, void>
-    {
-    public:
+namespace gdut {
+namespace private_pseudo_moving_average {
+//***************************************************
+/// add_insert_iterator
+/// An output iterator used to add new values.
+//***************************************************
+template <typename TPseudo_Moving_Average>
+class add_insert_iterator
+    : public gdut::iterator<GDUT_OR_STD::output_iterator_tag,
+                            typename TPseudo_Moving_Average::value_type, void,
+                            void, void> {
+public:
+  //***********************************
+  explicit add_insert_iterator(TPseudo_Moving_Average &pma) GDUT_NOEXCEPT
+      : p_pma(&pma) {}
 
-      //***********************************
-      explicit add_insert_iterator(TPseudo_Moving_Average& pma) GDUT_NOEXCEPT
-        : p_pma(&pma)
-      {
-      }
+  //***********************************
+  add_insert_iterator &operator*() GDUT_NOEXCEPT { return *this; }
 
-      //***********************************
-      add_insert_iterator& operator*() GDUT_NOEXCEPT
-      {
-        return *this;
-      }
+  //***********************************
+  add_insert_iterator &operator++() GDUT_NOEXCEPT { return *this; }
 
-      //***********************************
-      add_insert_iterator& operator++() GDUT_NOEXCEPT
-      {
-        return *this;
-      }
+  //***********************************
+  add_insert_iterator &operator++(int) GDUT_NOEXCEPT { return *this; }
 
-      //***********************************
-      add_insert_iterator& operator++(int) GDUT_NOEXCEPT
-      {
-        return *this;
-      }
-
-      //***********************************
-      add_insert_iterator& operator =(typename TPseudo_Moving_Average::value_type value)
-      {
-        p_pma->add(value);
-        return *this;
-      }
-
-    private:
-
-      TPseudo_Moving_Average* p_pma;
-    };
+  //***********************************
+  add_insert_iterator &
+  operator=(typename TPseudo_Moving_Average::value_type value) {
+    p_pma->add(value);
+    return *this;
   }
 
-  //***************************************************************************
-  /// Pseudo Moving Average
-  /// \tparam T           The sample value type.
-  /// \tparam SAMPLE_SIZE The number of samples to average over.
-  /// \tparam SCALING     The scaling factor applied to samples. Default = 1.
-  //***************************************************************************
-  template <typename T,
-            const size_t SAMPLE_SIZE,
-            const size_t SCALING  = 1U,
-            const bool IsIntegral = gdut::is_integral<T>::value,
-            const bool IsFloat    = gdut::is_floating_point<T>::value>
-  class pseudo_moving_average;
+private:
+  TPseudo_Moving_Average *p_pma;
+};
+} // namespace private_pseudo_moving_average
 
-  //***************************************************************************
-  /// Pseudo Moving Average
-  /// For integral types.
-  /// \tparam T           The sample value type.
-  /// \tparam SAMPLE_SIZE The number of samples to average over.
-  /// \tparam SCALING     The scaling factor applied to samples. Default = 1.
-  //***************************************************************************
-  template <typename T, const size_t SAMPLE_SIZE_, const size_t SCALING_>
-  class pseudo_moving_average<T, SAMPLE_SIZE_, SCALING_, true, false>
-  {
-  private:
+//***************************************************************************
+/// Pseudo Moving Average
+/// \tparam T           The sample value type.
+/// \tparam SAMPLE_SIZE The number of samples to average over.
+/// \tparam SCALING     The scaling factor applied to samples. Default = 1.
+//***************************************************************************
+template <typename T, const size_t SAMPLE_SIZE, const size_t SCALING = 1U,
+          const bool IsIntegral = gdut::is_integral<T>::value,
+          const bool IsFloat = gdut::is_floating_point<T>::value>
+class pseudo_moving_average;
 
-    typedef pseudo_moving_average<T, SAMPLE_SIZE_, SCALING_, true, false> this_t;
+//***************************************************************************
+/// Pseudo Moving Average
+/// For integral types.
+/// \tparam T           The sample value type.
+/// \tparam SAMPLE_SIZE The number of samples to average over.
+/// \tparam SCALING     The scaling factor applied to samples. Default = 1.
+//***************************************************************************
+template <typename T, const size_t SAMPLE_SIZE_, const size_t SCALING_>
+class pseudo_moving_average<T, SAMPLE_SIZE_, SCALING_, true, false> {
+private:
+  typedef pseudo_moving_average<T, SAMPLE_SIZE_, SCALING_, true, false> this_t;
 
-    typedef typename gdut::conditional<gdut::is_signed<T>::value, int32_t, uint32_t>::type scale_t;
-    typedef typename gdut::conditional<gdut::is_signed<T>::value, int32_t, uint32_t>::type sample_t;
+  typedef typename gdut::conditional<gdut::is_signed<T>::value, int32_t,
+                                     uint32_t>::type scale_t;
+  typedef typename gdut::conditional<gdut::is_signed<T>::value, int32_t,
+                                     uint32_t>::type sample_t;
 
-    static GDUT_CONSTANT sample_t SAMPLES = static_cast<sample_t>(SAMPLE_SIZE_);
-    static GDUT_CONSTANT scale_t  SCALE   = static_cast<scale_t>(SCALING_);
+  static GDUT_CONSTANT sample_t SAMPLES = static_cast<sample_t>(SAMPLE_SIZE_);
+  static GDUT_CONSTANT scale_t SCALE = static_cast<scale_t>(SCALING_);
 
-  public:
+public:
+  typedef T value_type;
+  typedef private_pseudo_moving_average::add_insert_iterator<this_t>
+      add_insert_iterator;
 
-    typedef T value_type;
-    typedef private_pseudo_moving_average::add_insert_iterator<this_t> add_insert_iterator;
+  static GDUT_CONSTANT size_t SAMPLE_SIZE =
+      SAMPLE_SIZE_; ///< The number of samples averaged over.
+  static GDUT_CONSTANT size_t SCALING =
+      SCALING_; ///< The sample scaling factor.
 
-    static GDUT_CONSTANT size_t SAMPLE_SIZE = SAMPLE_SIZE_; ///< The number of samples averaged over.
-    static GDUT_CONSTANT size_t SCALING     = SCALING_;     ///< The sample scaling factor.
+  //*************************************************************************
+  /// Constructor
+  /// \param initial_value The initial value for the average.
+  //*************************************************************************
+  pseudo_moving_average(const T initial_value)
+      : average(initial_value * SCALE) {}
 
-    //*************************************************************************
-    /// Constructor
-    /// \param initial_value The initial value for the average.
-    //*************************************************************************
-    pseudo_moving_average(const T initial_value)
-      : average(initial_value * SCALE)
-    {
-    }
+  //*************************************************************************
+  /// Clears the average.
+  /// \param initial_value The initial value for the average.
+  //*************************************************************************
+  void clear(const T initial_value) { average = (initial_value * SCALE); }
 
-    //*************************************************************************
-    /// Clears the average.
-    /// \param initial_value The initial value for the average.
-    //*************************************************************************
-    void clear(const T initial_value)
-    {
-      average = (initial_value * SCALE);
-    }
+  //*************************************************************************
+  /// Adds a new sample to the average.
+  /// \param new_value The value to add.
+  //*************************************************************************
+  void add(T new_value) {
+    average *= SAMPLES;
+    average += SCALE * new_value;
+    average /= SAMPLES + sample_t(1);
+  }
 
-    //*************************************************************************
-    /// Adds a new sample to the average.
-    /// \param new_value The value to add.
-    //*************************************************************************
-    void add(T new_value)
-    {
-      average *= SAMPLES;
-      average += SCALE * new_value;
-      average /= SAMPLES + sample_t(1);
-    }
+  //*************************************************************************
+  /// Gets the current pseudo moving average.
+  /// \return The current average.
+  //*************************************************************************
+  T value() const { return average; }
 
-    //*************************************************************************
-    /// Gets the current pseudo moving average.
-    /// \return The current average.
-    //*************************************************************************
-    T value() const
-    {
-      return average;
-    }
+  //*************************************************************************
+  /// Gets an iterator for input.
+  /// \return An iterator.
+  //*************************************************************************
+  add_insert_iterator input() { return add_insert_iterator(*this); }
 
-    //*************************************************************************
-    /// Gets an iterator for input.
-    /// \return An iterator.
-    //*************************************************************************
-    add_insert_iterator input()
-    {
-      return add_insert_iterator(*this);
-    }
+private:
+  T average; ///< The current pseudo moving average.
+};
 
-  private:
+template <typename T, const size_t SAMPLE_SIZE_, const size_t SCALING_>
+GDUT_CONSTANT size_t
+    pseudo_moving_average<T, SAMPLE_SIZE_, SCALING_, true, false>::SAMPLE_SIZE;
 
-    T average; ///< The current pseudo moving average.
-  };
+template <typename T, const size_t SAMPLE_SIZE_, const size_t SCALING_>
+GDUT_CONSTANT size_t
+    pseudo_moving_average<T, SAMPLE_SIZE_, SCALING_, true, false>::SCALING;
 
-  template <typename T, const size_t SAMPLE_SIZE_, const size_t SCALING_>
-  GDUT_CONSTANT size_t pseudo_moving_average<T, SAMPLE_SIZE_, SCALING_, true, false>::SAMPLE_SIZE;
-  
-  template <typename T, const size_t SAMPLE_SIZE_, const size_t SCALING_>
-  GDUT_CONSTANT size_t pseudo_moving_average<T, SAMPLE_SIZE_, SCALING_, true, false>::SCALING;
-
-  //***************************************************************************
+//***************************************************************************
 /// Pseudo Moving Average
 /// For integral types.
 /// \tparam T           The sample value type.
 /// \tparam SCALING     The scaling factor applied to samples. Default = 1.
 //***************************************************************************
-  template <typename T, const size_t SCALING_>
-  class pseudo_moving_average<T, 0, SCALING_, true, false>
-  {
-    typedef pseudo_moving_average<T, 0, SCALING_, true, false> this_t;
+template <typename T, const size_t SCALING_>
+class pseudo_moving_average<T, 0, SCALING_, true, false> {
+  typedef pseudo_moving_average<T, 0, SCALING_, true, false> this_t;
 
-    typedef typename gdut::conditional<gdut::is_signed<T>::value, int32_t, uint32_t>::type scale_t;
-    typedef typename gdut::conditional<gdut::is_signed<T>::value, int32_t, uint32_t>::type sample_t;
+  typedef typename gdut::conditional<gdut::is_signed<T>::value, int32_t,
+                                     uint32_t>::type scale_t;
+  typedef typename gdut::conditional<gdut::is_signed<T>::value, int32_t,
+                                     uint32_t>::type sample_t;
 
-    static GDUT_CONSTANT scale_t SCALE = static_cast<scale_t>(SCALING_);
+  static GDUT_CONSTANT scale_t SCALE = static_cast<scale_t>(SCALING_);
 
-  public:
+public:
+  typedef T value_type;
+  typedef private_pseudo_moving_average::add_insert_iterator<this_t>
+      add_insert_iterator;
 
-    typedef T value_type;
-    typedef private_pseudo_moving_average::add_insert_iterator<this_t> add_insert_iterator;
+  static GDUT_CONSTANT size_t SCALING =
+      SCALING_; ///< The sample scaling factor.
 
-    static GDUT_CONSTANT size_t SCALING = SCALING_;     ///< The sample scaling factor.
+  //*************************************************************************
+  /// Constructor
+  /// \param initial_value The initial value for the average.
+  //*************************************************************************
+  pseudo_moving_average(const T initial_value, const size_t sample_size)
+      : average(initial_value * SCALE), samples(sample_t(sample_size)) {}
 
-    //*************************************************************************
-    /// Constructor
-    /// \param initial_value The initial value for the average.
-    //*************************************************************************
-    pseudo_moving_average(const T initial_value, const size_t sample_size)
-      : average(initial_value * SCALE)
-      , samples(sample_t(sample_size))
-    {
-    }
+  //*************************************************************************
+  /// Clears the average.
+  /// \param initial_value The initial value for the average.
+  //*************************************************************************
+  void clear(const T initial_value) { average = (initial_value * SCALE); }
 
-    //*************************************************************************
-    /// Clears the average.
-    /// \param initial_value The initial value for the average.
-    //*************************************************************************
-    void clear(const T initial_value)
-    {
-      average = (initial_value * SCALE);
-    }
+  //*************************************************************************
+  /// Sets the sample size.
+  /// \param sample_size The new sample size.
+  //*************************************************************************
+  void set_sample_size(const size_t sample_size) {
+    samples = sample_t(sample_size);
+  }
 
-    //*************************************************************************
-    /// Sets the sample size.
-    /// \param sample_size The new sample size.
-    //*************************************************************************
-    void set_sample_size(const size_t sample_size)
-    {
-      samples = sample_t(sample_size);
-    }
+  //*************************************************************************
+  /// Adds a new sample to the average.
+  /// \param new_value The value to add.
+  //*************************************************************************
+  void add(T new_value) {
+    average *= samples;
+    average += SCALE * new_value;
+    average /= samples + sample_t(1);
+  }
 
-    //*************************************************************************
-    /// Adds a new sample to the average.
-    /// \param new_value The value to add.
-    //*************************************************************************
-    void add(T new_value)
-    {
-      average *= samples;
-      average += SCALE * new_value;
-      average /= samples + sample_t(1);
-    }
+  //*************************************************************************
+  /// Gets the current pseudo moving average.
+  /// \return The current average.
+  //*************************************************************************
+  T value() const { return average; }
 
-    //*************************************************************************
-    /// Gets the current pseudo moving average.
-    /// \return The current average.
-    //*************************************************************************
-    T value() const
-    {
-      return average;
-    }
+  //*************************************************************************
+  /// Gets an iterator for input.
+  /// \return An iterator.
+  //*************************************************************************
+  add_insert_iterator input() { return add_insert_iterator(*this); }
 
-    //*************************************************************************
-    /// Gets an iterator for input.
-    /// \return An iterator.
-    //*************************************************************************
-    add_insert_iterator input()
-    {
-      return add_insert_iterator(*this);
-    }
+private:
+  T average;        ///< The current pseudo moving average.
+  sample_t samples; ///< The number of samples to average over.
+};
 
-  private:
+template <typename T, const size_t SCALING_>
+GDUT_CONSTANT size_t
+    pseudo_moving_average<T, 0, SCALING_, true, false>::SCALING;
 
-    T        average; ///< The current pseudo moving average.
-    sample_t samples; ///< The number of samples to average over.
-  };
+//***************************************************************************
+/// Pseudo Moving Average
+/// For floating point types.
+/// \tparam T           The sample value type.
+/// \tparam SAMPLE_SIZE The number of samples to average over.
+//***************************************************************************
+template <typename T, const size_t SAMPLE_SIZE_>
+class pseudo_moving_average<T, SAMPLE_SIZE_, 1U, false, true> {
+  typedef pseudo_moving_average<T, SAMPLE_SIZE_, 1U, false, true> this_t;
 
-  template <typename T, const size_t SCALING_>
-  GDUT_CONSTANT size_t pseudo_moving_average<T, 0, SCALING_, true, false>::SCALING;
+public:
+  typedef T value_type;
+  typedef private_pseudo_moving_average::add_insert_iterator<this_t>
+      add_insert_iterator;
 
-  //***************************************************************************
-  /// Pseudo Moving Average
-  /// For floating point types.
-  /// \tparam T           The sample value type.
-  /// \tparam SAMPLE_SIZE The number of samples to average over.
-  //***************************************************************************
-  template <typename T, const size_t SAMPLE_SIZE_>
-  class pseudo_moving_average<T, SAMPLE_SIZE_, 1U, false, true>
-  {
-    typedef pseudo_moving_average<T, SAMPLE_SIZE_, 1U, false, true> this_t;
+  static GDUT_CONSTANT size_t SAMPLE_SIZE = SAMPLE_SIZE_;
 
-  public:
+  //*************************************************************************
+  /// Constructor
+  /// \param initial_value The initial value for the average.
+  //*************************************************************************
+  pseudo_moving_average(const T initial_value)
+      : reciprocal_samples_plus_1(T(1.0) / T(SAMPLE_SIZE_ + 1U)),
+        average(initial_value) {}
 
-    typedef T value_type;
-    typedef private_pseudo_moving_average::add_insert_iterator<this_t> add_insert_iterator;
+  //*************************************************************************
+  /// Clears the average.
+  /// \param initial_value The initial value for the average.
+  //*************************************************************************
+  void clear(const T initial_value) { average = initial_value; }
 
-    static GDUT_CONSTANT size_t SAMPLE_SIZE = SAMPLE_SIZE_;
+  //*************************************************************************
+  /// Adds a new sample to the average.
+  /// \param new_value The value to add.
+  //*************************************************************************
+  void add(const T new_value) {
+    average += (new_value - average) * reciprocal_samples_plus_1;
+  }
 
-    //*************************************************************************
-    /// Constructor
-    /// \param initial_value The initial value for the average.
-    //*************************************************************************
-    pseudo_moving_average(const T initial_value)
-      : reciprocal_samples_plus_1(T(1.0) / T(SAMPLE_SIZE_ + 1U))
-      , average(initial_value)
-    {
-    }
+  //*************************************************************************
+  /// Gets the current pseudo moving average.
+  /// \return The current average.
+  //*************************************************************************
+  T value() const { return average; }
 
-    //*************************************************************************
-    /// Clears the average.
-    /// \param initial_value The initial value for the average.
-    //*************************************************************************
-    void clear(const T initial_value)
-    {
-      average = initial_value;
-    }
+  //*************************************************************************
+  /// Gets an iterator for input.
+  /// \return An iterator.
+  //*************************************************************************
+  add_insert_iterator input() { return add_insert_iterator(*this); }
 
-    //*************************************************************************
-    /// Adds a new sample to the average.
-    /// \param new_value The value to add.
-    //*************************************************************************
-    void add(const T new_value)
-    {
-      average += (new_value - average) * reciprocal_samples_plus_1;
-    }
+private:
+  const T reciprocal_samples_plus_1; ///< Reciprocal of one greater than the
+                                     ///< sample size.
+  T average;                         ///< The current pseudo moving average.
+};
 
-    //*************************************************************************
-    /// Gets the current pseudo moving average.
-    /// \return The current average.
-    //*************************************************************************
-    T value() const
-    {
-      return average;
-    }
+template <typename T, const size_t SAMPLE_SIZE_>
+GDUT_CONSTANT size_t
+    pseudo_moving_average<T, SAMPLE_SIZE_, 1U, false, true>::SAMPLE_SIZE;
 
-    //*************************************************************************
-    /// Gets an iterator for input.
-    /// \return An iterator.
-    //*************************************************************************
-    add_insert_iterator input()
-    {
-      return add_insert_iterator(*this);
-    }
+//***************************************************************************
+/// Pseudo Moving Average
+/// For floating point types.
+/// \tparam T The sample value type.
+//***************************************************************************
+template <typename T> class pseudo_moving_average<T, 0U, 1U, false, true> {
+  typedef pseudo_moving_average<T, 0U, 1U, false, true> this_t;
 
-  private:
+public:
+  typedef T value_type;
+  typedef private_pseudo_moving_average::add_insert_iterator<this_t>
+      add_insert_iterator;
 
-    const T reciprocal_samples_plus_1; ///< Reciprocal of one greater than the sample size.
-    T       average;                   ///< The current pseudo moving average.
-  };
+  //*************************************************************************
+  /// Constructor
+  /// \param initial_value The initial value for the average.
+  //*************************************************************************
+  pseudo_moving_average(const T initial_value, const size_t sample_size)
+      : reciprocal_samples_plus_1(T(1.0) / T(sample_size + 1U)),
+        average(initial_value) {}
 
-  template <typename T, const size_t SAMPLE_SIZE_>
-  GDUT_CONSTANT size_t pseudo_moving_average<T, SAMPLE_SIZE_, 1U, false, true>::SAMPLE_SIZE;
+  //*************************************************************************
+  /// Clears the average.
+  /// \param initial_value The initial value for the average.
+  //*************************************************************************
+  void clear(const T initial_value) { average = initial_value; }
 
-  //***************************************************************************
-  /// Pseudo Moving Average
-  /// For floating point types.
-  /// \tparam T The sample value type.
-  //***************************************************************************
-  template <typename T>
-  class pseudo_moving_average<T, 0U, 1U, false, true>
-  {
-    typedef pseudo_moving_average<T, 0U, 1U, false, true> this_t;
+  //*************************************************************************
+  /// Sets the sample size.
+  /// \param sample_size The new sample size.
+  //*************************************************************************
+  void set_sample_size(const size_t sample_size) {
+    reciprocal_samples_plus_1 = T(1.0) / (T(sample_size) + T(1));
+  }
 
-  public:
+  //*************************************************************************
+  /// Adds a new sample to the average.
+  /// \param new_value The value to add.
+  //*************************************************************************
+  void add(const T new_value) {
+    average += (new_value - average) * reciprocal_samples_plus_1;
+  }
 
-    typedef T value_type;
-    typedef private_pseudo_moving_average::add_insert_iterator<this_t> add_insert_iterator;
+  //*************************************************************************
+  /// Gets the current pseudo moving average.
+  /// \return The current average.
+  //*************************************************************************
+  T value() const { return average; }
 
-    //*************************************************************************
-    /// Constructor
-    /// \param initial_value The initial value for the average.
-    //*************************************************************************
-    pseudo_moving_average(const T initial_value, const size_t sample_size)
-      : reciprocal_samples_plus_1(T(1.0) / T(sample_size + 1U))
-      , average(initial_value)
-    {
-    }
+  //*************************************************************************
+  /// Gets an iterator for input.
+  /// \return An iterator.
+  //*************************************************************************
+  add_insert_iterator input() { return add_insert_iterator(*this); }
 
-    //*************************************************************************
-    /// Clears the average.
-    /// \param initial_value The initial value for the average.
-    //*************************************************************************
-    void clear(const T initial_value)
-    {
-      average = initial_value;
-    }
-
-    //*************************************************************************
-    /// Sets the sample size.
-    /// \param sample_size The new sample size.
-    //*************************************************************************
-    void set_sample_size(const size_t sample_size)
-    {
-      reciprocal_samples_plus_1 = T(1.0) / (T(sample_size) + T(1));
-    }
-
-    //*************************************************************************
-    /// Adds a new sample to the average.
-    /// \param new_value The value to add.
-    //*************************************************************************
-    void add(const T new_value)
-    {
-      average += (new_value - average) * reciprocal_samples_plus_1;
-    }
-
-    //*************************************************************************
-    /// Gets the current pseudo moving average.
-    /// \return The current average.
-    //*************************************************************************
-    T value() const
-    {
-      return average;
-    }
-
-    //*************************************************************************
-    /// Gets an iterator for input.
-    /// \return An iterator.
-    //*************************************************************************
-    add_insert_iterator input()
-    {
-      return add_insert_iterator(*this);
-    }
-
-  private:
-
-    T reciprocal_samples_plus_1; ///< Reciprocal of one greater than the sample size.
-    T average;                   ///< The current pseudo moving average.
-  };
-}
+private:
+  T reciprocal_samples_plus_1; ///< Reciprocal of one greater than the sample
+                               ///< size.
+  T average;                   ///< The current pseudo moving average.
+};
+} // namespace gdut
 
 #endif

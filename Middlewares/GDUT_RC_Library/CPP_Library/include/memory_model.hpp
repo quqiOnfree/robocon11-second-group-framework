@@ -32,47 +32,36 @@ SOFTWARE.
 #define GDUT_MEMORY_MODEL_INCLUDED
 
 #include "platform.hpp"
-#include "user_type.hpp"
 #include "type_lookup.hpp"
+#include "user_type.hpp"
 
 #include <stdint.h>
 
-namespace gdut
-{
-  GDUT_DECLARE_USER_TYPE(memory_model, int)
-  GDUT_USER_TYPE(MEMORY_MODEL_SMALL,  0)
-  GDUT_USER_TYPE(MEMORY_MODEL_MEDIUM, 1)
-  GDUT_USER_TYPE(MEMORY_MODEL_LARGE,  2)
-  GDUT_USER_TYPE(MEMORY_MODEL_HUGE,   3)
-  GDUT_END_USER_TYPE(memory_model)
+namespace gdut {
+GDUT_DECLARE_USER_TYPE(memory_model, int)
+GDUT_USER_TYPE(MEMORY_MODEL_SMALL, 0)
+GDUT_USER_TYPE(MEMORY_MODEL_MEDIUM, 1)
+GDUT_USER_TYPE(MEMORY_MODEL_LARGE, 2)
+GDUT_USER_TYPE(MEMORY_MODEL_HUGE, 3)
+GDUT_END_USER_TYPE(memory_model)
 
-  template <size_t MEMORY_MODEL>
-  struct size_type_lookup;
+template <size_t MEMORY_MODEL> struct size_type_lookup;
 
-  template <>
-  struct size_type_lookup<gdut::memory_model::MEMORY_MODEL_SMALL>
-  {
-    typedef uint_least8_t type;
-  };
+template <> struct size_type_lookup<gdut::memory_model::MEMORY_MODEL_SMALL> {
+  typedef uint_least8_t type;
+};
 
-  template <>
-  struct size_type_lookup<gdut::memory_model::MEMORY_MODEL_MEDIUM>
-  {
-    typedef uint_least16_t type;
-  };
+template <> struct size_type_lookup<gdut::memory_model::MEMORY_MODEL_MEDIUM> {
+  typedef uint_least16_t type;
+};
 
-  template <>
-  struct size_type_lookup<gdut::memory_model::MEMORY_MODEL_LARGE>
-  {
-    typedef uint_least32_t type;
-  };
+template <> struct size_type_lookup<gdut::memory_model::MEMORY_MODEL_LARGE> {
+  typedef uint_least32_t type;
+};
 
-  template <>
-  struct size_type_lookup<gdut::memory_model::MEMORY_MODEL_HUGE>
-  {
-    typedef uint_least64_t type;
-  };
-}
+template <> struct size_type_lookup<gdut::memory_model::MEMORY_MODEL_HUGE> {
+  typedef uint_least64_t type;
+};
+} // namespace gdut
 
 #endif
-

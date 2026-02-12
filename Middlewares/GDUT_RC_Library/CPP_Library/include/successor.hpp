@@ -31,165 +31,127 @@ SOFTWARE.
 #ifndef GDUT_SUCCESSOR_INCLUDED
 #define GDUT_SUCCESSOR_INCLUDED
 
-#include "platform.hpp"
-#include "nullptr.hpp"
-#include "exception.hpp"
 #include "error_handler.hpp"
+#include "exception.hpp"
 #include "file_error_numbers.hpp"
+#include "nullptr.hpp"
+#include "platform.hpp"
 
-namespace gdut
-{
-  //***************************************************************************
-  /// Exception for the successor.
-  //***************************************************************************
-  class successor_exception : public gdut::exception
-  {
-  public:
+namespace gdut {
+//***************************************************************************
+/// Exception for the successor.
+//***************************************************************************
+class successor_exception : public gdut::exception {
+public:
+  successor_exception(string_type reason_, string_type file_name_,
+                      numeric_type line_number_)
+      : exception(reason_, file_name_, line_number_) {}
+};
 
-    successor_exception(string_type reason_, string_type file_name_, numeric_type line_number_)
-      : exception(reason_, file_name_, line_number_)
-    {
-    }
-  };
+//***************************************************************************
+/// Invalid exception for successor.
+//***************************************************************************
+class successor_invalid : public gdut::successor_exception {
+public:
+  successor_invalid(string_type file_name_, numeric_type line_number_)
+      : gdut::successor_exception(
+            GDUT_ERROR_TEXT("successor:invalid", GDUT_SUCCESSOR_FILE_ID "A"),
+            file_name_, line_number_) {}
+};
 
-  //***************************************************************************
-  /// Invalid exception for successor.
-  //***************************************************************************
-  class successor_invalid : public gdut::successor_exception
-  {
-  public:
+//***************************************************************************
+/// Adds successor traits to a class.
+//***************************************************************************
+template <typename T> class successor {
+public:
+  typedef T successor_type;
 
-    successor_invalid(string_type file_name_, numeric_type line_number_)
-      : gdut::successor_exception(GDUT_ERROR_TEXT("successor:invalid", GDUT_SUCCESSOR_FILE_ID"A"), file_name_, line_number_)
-    {
-    }
-  };
+  //*************************************************************************
+  /// Default constructor
+  //*************************************************************************
+  successor() : p_successor(GDUT_NULLPTR) {}
 
-  //***************************************************************************
-  /// Adds successor traits to a class.
-  //***************************************************************************
-  template <typename T>
-  class successor
-  {
-  public:
+  //*************************************************************************
+  /// Construct from a successor type
+  //*************************************************************************
+  successor(successor_type &s) : p_successor(&s) {}
 
-    typedef T successor_type;
-
-    //*************************************************************************
-    /// Default constructor
-    //*************************************************************************
-    successor()
-      : p_successor(GDUT_NULLPTR)
-    {
-    }
-
-    //*************************************************************************
-    /// Construct from a successor type
-    //*************************************************************************
-    successor(successor_type& s)
-      : p_successor(&s)
-    {
-    }
-
-    //*************************************************************************
-    /// Set the successor.
-    //*************************************************************************
-    void set_successor(successor_type& s)
-    {
-      p_successor = &s;
-    }
+  //*************************************************************************
+  /// Set the successor.
+  //*************************************************************************
+  void set_successor(successor_type &s) { p_successor = &s; }
 
 #if GDUT_CPP11_SUPPORTED
-    //*************************************************************************
-    /// Set a list of successors to this.
-    //*************************************************************************
-    template <typename... TSuccessors>
-    void set_successor(successor_type& s, TSuccessors&... rest)
-    {
+  //*************************************************************************
+  /// Set a list of successors to this.
+  //*************************************************************************
+  template <typename... TSuccessors>
+  void set_successor(successor_type &s, TSuccessors &...rest) {
+    set_successor(s);
+    s.set_successor(rest...);
+  }
+#endif
+
+  //*************************************************************************
+  /// Append a successor.
+  //*************************************************************************
+  template <typename TSuccessor> void append_successor(TSuccessor &s) {
+    if (has_successor()) {
+      get_successor().append_successor(s);
+    } else {
       set_successor(s);
-      s.set_successor(rest...);
     }
-#endif
-
-    //*************************************************************************
-    /// Append a successor.
-    //*************************************************************************
-    template <typename TSuccessor>
-    void append_successor(TSuccessor& s)
-    {
-      if (has_successor())
-      {
-        get_successor().append_successor(s);
-      }
-      else
-      {
-        set_successor(s);
-      }
-    }
+  }
 
 #if GDUT_CPP11_SUPPORTED
-    //*************************************************************************
-    /// Append the successor.
-    //*************************************************************************
-    template <typename TSuccessor, typename... TSuccessors>
-    void append_successor(TSuccessor& s, TSuccessors&... rest)
-    {
-      if (has_successor())
-      {
-        get_successor().append_successor(s);
-        get_successor().append_successor(rest...);
-      }
-      else
-      {
-        set_successor(s);
-        append_successor(rest...);
-      }
+  //*************************************************************************
+  /// Append the successor.
+  //*************************************************************************
+  template <typename TSuccessor, typename... TSuccessors>
+  void append_successor(TSuccessor &s, TSuccessors &...rest) {
+    if (has_successor()) {
+      get_successor().append_successor(s);
+      get_successor().append_successor(rest...);
+    } else {
+      set_successor(s);
+      append_successor(rest...);
     }
+  }
 #endif
 
-    //*************************************************************************
-    /// Clear the successor.
-    //*************************************************************************
-    void clear_successor()
-    {
-      p_successor = GDUT_NULLPTR;
+  //*************************************************************************
+  /// Clear the successor.
+  //*************************************************************************
+  void clear_successor() { p_successor = GDUT_NULLPTR; }
+
+  //*************************************************************************
+  /// Clear the successor chain.
+  //*************************************************************************
+  void clear_successor_chain() {
+    if (has_successor()) {
+      get_successor().clear_successor_chain();
+      clear_successor();
     }
+  }
 
-    //*************************************************************************
-    /// Clear the successor chain.
-    //*************************************************************************
-    void clear_successor_chain()
-    {
-      if (has_successor())
-      {
-        get_successor().clear_successor_chain();
-        clear_successor();
-      }
-    }
+  //*************************************************************************
+  /// Get the successor.
+  /// Emits an gdut::successor_invalid if a successor has not been set.
+  //*************************************************************************
+  successor_type &get_successor() const {
+    GDUT_ASSERT(has_successor(), GDUT_ERROR(successor_invalid));
 
-    //*************************************************************************
-    /// Get the successor.
-    /// Emits an gdut::successor_invalid if a successor has not been set.
-    //*************************************************************************
-    successor_type& get_successor() const
-    {
-      GDUT_ASSERT(has_successor(), GDUT_ERROR(successor_invalid));
+    return *p_successor;
+  }
 
-      return *p_successor;
-    }
+  //*************************************************************************
+  /// Does this have a successor?
+  //*************************************************************************
+  bool has_successor() const { return (p_successor != GDUT_NULLPTR); }
 
-    //*************************************************************************
-    /// Does this have a successor?
-    //*************************************************************************
-    bool has_successor() const
-    {
-      return (p_successor != GDUT_NULLPTR);
-    }
-
-  private:
-
-    successor_type* p_successor;
-  };
-}
+private:
+  successor_type *p_successor;
+};
+} // namespace gdut
 
 #endif

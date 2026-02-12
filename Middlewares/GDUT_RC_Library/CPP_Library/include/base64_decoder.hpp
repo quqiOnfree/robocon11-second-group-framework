@@ -1,5 +1,5 @@
 //*************************************************************************
-///Decode from Base64 from and to pointer/length
+/// Decode from Base64 from and to pointer/length
 //*************************************************************************///\file
 
 /******************************************************************************
@@ -28,839 +28,671 @@ SOFTWARE.
 #ifndef GDUT_BASE64_DECODER_INCLUDED
 #define GDUT_BASE64_DECODER_INCLUDED
 
-#include "platform.hpp"
-#include "static_assert.hpp"
-#include "error_handler.hpp"
-#include "type_traits.hpp"
-#include "binary.hpp"
 #include "algorithm.hpp"
+#include "binary.hpp"
+#include "delegate.hpp"
+#include "enum_type.hpp"
+#include "error_handler.hpp"
 #include "integral_limits.hpp"
 #include "iterator.hpp"
-#include "enum_type.hpp"
-#include "delegate.hpp"
+#include "platform.hpp"
 #include "span.hpp"
+#include "static_assert.hpp"
+#include "type_traits.hpp"
 
 #include "base64.hpp"
 
 #include <stdint.h>
 
 #if GDUT_USING_STL
-  #include <iterator>
+#include <iterator>
 #endif
 
-#define GDUT_IS_8_BIT_INTEGRAL(Type) (gdut::is_integral<typename gdut::remove_cv<Type>::type>::value && \
-                                     (gdut::integral_limits<typename gdut::remove_cv<Type>::type>::bits == 8U))
+#define GDUT_IS_8_BIT_INTEGRAL(Type)                                           \
+  (gdut::is_integral<typename gdut::remove_cv<Type>::type>::value &&           \
+   (gdut::integral_limits<typename gdut::remove_cv<Type>::type>::bits == 8U))
 
-#define GDUT_IS_ITERATOR_TYPE_8_BIT_INTEGRAL(Type) (gdut::is_integral<typename gdut::iterator_traits<typename gdut::remove_cv<Type>::type>::value_type>::value && \
-                                                   (gdut::integral_limits<typename gdut::iterator_traits<typename gdut::remove_cv<Type>::type>::value_type>::bits == 8U))
+#define GDUT_IS_ITERATOR_TYPE_8_BIT_INTEGRAL(Type)                             \
+  (gdut::is_integral<typename gdut::iterator_traits<                           \
+       typename gdut::remove_cv<Type>::type>::value_type>::value &&            \
+   (gdut::integral_limits<typename gdut::iterator_traits<                      \
+        typename gdut::remove_cv<Type>::type>::value_type>::bits == 8U))
 
-namespace gdut
-{
+namespace gdut {
+//*************************************************************************
+/// Base64 Decoder
+//*************************************************************************
+class ibase64_decoder : public base64 {
+public:
+  typedef gdut::span<const unsigned char> span_type;
+  typedef gdut::delegate<void(const span_type &)> callback_type;
+
   //*************************************************************************
-  /// Base64 Decoder
+  /// Decode to Base64
   //*************************************************************************
-  class ibase64_decoder : public base64
-  {
-  public:
+  template <typename T> GDUT_CONSTEXPR14 bool decode(T value) {
+    GDUT_STATIC_ASSERT(GDUT_IS_8_BIT_INTEGRAL(T),
+                       "Input type must be an 8 bit integral");
 
-    typedef gdut::span<const unsigned char>        span_type;
-    typedef gdut::delegate<void(const span_type&)> callback_type;
+    push_to_input_buffer(value);
 
-    //*************************************************************************
-    /// Decode to Base64
-    //*************************************************************************
-    template <typename T>
-    GDUT_CONSTEXPR14
-    bool decode(T value)
-    {
-      GDUT_STATIC_ASSERT(GDUT_IS_8_BIT_INTEGRAL(T), "Input type must be an 8 bit integral");
-
-      push_to_input_buffer(value);
-
-      if (input_buffer_is_full())
-      {
-        if (decode_block())
-        {
-          if (callback.is_valid())
-          {
-            if (output_buffer_is_full())
-            {
-              callback(span());
-              reset_output_buffer();
-            }
-          }
-        }
-
-        reset_input_buffer();
-      }
-
-      return !error();
-    }
-
-    //*************************************************************************
-    /// Decode from Base64
-    //*************************************************************************
-    template <typename TInputIterator>
-    GDUT_CONSTEXPR14
-    bool decode(TInputIterator input_begin, TInputIterator input_end)
-    {
-      GDUT_STATIC_ASSERT(GDUT_IS_ITERATOR_TYPE_8_BIT_INTEGRAL(TInputIterator), "Input type must be an 8 bit integral");
-
-      while (input_begin != input_end)
-      {
-        if (!decode(*input_begin++))
-        {
-          return false;
-        }
-      }
-
-      return true;
-    }
-
-    //*************************************************************************
-    /// Decode from Base64
-    //*************************************************************************
-    template <typename TInputIterator>
-    GDUT_CONSTEXPR14
-    bool decode(TInputIterator input_begin, size_t input_length)
-    {
-      GDUT_STATIC_ASSERT(GDUT_IS_ITERATOR_TYPE_8_BIT_INTEGRAL(TInputIterator), "Input type must be an 8 bit integral");
-
-      while (input_length-- != 0)
-      {
-        if (!decode(*input_begin++))
-        {
-          return false;
-        }
-      }
-
-      return true;
-    }
-
-    //*************************************************************************
-    /// Decode from Base64
-    //*************************************************************************
-    template <typename TInputIterator>
-    GDUT_CONSTEXPR14
-    bool decode_final(TInputIterator input_begin, TInputIterator input_end)
-    {
-      return decode(input_begin, input_end) && flush();
-    }
-
-    //*************************************************************************
-    /// Decode from Base64
-    //*************************************************************************
-    template <typename TInputIterator>
-    GDUT_CONSTEXPR14
-    bool decode_final(TInputIterator input_begin, size_t input_length)
-    {
-      return decode(input_begin, input_length) && flush();
-    }
-
-    //*************************************************************************
-    /// Flush any remaining data to the output.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    bool flush()
-    {
-      // Encode any remaining input data.
-      bool success = decode_block();
-
-      reset_input_buffer();
-
-      if (success)
-      {
-        if (callback.is_valid())
-        {
-          // Send any remaining data.
-          if (size() != 0)
-          {
+    if (input_buffer_is_full()) {
+      if (decode_block()) {
+        if (callback.is_valid()) {
+          if (output_buffer_is_full()) {
             callback(span());
+            reset_output_buffer();
           }
-
-          // Indicate this was the final block.
-          callback(span_type());
-
-          reset_output_buffer();
         }
       }
 
-      padding_received = false;
-
-      return success;
-    }
-
-    //*************************************************************************
-    /// Reset the encoder.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    void restart()
-    {
       reset_input_buffer();
-      reset_output_buffer();
-      overflow_detected = false;
-      invalid_data_detected = false;
-      padding_received = false;
     }
 
-    //*************************************************************************
-    /// Returns the beginning of the output buffer.
-    //*************************************************************************
-    GDUT_NODISCARD
-    GDUT_CONSTEXPR14
-    const unsigned char* begin() const
-    {
-      return p_output_buffer;
-    }
+    return !error();
+  }
 
-    //*************************************************************************
-    /// This only returns a useful value if a callback has not been set or called.
-    //*************************************************************************
-    GDUT_NODISCARD
-    GDUT_CONSTEXPR14
-    const unsigned char* end() const
-    {
-      return p_output_buffer + output_buffer_length;
-    }
+  //*************************************************************************
+  /// Decode from Base64
+  //*************************************************************************
+  template <typename TInputIterator>
+  GDUT_CONSTEXPR14 bool decode(TInputIterator input_begin,
+                               TInputIterator input_end) {
+    GDUT_STATIC_ASSERT(GDUT_IS_ITERATOR_TYPE_8_BIT_INTEGRAL(TInputIterator),
+                       "Input type must be an 8 bit integral");
 
-    //*************************************************************************
-    /// Returns the beginning of the output buffer.
-    //*************************************************************************
-    GDUT_NODISCARD
-    GDUT_CONSTEXPR14
-    const unsigned char* cbegin() const
-    {
-      return p_output_buffer;
-    }
-
-    //*************************************************************************
-    /// This only returns a useful value if a callback has not been set or called.
-    //*************************************************************************
-    GDUT_NODISCARD
-    GDUT_CONSTEXPR14
-    const unsigned char* cend() const
-    {
-      return p_output_buffer + output_buffer_length;
-    }
-
-    //*************************************************************************
-    /// Returns the size of the output buffer.
-    /// This only returns a useful value if a callback has not been set or called.
-    //*************************************************************************
-    GDUT_NODISCARD
-      GDUT_CONSTEXPR14
-      size_t size() const
-    {
-      return output_buffer_length;
-    }
-
-    //*************************************************************************
-    /// Returns the maximum size of the output buffer.
-    //*************************************************************************
-    GDUT_NODISCARD
-    GDUT_CONSTEXPR14
-    size_t buffer_size() const
-    {
-      return output_buffer_max_size;
-    }
-
-    //*************************************************************************
-    /// Get a span of the output data.
-    /// This only returns a useful span if a callback has not been set or called.
-    //*************************************************************************
-    GDUT_NODISCARD
-    GDUT_CONSTEXPR14
-    span_type span() const
-    {
-      return span_type(begin(), end());
-    }
-
-    //*************************************************************************
-    /// Returns true if the output buffer has overflowed
-    //*************************************************************************
-    GDUT_NODISCARD
-    GDUT_CONSTEXPR14
-    bool overflow() const
-    {
-      return overflow_detected;
-    }
-
-    //*************************************************************************
-    /// Returns true if an invalid character was detected.
-    //*************************************************************************
-    GDUT_NODISCARD
-    GDUT_CONSTEXPR14
-    bool invalid_data() const
-    {
-      return invalid_data_detected;
-    }
-
-    //*************************************************************************
-    /// Returns true if an error was detected.
-    //*************************************************************************
-    GDUT_NODISCARD
-    GDUT_CONSTEXPR14
-    bool error() const
-    {
-      return overflow() || invalid_data();
-    }
-
-  protected:
-
-    //*************************************************************************
-    /// Constructor
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    ibase64_decoder(const char*    encoder_table_,
-                    bool           use_padding_,
-                    unsigned char* p_output_buffer_,
-                    size_t         ouput_buffer_max_size_,
-                    callback_type  callback_)
-      : base64(encoder_table_, use_padding_)
-      , input_buffer()
-      , input_buffer_length(0)
-      , p_output_buffer(p_output_buffer_)
-      , output_buffer_length(0)
-      , output_buffer_max_size(ouput_buffer_max_size_)
-      , callback(callback_)
-      , overflow_detected(false)
-      , invalid_data_detected(false)
-      , padding_received(false)
-    {
-    }
-
-    //*************************************************************************
-    /// Calculates the minimum buffer size required to decode from Base64
-    //*************************************************************************
-    GDUT_NODISCARD
-    static
-    GDUT_CONSTEXPR14
-    size_t decoded_size_from_valid_input_length(size_t input_length)
-    {
-      return input_length - (input_length / 4U);
-    }
-
-  private:
-
-    //*************************************************************************
-    // Translates a sextet into an index 
-    //*************************************************************************
-    template <typename T>
-    GDUT_CONSTEXPR14
-    uint32_t get_index_from_sextet(T sextet)
-    {
-      const char* encoder_table_end = encoder_table + 64;
-      const char* p_sextet = gdut::find(encoder_table, encoder_table_end, static_cast<char>(sextet));
-
-      if (p_sextet != encoder_table_end)
-      {
-        return static_cast<uint32_t>(gdut::distance(encoder_table, p_sextet));
+    while (input_begin != input_end) {
+      if (!decode(*input_begin++)) {
+        return false;
       }
-      else
-      {
+    }
+
+    return true;
+  }
+
+  //*************************************************************************
+  /// Decode from Base64
+  //*************************************************************************
+  template <typename TInputIterator>
+  GDUT_CONSTEXPR14 bool decode(TInputIterator input_begin,
+                               size_t input_length) {
+    GDUT_STATIC_ASSERT(GDUT_IS_ITERATOR_TYPE_8_BIT_INTEGRAL(TInputIterator),
+                       "Input type must be an 8 bit integral");
+
+    while (input_length-- != 0) {
+      if (!decode(*input_begin++)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  //*************************************************************************
+  /// Decode from Base64
+  //*************************************************************************
+  template <typename TInputIterator>
+  GDUT_CONSTEXPR14 bool decode_final(TInputIterator input_begin,
+                                     TInputIterator input_end) {
+    return decode(input_begin, input_end) && flush();
+  }
+
+  //*************************************************************************
+  /// Decode from Base64
+  //*************************************************************************
+  template <typename TInputIterator>
+  GDUT_CONSTEXPR14 bool decode_final(TInputIterator input_begin,
+                                     size_t input_length) {
+    return decode(input_begin, input_length) && flush();
+  }
+
+  //*************************************************************************
+  /// Flush any remaining data to the output.
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  bool flush() {
+    // Encode any remaining input data.
+    bool success = decode_block();
+
+    reset_input_buffer();
+
+    if (success) {
+      if (callback.is_valid()) {
+        // Send any remaining data.
+        if (size() != 0) {
+          callback(span());
+        }
+
+        // Indicate this was the final block.
+        callback(span_type());
+
+        reset_output_buffer();
+      }
+    }
+
+    padding_received = false;
+
+    return success;
+  }
+
+  //*************************************************************************
+  /// Reset the encoder.
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  void restart() {
+    reset_input_buffer();
+    reset_output_buffer();
+    overflow_detected = false;
+    invalid_data_detected = false;
+    padding_received = false;
+  }
+
+  //*************************************************************************
+  /// Returns the beginning of the output buffer.
+  //*************************************************************************
+  GDUT_NODISCARD
+  GDUT_CONSTEXPR14
+  const unsigned char *begin() const { return p_output_buffer; }
+
+  //*************************************************************************
+  /// This only returns a useful value if a callback has not been set or called.
+  //*************************************************************************
+  GDUT_NODISCARD
+  GDUT_CONSTEXPR14
+  const unsigned char *end() const {
+    return p_output_buffer + output_buffer_length;
+  }
+
+  //*************************************************************************
+  /// Returns the beginning of the output buffer.
+  //*************************************************************************
+  GDUT_NODISCARD
+  GDUT_CONSTEXPR14
+  const unsigned char *cbegin() const { return p_output_buffer; }
+
+  //*************************************************************************
+  /// This only returns a useful value if a callback has not been set or called.
+  //*************************************************************************
+  GDUT_NODISCARD
+  GDUT_CONSTEXPR14
+  const unsigned char *cend() const {
+    return p_output_buffer + output_buffer_length;
+  }
+
+  //*************************************************************************
+  /// Returns the size of the output buffer.
+  /// This only returns a useful value if a callback has not been set or called.
+  //*************************************************************************
+  GDUT_NODISCARD
+  GDUT_CONSTEXPR14
+  size_t size() const { return output_buffer_length; }
+
+  //*************************************************************************
+  /// Returns the maximum size of the output buffer.
+  //*************************************************************************
+  GDUT_NODISCARD
+  GDUT_CONSTEXPR14
+  size_t buffer_size() const { return output_buffer_max_size; }
+
+  //*************************************************************************
+  /// Get a span of the output data.
+  /// This only returns a useful span if a callback has not been set or called.
+  //*************************************************************************
+  GDUT_NODISCARD
+  GDUT_CONSTEXPR14
+  span_type span() const { return span_type(begin(), end()); }
+
+  //*************************************************************************
+  /// Returns true if the output buffer has overflowed
+  //*************************************************************************
+  GDUT_NODISCARD
+  GDUT_CONSTEXPR14
+  bool overflow() const { return overflow_detected; }
+
+  //*************************************************************************
+  /// Returns true if an invalid character was detected.
+  //*************************************************************************
+  GDUT_NODISCARD
+  GDUT_CONSTEXPR14
+  bool invalid_data() const { return invalid_data_detected; }
+
+  //*************************************************************************
+  /// Returns true if an error was detected.
+  //*************************************************************************
+  GDUT_NODISCARD
+  GDUT_CONSTEXPR14
+  bool error() const { return overflow() || invalid_data(); }
+
+protected:
+  //*************************************************************************
+  /// Constructor
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  ibase64_decoder(const char *encoder_table_, bool use_padding_,
+                  unsigned char *p_output_buffer_,
+                  size_t ouput_buffer_max_size_, callback_type callback_)
+      : base64(encoder_table_, use_padding_), input_buffer(),
+        input_buffer_length(0), p_output_buffer(p_output_buffer_),
+        output_buffer_length(0), output_buffer_max_size(ouput_buffer_max_size_),
+        callback(callback_), overflow_detected(false),
+        invalid_data_detected(false), padding_received(false) {}
+
+  //*************************************************************************
+  /// Calculates the minimum buffer size required to decode from Base64
+  //*************************************************************************
+  GDUT_NODISCARD
+  static GDUT_CONSTEXPR14 size_t
+  decoded_size_from_valid_input_length(size_t input_length) {
+    return input_length - (input_length / 4U);
+  }
+
+private:
+  //*************************************************************************
+  // Translates a sextet into an index
+  //*************************************************************************
+  template <typename T>
+  GDUT_CONSTEXPR14 uint32_t get_index_from_sextet(T sextet) {
+    const char *encoder_table_end = encoder_table + 64;
+    const char *p_sextet =
+        gdut::find(encoder_table, encoder_table_end, static_cast<char>(sextet));
+
+    if (p_sextet != encoder_table_end) {
+      return static_cast<uint32_t>(gdut::distance(encoder_table, p_sextet));
+    } else {
+      invalid_data_detected = true;
+      return 0;
+    }
+  }
+
+  //*************************************************************************
+  /// Gets the padding character
+  //*************************************************************************
+  template <typename T> GDUT_NODISCARD static GDUT_CONSTEXPR14 T padding() {
+    return static_cast<T>('=');
+  }
+
+  //*************************************************************************
+  /// Decode one block of data.
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  bool decode_block() {
+    switch (input_buffer_length) {
+    // Only triggered on call to flush().
+    case 2: {
+      uint32_t sextets = (get_index_from_sextet(input_buffer[0]) << 6);
+      sextets = sextets | (get_index_from_sextet(input_buffer[1]));
+      push_to_output_buffer((sextets >> 4) & 0xFF);
+      break;
+    }
+
+    // Only triggered on call to flush().
+    case 3: {
+      uint32_t sextets = (get_index_from_sextet(input_buffer[0]) << 12);
+      sextets = sextets | (get_index_from_sextet(input_buffer[1]) << 6);
+      sextets = sextets | (get_index_from_sextet(input_buffer[2]));
+      push_to_output_buffer((sextets >> 10) & 0xFF);
+      push_to_output_buffer((sextets >> 2) & 0xFF);
+      break;
+    }
+
+    // Only triggered on call to decode().
+    case 4: {
+      // Read in four sextets
+      uint32_t sextets = (get_index_from_sextet(input_buffer[0]) << 18);
+      sextets = sextets | (get_index_from_sextet(input_buffer[1]) << 12);
+      sextets = sextets | (get_index_from_sextet(input_buffer[2]) << 6);
+      sextets = sextets | (get_index_from_sextet(input_buffer[3]));
+
+      // Write out three octets
+      push_to_output_buffer((sextets >> 16) & 0xFF);
+      push_to_output_buffer((sextets >> 8) & 0xFF);
+      push_to_output_buffer((sextets >> 0) & 0xFF);
+      break;
+    }
+
+    default: {
+      break;
+    }
+    }
+
+    GDUT_ASSERT(!invalid_data_detected, GDUT_ERROR(gdut::base64_invalid_data));
+    GDUT_ASSERT(!overflow_detected, GDUT_ERROR(gdut::base64_overflow));
+
+    return (!invalid_data_detected && !overflow_detected);
+  }
+
+  //*************************************************************************
+  // Push to the output buffer.
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  void push_to_output_buffer(unsigned char c) {
+    if (output_buffer_length < output_buffer_max_size) {
+      p_output_buffer[output_buffer_length++] = c;
+    } else {
+      overflow_detected = true;
+    }
+  }
+
+  //*************************************************************************
+  //
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  bool output_buffer_is_full() const {
+    return output_buffer_length == output_buffer_max_size;
+  }
+
+  //*************************************************************************
+  //
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  bool output_buffer_is_empty() const { return output_buffer_length == 0; }
+
+  //*************************************************************************
+  //
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  void reset_output_buffer() { output_buffer_length = 0; }
+
+  //*************************************************************************
+  // Push to the input buffer.
+  //*************************************************************************
+  template <typename T> GDUT_CONSTEXPR14 void push_to_input_buffer(T value) {
+    if (value == padding<T>()) {
+      padding_received = true;
+    } else {
+      if (padding_received) {
+        GDUT_ASSERT_FAIL(GDUT_ERROR(gdut::base64_invalid_data));
         invalid_data_detected = true;
-        return 0;
+      } else {
+        input_buffer[input_buffer_length++] = static_cast<uint8_t>(value);
       }
     }
-
-    //*************************************************************************
-    /// Gets the padding character
-    //*************************************************************************
-    template <typename T>
-    GDUT_NODISCARD
-    static
-    GDUT_CONSTEXPR14
-    T padding()
-    {
-      return static_cast<T>('=');
-    }
-
-    //*************************************************************************
-    /// Decode one block of data.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    bool decode_block()
-    {
-      switch (input_buffer_length)
-      {
-        // Only triggered on call to flush().
-        case 2:
-        {
-          uint32_t  sextets = (get_index_from_sextet(input_buffer[0]) << 6);
-          sextets = sextets | (get_index_from_sextet(input_buffer[1]));
-          push_to_output_buffer((sextets >> 4) & 0xFF);
-          break;
-        }
-
-        // Only triggered on call to flush().
-        case 3:
-        {
-          uint32_t  sextets = (get_index_from_sextet(input_buffer[0]) << 12);
-          sextets = sextets | (get_index_from_sextet(input_buffer[1]) << 6);
-          sextets = sextets | (get_index_from_sextet(input_buffer[2]));
-          push_to_output_buffer((sextets >> 10) & 0xFF);
-          push_to_output_buffer((sextets >> 2) & 0xFF);
-          break;
-        }
-
-        // Only triggered on call to decode().
-        case 4:
-        {
-          // Read in four sextets
-          uint32_t  sextets = (get_index_from_sextet(input_buffer[0]) << 18);
-          sextets = sextets | (get_index_from_sextet(input_buffer[1]) << 12);
-          sextets = sextets | (get_index_from_sextet(input_buffer[2]) << 6);
-          sextets = sextets | (get_index_from_sextet(input_buffer[3]));
-
-          // Write out three octets
-          push_to_output_buffer((sextets >> 16) & 0xFF);
-          push_to_output_buffer((sextets >> 8) & 0xFF);
-          push_to_output_buffer((sextets >> 0) & 0xFF);
-          break;
-        }
-
-        default:
-        {
-          break;
-        }
-      }
-
-      GDUT_ASSERT(!invalid_data_detected, GDUT_ERROR(gdut::base64_invalid_data));
-      GDUT_ASSERT(!overflow_detected, GDUT_ERROR(gdut::base64_overflow));
-
-      return (!invalid_data_detected && !overflow_detected);
-    }
-
-    //*************************************************************************
-    // Push to the output buffer.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    void push_to_output_buffer(unsigned char c)
-    {
-      if (output_buffer_length < output_buffer_max_size)
-      {
-        p_output_buffer[output_buffer_length++] = c;
-      }
-      else
-      {
-        overflow_detected = true;
-      }
-    }
-
-    //*************************************************************************
-    // 
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    bool output_buffer_is_full() const
-    {
-      return output_buffer_length == output_buffer_max_size;
-    }
-
-    //*************************************************************************
-    // 
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    bool output_buffer_is_empty() const
-    {
-      return output_buffer_length == 0;
-    }
-
-    //*************************************************************************
-    // 
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    void reset_output_buffer()
-    {
-      output_buffer_length = 0;
-    }
-
-    //*************************************************************************
-    // Push to the input buffer.
-    //*************************************************************************
-    template <typename T>
-    GDUT_CONSTEXPR14
-    void push_to_input_buffer(T value)
-    {
-      if (value == padding<T>())
-      {
-        padding_received = true;
-      }
-      else
-      {
-        if (padding_received)
-        {
-          GDUT_ASSERT_FAIL(GDUT_ERROR(gdut::base64_invalid_data));
-          invalid_data_detected = true;
-        }
-        else
-        {
-          input_buffer[input_buffer_length++] = static_cast<uint8_t>(value);
-        }
-      }
-    }
-
-    //*************************************************************************
-    // 
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    bool input_buffer_is_full() const
-    {
-      return input_buffer_length == 4U;
-    }
-
-    //*************************************************************************
-    // 
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    void reset_input_buffer()
-    {
-      input_buffer_length = 0;
-    }
-
-    char   input_buffer[4];
-    size_t input_buffer_length;
-
-    unsigned char* p_output_buffer;
-    size_t         output_buffer_length;
-    const size_t   output_buffer_max_size;
-
-    callback_type callback;
-
-    bool overflow_detected;
-    bool invalid_data_detected;
-    bool padding_received;
-  };
+  }
 
   //*************************************************************************
-  /// Base64 RFC-2152 Decoder
+  //
   //*************************************************************************
-  template <size_t Buffer_Size = gdut::base64::Min_Decode_Buffer_Size>
-  class base64_rfc2152_decoder : public ibase64_decoder
-  {
-  public:
+  GDUT_CONSTEXPR14
+  bool input_buffer_is_full() const { return input_buffer_length == 4U; }
 
-    GDUT_STATIC_ASSERT((Buffer_Size >= gdut::base64::Min_Decode_Buffer_Size), "Buffer size must be greater than gdut::base64::Min_Decode_Buffer_Size");
+  //*************************************************************************
+  //
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  void reset_input_buffer() { input_buffer_length = 0; }
 
-    //*************************************************************************
-    /// Base64 RFC-2152 constructor.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    base64_rfc2152_decoder()
+  char input_buffer[4];
+  size_t input_buffer_length;
+
+  unsigned char *p_output_buffer;
+  size_t output_buffer_length;
+  const size_t output_buffer_max_size;
+
+  callback_type callback;
+
+  bool overflow_detected;
+  bool invalid_data_detected;
+  bool padding_received;
+};
+
+//*************************************************************************
+/// Base64 RFC-2152 Decoder
+//*************************************************************************
+template <size_t Buffer_Size = gdut::base64::Min_Decode_Buffer_Size>
+class base64_rfc2152_decoder : public ibase64_decoder {
+public:
+  GDUT_STATIC_ASSERT(
+      (Buffer_Size >= gdut::base64::Min_Decode_Buffer_Size),
+      "Buffer size must be greater than gdut::base64::Min_Decode_Buffer_Size");
+
+  //*************************************************************************
+  /// Base64 RFC-2152 constructor.
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  base64_rfc2152_decoder()
       : ibase64_decoder(gdut::base64::character_set_1(),
-                        gdut::base64::Padding::No_Padding,
-                        output_buffer,
-                        Buffer_Size,
-                        callback_type())
-      , output_buffer()
-    {
-    }
+                        gdut::base64::Padding::No_Padding, output_buffer,
+                        Buffer_Size, callback_type()),
+        output_buffer() {}
 
-    //*************************************************************************
-    /// Base64 RFC-2152 constructor.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    base64_rfc2152_decoder(callback_type callback_)
+  //*************************************************************************
+  /// Base64 RFC-2152 constructor.
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  base64_rfc2152_decoder(callback_type callback_)
       : ibase64_decoder(gdut::base64::character_set_1(),
-                        gdut::base64::Padding::No_Padding,
-                        output_buffer,
-                        Buffer_Size,
-                        callback_)
-      , output_buffer()
-    {
-    }
-
-    //*************************************************************************
-    /// Calculate the required output encode buffer size.
-    //*************************************************************************
-    GDUT_NODISCARD
-    static
-    GDUT_CONSTEXPR14
-    size_t safe_output_buffer_size(size_t input_length)
-    {
-      return ibase64_decoder::decoded_size_from_valid_input_length(input_length);
-    }
-
-  private:
-
-    /// The internal output buffer.
-    unsigned char output_buffer[Buffer_Size];
-  };
+                        gdut::base64::Padding::No_Padding, output_buffer,
+                        Buffer_Size, callback_),
+        output_buffer() {}
 
   //*************************************************************************
-  /// Base64 RFC-3501 Decoder
+  /// Calculate the required output encode buffer size.
   //*************************************************************************
-  template <size_t Buffer_Size = gdut::base64::Min_Decode_Buffer_Size>
-  class base64_rfc3501_decoder : public ibase64_decoder
-  {
-  public:
+  GDUT_NODISCARD
+  static GDUT_CONSTEXPR14 size_t safe_output_buffer_size(size_t input_length) {
+    return ibase64_decoder::decoded_size_from_valid_input_length(input_length);
+  }
 
-    GDUT_STATIC_ASSERT((Buffer_Size >= gdut::base64::Min_Decode_Buffer_Size), "Buffer size must be greater than gdut::base64::Min_Decode_Buffer_Size");
+private:
+  /// The internal output buffer.
+  unsigned char output_buffer[Buffer_Size];
+};
 
-    //*************************************************************************
-    /// Base64 RFC-3501 constructor.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    base64_rfc3501_decoder()
+//*************************************************************************
+/// Base64 RFC-3501 Decoder
+//*************************************************************************
+template <size_t Buffer_Size = gdut::base64::Min_Decode_Buffer_Size>
+class base64_rfc3501_decoder : public ibase64_decoder {
+public:
+  GDUT_STATIC_ASSERT(
+      (Buffer_Size >= gdut::base64::Min_Decode_Buffer_Size),
+      "Buffer size must be greater than gdut::base64::Min_Decode_Buffer_Size");
+
+  //*************************************************************************
+  /// Base64 RFC-3501 constructor.
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  base64_rfc3501_decoder()
       : ibase64_decoder(gdut::base64::character_set_3(),
-                        gdut::base64::Padding::No_Padding,
-                        output_buffer,
-                        Buffer_Size,
-                        callback_type())
-      , output_buffer()
-    {
-    }
+                        gdut::base64::Padding::No_Padding, output_buffer,
+                        Buffer_Size, callback_type()),
+        output_buffer() {}
 
-    //*************************************************************************
-    /// Base64 RFC-3501 constructor.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    base64_rfc3501_decoder(callback_type callback_)
+  //*************************************************************************
+  /// Base64 RFC-3501 constructor.
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  base64_rfc3501_decoder(callback_type callback_)
       : ibase64_decoder(gdut::base64::character_set_3(),
-                        gdut::base64::Padding::No_Padding,
-                        output_buffer,
-                        Buffer_Size,
-                        callback_)
-      , output_buffer()
-    {
-    }
-
-    //*************************************************************************
-    /// Calculate the required output encode buffer size.
-    //*************************************************************************
-    GDUT_NODISCARD
-    static
-    GDUT_CONSTEXPR14
-    size_t safe_output_buffer_size(size_t input_length)
-    {
-      return ibase64_decoder::decoded_size_from_valid_input_length(input_length);
-    }
-
-  private:
-
-    /// The internal output buffer.
-    unsigned char output_buffer[Buffer_Size];
-  };
+                        gdut::base64::Padding::No_Padding, output_buffer,
+                        Buffer_Size, callback_),
+        output_buffer() {}
 
   //*************************************************************************
-  /// Base64 RFC-4648 Decoder
+  /// Calculate the required output encode buffer size.
   //*************************************************************************
-  template <size_t Buffer_Size = gdut::base64::Min_Decode_Buffer_Size>
-  class base64_rfc4648_decoder : public ibase64_decoder
-  {
-  public:
+  GDUT_NODISCARD
+  static GDUT_CONSTEXPR14 size_t safe_output_buffer_size(size_t input_length) {
+    return ibase64_decoder::decoded_size_from_valid_input_length(input_length);
+  }
 
-    GDUT_STATIC_ASSERT((Buffer_Size >= gdut::base64::Min_Decode_Buffer_Size), "Buffer size must be greater than gdut::base64::Min_Decode_Buffer_Size");
+private:
+  /// The internal output buffer.
+  unsigned char output_buffer[Buffer_Size];
+};
 
-    //*************************************************************************
-    /// Base64 RFC-4648 constructor.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    base64_rfc4648_decoder()
+//*************************************************************************
+/// Base64 RFC-4648 Decoder
+//*************************************************************************
+template <size_t Buffer_Size = gdut::base64::Min_Decode_Buffer_Size>
+class base64_rfc4648_decoder : public ibase64_decoder {
+public:
+  GDUT_STATIC_ASSERT(
+      (Buffer_Size >= gdut::base64::Min_Decode_Buffer_Size),
+      "Buffer size must be greater than gdut::base64::Min_Decode_Buffer_Size");
+
+  //*************************************************************************
+  /// Base64 RFC-4648 constructor.
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  base64_rfc4648_decoder()
       : ibase64_decoder(gdut::base64::character_set_1(),
-                        gdut::base64::Padding::No_Padding,
-                        output_buffer,
-                        Buffer_Size,
-                        callback_type())
-      , output_buffer()
-    {
-    }
+                        gdut::base64::Padding::No_Padding, output_buffer,
+                        Buffer_Size, callback_type()),
+        output_buffer() {}
 
-    //*************************************************************************
-    /// Base64 RFC-4648 constructor.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    base64_rfc4648_decoder(callback_type callback_)
+  //*************************************************************************
+  /// Base64 RFC-4648 constructor.
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  base64_rfc4648_decoder(callback_type callback_)
       : ibase64_decoder(gdut::base64::character_set_1(),
-                        gdut::base64::Padding::No_Padding,
-                        output_buffer,
-                        Buffer_Size,
-                        callback_)
-      , output_buffer()
-    {
-    }
-
-    //*************************************************************************
-    /// Calculate the required output encode buffer size.
-    //*************************************************************************
-    GDUT_NODISCARD
-      static
-      GDUT_CONSTEXPR14
-      size_t safe_output_buffer_size(size_t input_length)
-    {
-      return ibase64_decoder::decoded_size_from_valid_input_length(input_length);
-    }
-
-  private:
-
-    /// The internal output buffer.
-    unsigned char output_buffer[Buffer_Size];
-  };
+                        gdut::base64::Padding::No_Padding, output_buffer,
+                        Buffer_Size, callback_),
+        output_buffer() {}
 
   //*************************************************************************
-  /// Base64 RFC-4648-Padding Decoder
+  /// Calculate the required output encode buffer size.
   //*************************************************************************
-  template <size_t Buffer_Size = gdut::base64::Min_Decode_Buffer_Size>
-  class base64_rfc4648_padding_decoder : public ibase64_decoder
-  {
-  public:
+  GDUT_NODISCARD
+  static GDUT_CONSTEXPR14 size_t safe_output_buffer_size(size_t input_length) {
+    return ibase64_decoder::decoded_size_from_valid_input_length(input_length);
+  }
 
-    GDUT_STATIC_ASSERT((Buffer_Size >= gdut::base64::Min_Decode_Buffer_Size), "Buffer size must be greater than gdut::base64::Min_Decode_Buffer_Size");
+private:
+  /// The internal output buffer.
+  unsigned char output_buffer[Buffer_Size];
+};
 
-    //*************************************************************************
-    /// Base64 RFC-4648-Padding constructor.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    base64_rfc4648_padding_decoder()
+//*************************************************************************
+/// Base64 RFC-4648-Padding Decoder
+//*************************************************************************
+template <size_t Buffer_Size = gdut::base64::Min_Decode_Buffer_Size>
+class base64_rfc4648_padding_decoder : public ibase64_decoder {
+public:
+  GDUT_STATIC_ASSERT(
+      (Buffer_Size >= gdut::base64::Min_Decode_Buffer_Size),
+      "Buffer size must be greater than gdut::base64::Min_Decode_Buffer_Size");
+
+  //*************************************************************************
+  /// Base64 RFC-4648-Padding constructor.
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  base64_rfc4648_padding_decoder()
       : ibase64_decoder(gdut::base64::character_set_1(),
-                        gdut::base64::Padding::Use_Padding,
-                        output_buffer,
-                        Buffer_Size,
-                        callback_type())
-      , output_buffer()
-    {
-    }
+                        gdut::base64::Padding::Use_Padding, output_buffer,
+                        Buffer_Size, callback_type()),
+        output_buffer() {}
 
-    //*************************************************************************
-    /// Base64 RFC-4648-Padding constructor.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    base64_rfc4648_padding_decoder(callback_type callback_)
+  //*************************************************************************
+  /// Base64 RFC-4648-Padding constructor.
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  base64_rfc4648_padding_decoder(callback_type callback_)
       : ibase64_decoder(gdut::base64::character_set_1(),
-                        gdut::base64::Padding::Use_Padding,
-                        output_buffer,
-                        Buffer_Size,
-                        callback_)
-      , output_buffer()
-    {
-    }
-
-    //*************************************************************************
-    /// Calculate the required output encode buffer size.
-    //*************************************************************************
-    GDUT_NODISCARD
-    static
-    GDUT_CONSTEXPR14
-    size_t safe_output_buffer_size(size_t input_length)
-    {
-      return ibase64_decoder::decoded_size_from_valid_input_length(input_length);
-    }
-
-  private:
-
-    /// The internal output buffer.
-    unsigned char output_buffer[Buffer_Size];
-  };
+                        gdut::base64::Padding::Use_Padding, output_buffer,
+                        Buffer_Size, callback_),
+        output_buffer() {}
 
   //*************************************************************************
-  /// Base64 RFC-4648-URL Decoder
+  /// Calculate the required output encode buffer size.
   //*************************************************************************
-  template <size_t Buffer_Size = gdut::base64::Min_Decode_Buffer_Size>
-  class base64_rfc4648_url_decoder : public ibase64_decoder
-  {
-  public:
+  GDUT_NODISCARD
+  static GDUT_CONSTEXPR14 size_t safe_output_buffer_size(size_t input_length) {
+    return ibase64_decoder::decoded_size_from_valid_input_length(input_length);
+  }
 
-    GDUT_STATIC_ASSERT((Buffer_Size >= gdut::base64::Min_Decode_Buffer_Size), "Buffer size must be greater than gdut::base64::Min_Decode_Buffer_Size");
+private:
+  /// The internal output buffer.
+  unsigned char output_buffer[Buffer_Size];
+};
 
-    //*************************************************************************
-    /// Base64 RFC-4648-Padding constructor.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    base64_rfc4648_url_decoder()
-      : ibase64_decoder(gdut::base64::character_set_2(),
-                        gdut::base64::Padding::No_Padding,
-                        output_buffer,
-                        Buffer_Size,
-                        callback_type())
-      , output_buffer()
-    {
-    }
-
-    //*************************************************************************
-    /// Base64 RFC-4648-Padding constructor.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-    base64_rfc4648_url_decoder(callback_type callback_)
-      : ibase64_decoder(gdut::base64::character_set_2(),
-                        gdut::base64::Padding::No_Padding,
-                        output_buffer,
-                        Buffer_Size,
-                        callback_)
-      , output_buffer()
-    {
-    }
-
-    //*************************************************************************
-    /// Calculate the required output encode buffer size.
-    //*************************************************************************
-    GDUT_NODISCARD
-    static
-    GDUT_CONSTEXPR14
-    size_t safe_output_buffer_size(size_t input_length)
-    {
-      return ibase64_decoder::decoded_size_from_valid_input_length(input_length);
-    }
-
-  private:
-
-    /// The internal output buffer.
-    unsigned char output_buffer[Buffer_Size];
-  };
+//*************************************************************************
+/// Base64 RFC-4648-URL Decoder
+//*************************************************************************
+template <size_t Buffer_Size = gdut::base64::Min_Decode_Buffer_Size>
+class base64_rfc4648_url_decoder : public ibase64_decoder {
+public:
+  GDUT_STATIC_ASSERT(
+      (Buffer_Size >= gdut::base64::Min_Decode_Buffer_Size),
+      "Buffer size must be greater than gdut::base64::Min_Decode_Buffer_Size");
 
   //*************************************************************************
-  /// Base64 RFC-4648-URL-Padding Decoder
+  /// Base64 RFC-4648-Padding constructor.
   //*************************************************************************
-  template <size_t Buffer_Size = gdut::base64::Min_Decode_Buffer_Size>
-  class base64_rfc4648_url_padding_decoder : public ibase64_decoder
-  {
-  public:
-
-    GDUT_STATIC_ASSERT((Buffer_Size >= gdut::base64::Min_Decode_Buffer_Size), "Buffer size must be greater than gdut::base64::Min_Decode_Buffer_Size");
-
-    //*************************************************************************
-    /// Base64 RFC-4648-Padding constructor.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-      base64_rfc4648_url_padding_decoder()
+  GDUT_CONSTEXPR14
+  base64_rfc4648_url_decoder()
       : ibase64_decoder(gdut::base64::character_set_2(),
-                        gdut::base64::Padding::Use_Padding,
-                        output_buffer,
-                        Buffer_Size,
-                        callback_type())
-      , output_buffer()
-    {
-    }
+                        gdut::base64::Padding::No_Padding, output_buffer,
+                        Buffer_Size, callback_type()),
+        output_buffer() {}
 
-    //*************************************************************************
-    /// Base64 RFC-4648-Padding constructor.
-    //*************************************************************************
-    GDUT_CONSTEXPR14
-      base64_rfc4648_url_padding_decoder(callback_type callback_)
+  //*************************************************************************
+  /// Base64 RFC-4648-Padding constructor.
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  base64_rfc4648_url_decoder(callback_type callback_)
       : ibase64_decoder(gdut::base64::character_set_2(),
-                        gdut::base64::Padding::Use_Padding,
-                        output_buffer,
-                        Buffer_Size,
-                        callback_)
-      , output_buffer()
-    {
-    }
+                        gdut::base64::Padding::No_Padding, output_buffer,
+                        Buffer_Size, callback_),
+        output_buffer() {}
 
-    //*************************************************************************
-    /// Calculate the required output encode buffer size.
-    //*************************************************************************
-    GDUT_NODISCARD
-    static
-    GDUT_CONSTEXPR14
-    size_t safe_output_buffer_size(size_t input_length)
-    {
-      return ibase64_decoder::decoded_size_from_valid_input_length(input_length);
-    }
+  //*************************************************************************
+  /// Calculate the required output encode buffer size.
+  //*************************************************************************
+  GDUT_NODISCARD
+  static GDUT_CONSTEXPR14 size_t safe_output_buffer_size(size_t input_length) {
+    return ibase64_decoder::decoded_size_from_valid_input_length(input_length);
+  }
 
-  private:
+private:
+  /// The internal output buffer.
+  unsigned char output_buffer[Buffer_Size];
+};
 
-    /// The internal output buffer.
-    unsigned char output_buffer[Buffer_Size];
-  };
-}
+//*************************************************************************
+/// Base64 RFC-4648-URL-Padding Decoder
+//*************************************************************************
+template <size_t Buffer_Size = gdut::base64::Min_Decode_Buffer_Size>
+class base64_rfc4648_url_padding_decoder : public ibase64_decoder {
+public:
+  GDUT_STATIC_ASSERT(
+      (Buffer_Size >= gdut::base64::Min_Decode_Buffer_Size),
+      "Buffer size must be greater than gdut::base64::Min_Decode_Buffer_Size");
+
+  //*************************************************************************
+  /// Base64 RFC-4648-Padding constructor.
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  base64_rfc4648_url_padding_decoder()
+      : ibase64_decoder(gdut::base64::character_set_2(),
+                        gdut::base64::Padding::Use_Padding, output_buffer,
+                        Buffer_Size, callback_type()),
+        output_buffer() {}
+
+  //*************************************************************************
+  /// Base64 RFC-4648-Padding constructor.
+  //*************************************************************************
+  GDUT_CONSTEXPR14
+  base64_rfc4648_url_padding_decoder(callback_type callback_)
+      : ibase64_decoder(gdut::base64::character_set_2(),
+                        gdut::base64::Padding::Use_Padding, output_buffer,
+                        Buffer_Size, callback_),
+        output_buffer() {}
+
+  //*************************************************************************
+  /// Calculate the required output encode buffer size.
+  //*************************************************************************
+  GDUT_NODISCARD
+  static GDUT_CONSTEXPR14 size_t safe_output_buffer_size(size_t input_length) {
+    return ibase64_decoder::decoded_size_from_valid_input_length(input_length);
+  }
+
+private:
+  /// The internal output buffer.
+  unsigned char output_buffer[Buffer_Size];
+};
+} // namespace gdut
 
 #undef GDUT_IS_TYPE_8_BIT_INTEGRAL
 #undef GDUT_IS_ITERATOR_TYPE_8_BIT_INTEGRAL

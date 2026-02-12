@@ -31,23 +31,20 @@ SOFTWARE.
 #ifndef GDUT_TUPLE_SIZE_INCLUDED
 #define GDUT_TUPLE_SIZE_INCLUDED
 
-namespace gdut
-{
-  //***************************************************************************
-  template <typename T>
-  struct tuple_size;
+namespace gdut {
+//***************************************************************************
+template <typename T> struct tuple_size;
 
-  //***************************************************************************
-  template <typename T>
-  struct tuple_size<const T> : gdut::integral_constant<size_t, tuple_size<T>::value>
-  {
-  };
+//***************************************************************************
+template <typename T>
+struct tuple_size<const T>
+    : gdut::integral_constant<size_t, tuple_size<T>::value> {};
 
-  //***************************************************************************
+//***************************************************************************
 #if GDUT_USING_CPP17
-  template <typename T>
-  inline constexpr size_t tuple_size_v = tuple_size<T>::value;
+template <typename T>
+inline constexpr size_t tuple_size_v = tuple_size<T>::value;
 #endif
-}
+} // namespace gdut
 
 #endif

@@ -34,13 +34,13 @@ SOFTWARE.
 #include "platform.hpp"
 
 #if GDUT_USING_LEGACY_VARIANT
-  // gdut::variant
-  #include "private/variant_legacy.hpp" // IWYU pragma: export
+// gdut::variant
+#include "private/variant_legacy.hpp" // IWYU pragma: export
 #else
-  // gdut::legacy::variant
-  #include "private/variant_legacy.hpp" // IWYU pragma: export
-  // gdut::variant
-  #include "private/variant_variadic.hpp" // IWYU pragma: export
+// gdut::legacy::variant
+#include "private/variant_legacy.hpp"   // IWYU pragma: export
+// gdut::variant
+#include "private/variant_variadic.hpp" // IWYU pragma: export
 #endif
 
 #endif

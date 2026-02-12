@@ -31,53 +31,44 @@ SOFTWARE.
 #ifndef GDUT_RESCALE_INCLUDED
 #define GDUT_RESCALE_INCLUDED
 
-#include "platform.hpp"
-#include "functional.hpp"
-#include "type_traits.hpp"
 #include "algorithm.hpp"
+#include "functional.hpp"
+#include "platform.hpp"
+#include "type_traits.hpp"
 
-//#include <math.h>
+// #include <math.h>
 #include <stdint.h>
 
-namespace gdut
-{
-  //***************************************************************************
-  /// Rescale function.
-  //***************************************************************************
-  template<typename TInput, typename TOutput>
-  class rescale : public gdut::unary_function<TOutput, TInput>
-  {
-  public:
+namespace gdut {
+//***************************************************************************
+/// Rescale function.
+//***************************************************************************
+template <typename TInput, typename TOutput>
+class rescale : public gdut::unary_function<TOutput, TInput> {
+public:
+  //*****************************************************************
+  /// Constructor.
+  //*****************************************************************
+  rescale(TInput input_min_value_, TInput input_max_value_,
+          TOutput output_min_value_, TOutput output_max_value_)
+      : input_min_value(input_min_value_), output_min_value(output_min_value_),
+        output_max_value(output_max_value_),
+        multiplier(double(output_max_value_ - output_min_value_) /
+                   double(input_max_value_ - input_min_value_)) {}
 
-    //*****************************************************************
-    /// Constructor.
-    //*****************************************************************
-    rescale(TInput  input_min_value_,
-            TInput  input_max_value_,
-            TOutput output_min_value_,
-            TOutput output_max_value_)
-        : input_min_value(input_min_value_)
-        , output_min_value(output_min_value_)
-        , output_max_value(output_max_value_)
-        , multiplier(double(output_max_value_ - output_min_value_) / double(input_max_value_ - input_min_value_))
-    {    
-    }
+  //*****************************************************************
+  /// operator ()
+  //*****************************************************************
+  TOutput operator()(TInput value) const {
+    return TOutput(((value - input_min_value) * multiplier)) + output_min_value;
+  }
 
-    //*****************************************************************
-    /// operator ()
-    //*****************************************************************
-    TOutput operator ()(TInput value) const
-    {
-      return TOutput(((value - input_min_value) * multiplier)) + output_min_value;
-    }
-
-  private:
-
-    const TInput  input_min_value;
-    const TOutput output_min_value;
-    const TOutput output_max_value;
-    double multiplier;    
-  };
-}
+private:
+  const TInput input_min_value;
+  const TOutput output_min_value;
+  const TOutput output_max_value;
+  double multiplier;
+};
+} // namespace gdut
 
 #endif

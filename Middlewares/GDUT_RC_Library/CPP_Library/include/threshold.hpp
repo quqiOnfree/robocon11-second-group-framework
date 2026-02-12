@@ -31,49 +31,41 @@ SOFTWARE.
 #ifndef GDUT_THRESHOLD_INCLUDED
 #define GDUT_THRESHOLD_INCLUDED
 
-#include "platform.hpp"
 #include "functional.hpp"
+#include "platform.hpp"
 #include "type_traits.hpp"
 
-//#include <math.h>
+// #include <math.h>
 #include <stdint.h>
 
-namespace gdut
-{
-  //***************************************************************************
-  /// Threshold.
-  //***************************************************************************
-  template<typename TInput, typename TCompare = gdut::less<TInput> >
-  class threshold : public gdut::unary_function<TInput, TInput>
-  {
-  public:
+namespace gdut {
+//***************************************************************************
+/// Threshold.
+//***************************************************************************
+template <typename TInput, typename TCompare = gdut::less<TInput>>
+class threshold : public gdut::unary_function<TInput, TInput> {
+public:
+  //*****************************************************************
+  // Constructor.
+  //*****************************************************************
+  threshold(TInput threshold_value_, TInput true_value_, TInput false_value_,
+            TCompare compare_ = TCompare())
+      : threshold_value(threshold_value_), true_value(true_value_),
+        false_value(false_value_), compare(compare_) {}
 
-    //*****************************************************************
-    // Constructor.
-    //*****************************************************************
-    threshold(TInput threshold_value_, TInput true_value_, TInput false_value_, TCompare compare_ = TCompare())
-      : threshold_value(threshold_value_)
-      , true_value(true_value_)
-      , false_value(false_value_)
-      , compare(compare_)
-    {
-    }
+  //*****************************************************************
+  // operator ()
+  //*****************************************************************
+  TInput operator()(TInput value) const {
+    return compare(value, threshold_value) ? true_value : false_value;
+  }
 
-    //*****************************************************************
-    // operator ()
-    //*****************************************************************
-    TInput operator ()(TInput value) const
-    {
-      return compare(value, threshold_value) ? true_value : false_value;
-    }
-
-  private:
-
-    const TInput   threshold_value;
-    const TInput   true_value;
-    const TInput   false_value;
-    const TCompare compare;
-  };
-}
+private:
+  const TInput threshold_value;
+  const TInput true_value;
+  const TInput false_value;
+  const TCompare compare;
+};
+} // namespace gdut
 
 #endif

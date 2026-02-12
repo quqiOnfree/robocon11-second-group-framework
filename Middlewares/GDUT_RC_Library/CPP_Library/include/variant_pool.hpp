@@ -51,420 +51,379 @@ SOFTWARE.
 #ifndef GDUT_VARIANT_POOL_INCLUDED
 #define GDUT_VARIANT_POOL_INCLUDED
 
+#include "largest.hpp"
 #include "platform.hpp"
 #include "pool.hpp"
-#include "type_traits.hpp"
 #include "static_assert.hpp"
-#include "largest.hpp"
+#include "type_traits.hpp"
 
 #include <stdint.h>
 
-namespace gdut
-{
+namespace gdut {
 #if GDUT_USING_CPP11 && !defined(GDUT_VARIANT_POOL_FORCE_CPP03_IMPLEMENTATION)
-  //***************************************************************************
-  template <size_t MAX_SIZE_, typename ... Ts>
-  class variant_pool
+//***************************************************************************
+template <size_t MAX_SIZE_, typename... Ts>
+class variant_pool
     : public gdut::generic_pool<gdut::largest<Ts...>::size,
-                               gdut::largest<Ts...>::alignment,
-                               MAX_SIZE_>
-  {
-  public:
+                                gdut::largest<Ts...>::alignment, MAX_SIZE_> {
+public:
+  typedef gdut::generic_pool<gdut::largest<Ts...>::size,
+                             gdut::largest<Ts...>::alignment, MAX_SIZE_>
+      base_t;
 
-    typedef gdut::generic_pool<gdut::largest<Ts...>::size,
-                              gdut::largest<Ts...>::alignment,
-                              MAX_SIZE_> base_t;
+  static const size_t MAX_SIZE = MAX_SIZE_;
 
-    static const size_t MAX_SIZE = MAX_SIZE_;
+  //*************************************************************************
+  /// Default constructor.
+  //*************************************************************************
+  variant_pool() {}
 
-    //*************************************************************************
-    /// Default constructor.
-    //*************************************************************************
-    variant_pool()
-    {
-    }
+  //*************************************************************************
+  /// Creates the object from a type. Variadic parameter constructor.
+  //*************************************************************************
+  template <typename T, typename... Args> T *create(Args &&...args) {
+    GDUT_STATIC_ASSERT((gdut::is_one_of<T, Ts...>::value), "Unsupported type");
 
-    //*************************************************************************
-    /// Creates the object from a type. Variadic parameter constructor.
-    //*************************************************************************
-    template <typename T, typename... Args>
-    T* create(Args&&... args)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, Ts...>::value), "Unsupported type");
+    return base_t::template create<T>(gdut::forward<Args>(args)...);
+  }
 
-      return base_t::template create<T>(gdut::forward<Args>(args)...);
-    }
+  //*************************************************************************
+  /// Destroys the object.
+  //*************************************************************************
+  template <typename T> void destroy(const T *const p) {
+    GDUT_STATIC_ASSERT((gdut::is_one_of<T, Ts...>::value ||
+                        gdut::is_base_of_any<T, Ts...>::value),
+                       "Invalid type");
 
-    //*************************************************************************
-    /// Destroys the object.
-    //*************************************************************************
-    template <typename T>
-    void destroy(const T* const p)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, Ts...>::value || gdut::is_base_of_any<T, Ts...>::value), "Invalid type");
+    base_t::destroy(p);
+  }
 
-      base_t::destroy(p);
-    }
+  //*************************************************************************
+  /// Returns the maximum number of items in the variant_pool.
+  //*************************************************************************
+  size_t max_size() const { return MAX_SIZE; }
 
-    //*************************************************************************
-    /// Returns the maximum number of items in the variant_pool.
-    //*************************************************************************
-    size_t max_size() const
-    {
-      return MAX_SIZE;
-    }
+private:
+  variant_pool(const variant_pool &) GDUT_DELETE;
+  variant_pool &operator=(const variant_pool &) GDUT_DELETE;
+};
 
-  private:
-
-    variant_pool(const variant_pool&) GDUT_DELETE;
-    variant_pool& operator =(const variant_pool&) GDUT_DELETE;
-  };
-
-  //***************************************************************************
-  template <typename ... Ts>
-  class variant_pool_ext
+//***************************************************************************
+template <typename... Ts>
+class variant_pool_ext
     : public gdut::generic_pool_ext<gdut::largest<Ts...>::size,
-                                   gdut::largest<Ts...>::alignment>
-  {
-  public:
+                                    gdut::largest<Ts...>::alignment> {
+public:
+  typedef gdut::generic_pool_ext<gdut::largest<Ts...>::size,
+                                 gdut::largest<Ts...>::alignment>
+      base_t;
 
-    typedef gdut::generic_pool_ext<gdut::largest<Ts...>::size,
-                                  gdut::largest<Ts...>::alignment> base_t;
+  //*************************************************************************
+  /// Default constructor.
+  //*************************************************************************
+  variant_pool_ext(typename base_t::element *buffer, size_t size)
+      : base_t(buffer, size) {}
 
-    //*************************************************************************
-    /// Default constructor.
-    //*************************************************************************
-    variant_pool_ext(typename base_t::element* buffer, size_t size)
-      : base_t(buffer, size)
-    {
-    }
+  //*************************************************************************
+  /// Creates the object from a type. Variadic parameter constructor.
+  //*************************************************************************
+  template <typename T, typename... Args> T *create(Args &&...args) {
+    GDUT_STATIC_ASSERT((gdut::is_one_of<T, Ts...>::value), "Unsupported type");
 
-    //*************************************************************************
-    /// Creates the object from a type. Variadic parameter constructor.
-    //*************************************************************************
-    template <typename T, typename... Args>
-    T* create(Args&&... args)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, Ts...>::value), "Unsupported type");
+    return base_t::template create<T>(gdut::forward<Args>(args)...);
+  }
 
-      return base_t::template create<T>(gdut::forward<Args>(args)...);
-    }
+  //*************************************************************************
+  /// Destroys the object.
+  //*************************************************************************
+  template <typename T> void destroy(const T *const p) {
+    GDUT_STATIC_ASSERT((gdut::is_one_of<T, Ts...>::value ||
+                        gdut::is_base_of_any<T, Ts...>::value),
+                       "Invalid type");
 
-    //*************************************************************************
-    /// Destroys the object.
-    //*************************************************************************
-    template <typename T>
-    void destroy(const T* const p)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, Ts...>::value || gdut::is_base_of_any<T, Ts...>::value), "Invalid type");
+    base_t::destroy(p);
+  }
 
-      base_t::destroy(p);
-    }
+  //*************************************************************************
+  /// Returns the maximum number of items in the variant_pool.
+  //*************************************************************************
+  size_t max_size() const { return base_t::max_size(); }
 
-    //*************************************************************************
-    /// Returns the maximum number of items in the variant_pool.
-    //*************************************************************************
-    size_t max_size() const
-    {
-      return base_t::max_size();
-    }
-
-  private:
-
-    variant_pool_ext(const variant_pool_ext&) GDUT_DELETE;
-    variant_pool_ext& operator =(const variant_pool_ext&) GDUT_DELETE;
-  };
+private:
+  variant_pool_ext(const variant_pool_ext &) GDUT_DELETE;
+  variant_pool_ext &operator=(const variant_pool_ext &) GDUT_DELETE;
+};
 #else
-  //***************************************************************************
-  template <size_t MAX_SIZE_,
-            typename T1,
-            typename T2 = void,
-            typename T3 = void,
-            typename T4 = void,
-            typename T5 = void,
-            typename T6 = void,
-            typename T7 = void,
-            typename T8 = void,
-            typename T9 = void,
-            typename T10 = void,
-            typename T11 = void,
-            typename T12 = void,
-            typename T13 = void,
-            typename T14 = void,
-            typename T15 = void,
-            typename T16 = void>
-  class variant_pool
-    : public gdut::generic_pool<gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::size,
-                               gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::alignment,
-                               MAX_SIZE_>
-  {
-  public:
+//***************************************************************************
+template <size_t MAX_SIZE_, typename T1, typename T2 = void, typename T3 = void,
+          typename T4 = void, typename T5 = void, typename T6 = void,
+          typename T7 = void, typename T8 = void, typename T9 = void,
+          typename T10 = void, typename T11 = void, typename T12 = void,
+          typename T13 = void, typename T14 = void, typename T15 = void,
+          typename T16 = void>
+class variant_pool : public gdut::generic_pool<
+                         gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10,
+                                       T11, T12, T13, T14, T15, T16>::size,
+                         gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10,
+                                       T11, T12, T13, T14, T15, T16>::alignment,
+                         MAX_SIZE_> {
+public:
+  typedef gdut::generic_pool<
+      gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14,
+                    T15, T16>::size,
+      gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14,
+                    T15, T16>::alignment,
+      MAX_SIZE_>
+      base_t;
 
-    typedef gdut::generic_pool<gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::size,
-                              gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::alignment,
-                              MAX_SIZE_> base_t;
+  static const size_t MAX_SIZE = MAX_SIZE_;
 
-    static const size_t MAX_SIZE = MAX_SIZE_;
-
-    //*************************************************************************
-    /// Default constructor.
-    //*************************************************************************
-    variant_pool()
-    {
-    }
+  //*************************************************************************
+  /// Default constructor.
+  //*************************************************************************
+  variant_pool() {}
 
 #if GDUT_CPP11_NOT_SUPPORTED || GDUT_USING_STLPORT
-    //*************************************************************************
-    /// Creates the object. Default constructor.
-    //*************************************************************************
-    template <typename T>
-    T* create()
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::value), "Unsupported type");
+  //*************************************************************************
+  /// Creates the object. Default constructor.
+  //*************************************************************************
+  template <typename T> T *create() {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12,
+                         T13, T14, T15, T16>::value),
+        "Unsupported type");
 
-      return base_t::template create<T>();
-    }
+    return base_t::template create<T>();
+  }
 
-    //*************************************************************************
-    /// Creates the object. One parameter constructor.
-    //*************************************************************************
-    template <typename T, typename TP1>
-    T* create(const TP1& p1)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::value), "Unsupported type");
+  //*************************************************************************
+  /// Creates the object. One parameter constructor.
+  //*************************************************************************
+  template <typename T, typename TP1> T *create(const TP1 &p1) {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12,
+                         T13, T14, T15, T16>::value),
+        "Unsupported type");
 
-      return base_t::template create<T>(p1);
-    }
+    return base_t::template create<T>(p1);
+  }
 
-    //*************************************************************************
-    /// Creates the object. Two parameter constructor.
-    //*************************************************************************
-    template <typename T, typename TP1, typename TP2>
-    T* create(const TP1& p1, const TP2& p2)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::value), "Unsupported type");
+  //*************************************************************************
+  /// Creates the object. Two parameter constructor.
+  //*************************************************************************
+  template <typename T, typename TP1, typename TP2>
+  T *create(const TP1 &p1, const TP2 &p2) {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12,
+                         T13, T14, T15, T16>::value),
+        "Unsupported type");
 
-      return base_t::template create<T>(p1, p2);
-    }
+    return base_t::template create<T>(p1, p2);
+  }
 
-    //*************************************************************************
-    /// Creates the object. Three parameter constructor.
-    //*************************************************************************
-    template <typename T, typename TP1, typename TP2, typename TP3>
-    T* create(const TP1& p1, const TP2& p2, const TP3& p3)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::value), "Unsupported type");
+  //*************************************************************************
+  /// Creates the object. Three parameter constructor.
+  //*************************************************************************
+  template <typename T, typename TP1, typename TP2, typename TP3>
+  T *create(const TP1 &p1, const TP2 &p2, const TP3 &p3) {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12,
+                         T13, T14, T15, T16>::value),
+        "Unsupported type");
 
-      return base_t::template create<T>(p1, p2, p3);
-    }
+    return base_t::template create<T>(p1, p2, p3);
+  }
 
-    //*************************************************************************
-    /// Creates the object. Four parameter constructor.
-    //*************************************************************************
-    template <typename T, typename TP1, typename TP2, typename TP3, typename TP4>
-    T* create(const TP1& p1, const TP2& p2, const TP3& p3, const TP4& p4)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::value), "Unsupported type");
+  //*************************************************************************
+  /// Creates the object. Four parameter constructor.
+  //*************************************************************************
+  template <typename T, typename TP1, typename TP2, typename TP3, typename TP4>
+  T *create(const TP1 &p1, const TP2 &p2, const TP3 &p3, const TP4 &p4) {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12,
+                         T13, T14, T15, T16>::value),
+        "Unsupported type");
 
-      return base_t::template create<T>(p1, p2, p3, p4);
-    }
+    return base_t::template create<T>(p1, p2, p3, p4);
+  }
 #else
-    //*************************************************************************
-    /// Creates the object from a type. Variadic parameter constructor.
-    //*************************************************************************
-    template <typename T, typename... Args>
-    T* create(Args&&... args)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::value), "Unsupported type");
+  //*************************************************************************
+  /// Creates the object from a type. Variadic parameter constructor.
+  //*************************************************************************
+  template <typename T, typename... Args> T *create(Args &&...args) {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12,
+                         T13, T14, T15, T16>::value),
+        "Unsupported type");
 
-      return base_t::template create<T>(gdut::forward<Args>(args)...);
-    }
+    return base_t::template create<T>(gdut::forward<Args>(args)...);
+  }
 #endif
 
-    //*************************************************************************
-    /// Destroys the object.
-    //*************************************************************************
-    template <typename T>
-    void destroy(const T* const p)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::value ||
-                         gdut::is_base_of<T, T1>::value ||
-                         gdut::is_base_of<T, T2>::value ||
-                         gdut::is_base_of<T, T3>::value ||
-                         gdut::is_base_of<T, T4>::value ||
-                         gdut::is_base_of<T, T5>::value ||
-                         gdut::is_base_of<T, T6>::value ||
-                         gdut::is_base_of<T, T7>::value ||
-                         gdut::is_base_of<T, T8>::value ||
-                         gdut::is_base_of<T, T9>::value ||
-                         gdut::is_base_of<T, T10>::value ||
-                         gdut::is_base_of<T, T11>::value ||
-                         gdut::is_base_of<T, T12>::value ||
-                         gdut::is_base_of<T, T13>::value ||
-                         gdut::is_base_of<T, T14>::value ||
-                         gdut::is_base_of<T, T15>::value ||
-                         gdut::is_base_of<T, T16>::value), "Invalid type");
+  //*************************************************************************
+  /// Destroys the object.
+  //*************************************************************************
+  template <typename T> void destroy(const T *const p) {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12,
+                         T13, T14, T15, T16>::value ||
+         gdut::is_base_of<T, T1>::value || gdut::is_base_of<T, T2>::value ||
+         gdut::is_base_of<T, T3>::value || gdut::is_base_of<T, T4>::value ||
+         gdut::is_base_of<T, T5>::value || gdut::is_base_of<T, T6>::value ||
+         gdut::is_base_of<T, T7>::value || gdut::is_base_of<T, T8>::value ||
+         gdut::is_base_of<T, T9>::value || gdut::is_base_of<T, T10>::value ||
+         gdut::is_base_of<T, T11>::value || gdut::is_base_of<T, T12>::value ||
+         gdut::is_base_of<T, T13>::value || gdut::is_base_of<T, T14>::value ||
+         gdut::is_base_of<T, T15>::value || gdut::is_base_of<T, T16>::value),
+        "Invalid type");
 
-      base_t::destroy(p);
-    }
+    base_t::destroy(p);
+  }
 
-    //*************************************************************************
-    /// Returns the maximum number of items in the variant_pool.
-    //*************************************************************************
-    size_t max_size() const
-    {
-      return MAX_SIZE;
-    }
+  //*************************************************************************
+  /// Returns the maximum number of items in the variant_pool.
+  //*************************************************************************
+  size_t max_size() const { return MAX_SIZE; }
 
-  private:
+private:
+  variant_pool(const variant_pool &) GDUT_DELETE;
+  variant_pool &operator=(const variant_pool &) GDUT_DELETE;
+};
 
-    variant_pool(const variant_pool&) GDUT_DELETE;
-    variant_pool& operator =(const variant_pool&) GDUT_DELETE;
-  };
+//***************************************************************************
+template <typename T1, typename T2 = void, typename T3 = void,
+          typename T4 = void, typename T5 = void, typename T6 = void,
+          typename T7 = void, typename T8 = void, typename T9 = void,
+          typename T10 = void, typename T11 = void, typename T12 = void,
+          typename T13 = void, typename T14 = void, typename T15 = void,
+          typename T16 = void>
+class variant_pool_ext
+    : public gdut::generic_pool_ext<
+          gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13,
+                        T14, T15, T16>::size,
+          gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13,
+                        T14, T15, T16>::alignment> {
+public:
+  typedef gdut::generic_pool_ext<
+      gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14,
+                    T15, T16>::size,
+      gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14,
+                    T15, T16>::alignment>
+      base_t;
 
-  //***************************************************************************
-  template <typename T1,
-            typename T2 = void,
-            typename T3 = void,
-            typename T4 = void,
-            typename T5 = void,
-            typename T6 = void,
-            typename T7 = void,
-            typename T8 = void,
-            typename T9 = void,
-            typename T10 = void,
-            typename T11 = void,
-            typename T12 = void,
-            typename T13 = void,
-            typename T14 = void,
-            typename T15 = void,
-            typename T16 = void>
-  class variant_pool_ext
-    : public gdut::generic_pool_ext<gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::size,
-                                   gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::alignment>
-  {
-  public:
-
-    typedef gdut::generic_pool_ext<gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::size,
-                                  gdut::largest<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::alignment> base_t;
-
-    //*************************************************************************
-    /// Default constructor.
-    //*************************************************************************
-    variant_pool_ext(typename base_t::element* buffer, size_t size)
-      : base_t(buffer, size) 
-    {
-    }
+  //*************************************************************************
+  /// Default constructor.
+  //*************************************************************************
+  variant_pool_ext(typename base_t::element *buffer, size_t size)
+      : base_t(buffer, size) {}
 
 #if GDUT_CPP11_NOT_SUPPORTED || GDUT_USING_STLPORT
-    //*************************************************************************
-    /// Creates the object. Default constructor.
-    //*************************************************************************
-    template <typename T>
-    T* create()
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::value), "Unsupported type");
+  //*************************************************************************
+  /// Creates the object. Default constructor.
+  //*************************************************************************
+  template <typename T> T *create() {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12,
+                         T13, T14, T15, T16>::value),
+        "Unsupported type");
 
-      return base_t::template create<T>();
-    }
+    return base_t::template create<T>();
+  }
 
-    //*************************************************************************
-    /// Creates the object. One parameter constructor.
-    //*************************************************************************
-    template <typename T, typename TP1>
-    T* create(const TP1& p1)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::value), "Unsupported type");
+  //*************************************************************************
+  /// Creates the object. One parameter constructor.
+  //*************************************************************************
+  template <typename T, typename TP1> T *create(const TP1 &p1) {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12,
+                         T13, T14, T15, T16>::value),
+        "Unsupported type");
 
-      return base_t::template create<T>(p1);
-    }
+    return base_t::template create<T>(p1);
+  }
 
-    //*************************************************************************
-    /// Creates the object. Two parameter constructor.
-    //*************************************************************************
-    template <typename T, typename TP1, typename TP2>
-    T* create(const TP1& p1, const TP2& p2)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::value), "Unsupported type");
+  //*************************************************************************
+  /// Creates the object. Two parameter constructor.
+  //*************************************************************************
+  template <typename T, typename TP1, typename TP2>
+  T *create(const TP1 &p1, const TP2 &p2) {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12,
+                         T13, T14, T15, T16>::value),
+        "Unsupported type");
 
-      return base_t::template create<T>(p1, p2);
-    }
+    return base_t::template create<T>(p1, p2);
+  }
 
-    //*************************************************************************
-    /// Creates the object. Three parameter constructor.
-    //*************************************************************************
-    template <typename T, typename TP1, typename TP2, typename TP3>
-    T* create(const TP1& p1, const TP2& p2, const TP3& p3)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::value), "Unsupported type");
+  //*************************************************************************
+  /// Creates the object. Three parameter constructor.
+  //*************************************************************************
+  template <typename T, typename TP1, typename TP2, typename TP3>
+  T *create(const TP1 &p1, const TP2 &p2, const TP3 &p3) {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12,
+                         T13, T14, T15, T16>::value),
+        "Unsupported type");
 
-      return base_t::template create<T>(p1, p2, p3);
-    }
+    return base_t::template create<T>(p1, p2, p3);
+  }
 
-    //*************************************************************************
-    /// Creates the object. Four parameter constructor.
-    //*************************************************************************
-    template <typename T, typename TP1, typename TP2, typename TP3, typename TP4>
-    T* create(const TP1& p1, const TP2& p2, const TP3& p3, const TP4& p4)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::value), "Unsupported type");
+  //*************************************************************************
+  /// Creates the object. Four parameter constructor.
+  //*************************************************************************
+  template <typename T, typename TP1, typename TP2, typename TP3, typename TP4>
+  T *create(const TP1 &p1, const TP2 &p2, const TP3 &p3, const TP4 &p4) {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12,
+                         T13, T14, T15, T16>::value),
+        "Unsupported type");
 
-      return base_t::template create<T>(p1, p2, p3, p4);
-    }
+    return base_t::template create<T>(p1, p2, p3, p4);
+  }
 #else
-    //*************************************************************************
-    /// Creates the object from a type. Variadic parameter constructor.
-    //*************************************************************************
-    template <typename T, typename... Args>
-    T* create(Args&&... args)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::value), "Unsupported type");
+  //*************************************************************************
+  /// Creates the object from a type. Variadic parameter constructor.
+  //*************************************************************************
+  template <typename T, typename... Args> T *create(Args &&...args) {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12,
+                         T13, T14, T15, T16>::value),
+        "Unsupported type");
 
-      return base_t::template create<T>(gdut::forward<Args>(args)...);
-    }
+    return base_t::template create<T>(gdut::forward<Args>(args)...);
+  }
 #endif
 
-    //*************************************************************************
-    /// Destroys the object.
-    //*************************************************************************
-    template <typename T>
-    void destroy(const T* const p)
-    {
-      GDUT_STATIC_ASSERT((gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>::value ||
-                         gdut::is_base_of<T, T1>::value ||
-                         gdut::is_base_of<T, T2>::value ||
-                         gdut::is_base_of<T, T3>::value ||
-                         gdut::is_base_of<T, T4>::value ||
-                         gdut::is_base_of<T, T5>::value ||
-                         gdut::is_base_of<T, T6>::value ||
-                         gdut::is_base_of<T, T7>::value ||
-                         gdut::is_base_of<T, T8>::value ||
-                         gdut::is_base_of<T, T9>::value ||
-                         gdut::is_base_of<T, T10>::value ||
-                         gdut::is_base_of<T, T11>::value ||
-                         gdut::is_base_of<T, T12>::value ||
-                         gdut::is_base_of<T, T13>::value ||
-                         gdut::is_base_of<T, T14>::value ||
-                         gdut::is_base_of<T, T15>::value ||
-                         gdut::is_base_of<T, T16>::value), "Invalid type");
+  //*************************************************************************
+  /// Destroys the object.
+  //*************************************************************************
+  template <typename T> void destroy(const T *const p) {
+    GDUT_STATIC_ASSERT(
+        (gdut::is_one_of<T, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12,
+                         T13, T14, T15, T16>::value ||
+         gdut::is_base_of<T, T1>::value || gdut::is_base_of<T, T2>::value ||
+         gdut::is_base_of<T, T3>::value || gdut::is_base_of<T, T4>::value ||
+         gdut::is_base_of<T, T5>::value || gdut::is_base_of<T, T6>::value ||
+         gdut::is_base_of<T, T7>::value || gdut::is_base_of<T, T8>::value ||
+         gdut::is_base_of<T, T9>::value || gdut::is_base_of<T, T10>::value ||
+         gdut::is_base_of<T, T11>::value || gdut::is_base_of<T, T12>::value ||
+         gdut::is_base_of<T, T13>::value || gdut::is_base_of<T, T14>::value ||
+         gdut::is_base_of<T, T15>::value || gdut::is_base_of<T, T16>::value),
+        "Invalid type");
 
-      base_t::destroy(p);
-    }
+    base_t::destroy(p);
+  }
 
-    //*************************************************************************
-    /// Returns the maximum number of items in the variant_pool.
-    //*************************************************************************
-    size_t max_size() const 
-    { 
-      return base_t::max_size(); 
-    }
+  //*************************************************************************
+  /// Returns the maximum number of items in the variant_pool.
+  //*************************************************************************
+  size_t max_size() const { return base_t::max_size(); }
 
-  private:
-
-    variant_pool_ext(const variant_pool_ext&) GDUT_DELETE;
-    variant_pool_ext& operator =(const variant_pool_ext&) GDUT_DELETE;
-  };
+private:
+  variant_pool_ext(const variant_pool_ext &) GDUT_DELETE;
+  variant_pool_ext &operator=(const variant_pool_ext &) GDUT_DELETE;
+};
 #endif
-}
+} // namespace gdut
 
 #endif

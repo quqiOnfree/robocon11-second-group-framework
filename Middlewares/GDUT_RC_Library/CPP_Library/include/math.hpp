@@ -33,9 +33,10 @@ SOFTWARE.
 
 #include "platform.hpp"
 
-#if GDUT_NOT_USING_STL && defined(GDUT_COMPILER_ARM5) && !defined(__USE_C99_MATH)
-  // Required for nan, nanf, nanl
-  #define __USE_C99_MATH
+#if GDUT_NOT_USING_STL && defined(GDUT_COMPILER_ARM5) &&                       \
+    !defined(__USE_C99_MATH)
+// Required for nan, nanf, nanl
+#define __USE_C99_MATH
 #endif
 
 #include <float.h>
@@ -44,113 +45,97 @@ SOFTWARE.
 #include "limits.hpp"
 #include "type_traits.hpp"
 
-namespace gdut
-{
-  //***************************************************************************
-  // is_nan
-  //***************************************************************************
+namespace gdut {
+//***************************************************************************
+// is_nan
+//***************************************************************************
 #if GDUT_USING_CPP11 && !defined(GDUT_NO_CPP_NAN_SUPPORT)
-  template <typename T>
-  GDUT_CONSTEXPR
+template <typename T>
+GDUT_CONSTEXPR
     typename gdut::enable_if<gdut::is_floating_point<T>::value, bool>::type
-    is_nan(T value)
-  {
-    return fpclassify(value) == FP_NAN;
-  }
-#else
-#include "private/diagnostic_float_equal_push.hpp"
-  template <typename T>
-  GDUT_CONSTEXPR
-    typename gdut::enable_if<gdut::is_floating_point<T>::value, bool>::type
-    is_nan(T value)
-  {
-    return (value != value);
-  }
-#include "private/diagnostic_pop.hpp"
-#endif
-
-  template <typename T>
-  GDUT_CONSTEXPR
-  typename gdut::enable_if<gdut::is_integral<T>::value, bool>::type
-    is_nan(T)
-  {
-    return false;
-  }
-
-  //***************************************************************************
-  // is_infinity
-  //***************************************************************************
-#if GDUT_USING_CPP11 && !defined(GDUT_NO_CPP_NAN_SUPPORT)
-  template <typename T>
-  GDUT_CONSTEXPR
-  typename gdut::enable_if<gdut::is_floating_point<T>::value, bool>::type
-    is_infinity(T value)
-  {
-    return fpclassify(value) == FP_INFINITE;
-  }
-#else
-#include "private/diagnostic_float_equal_push.hpp"
-  template <typename T>
-  GDUT_CONSTEXPR
-  typename gdut::enable_if<gdut::is_floating_point<T>::value, bool>::type
-    is_infinity(T value)
-  {
-    return ((value == gdut::numeric_limits<T>::infinity()) ||
-            (value == -gdut::numeric_limits<T>::infinity()));
-  }
-#include "private/diagnostic_pop.hpp"
-#endif
-
-  template <typename T>
-  GDUT_CONSTEXPR
-  typename gdut::enable_if<gdut::is_integral<T>::value, bool>::type
-    is_infinity(T)
-  {
-    return false;
-  }
-
-  //***************************************************************************
-  // is_zero
-  //***************************************************************************
-#if GDUT_USING_CPP11 && !defined(GDUT_NO_CPP_NAN_SUPPORT)
-  template <typename T>
-  GDUT_CONSTEXPR
-  typename gdut::enable_if<gdut::is_floating_point<T>::value, bool>::type
-    is_zero(T value)
-  {
-    return fpclassify(value) == FP_ZERO;
-  }
-#else
-#include "private/diagnostic_float_equal_push.hpp"
-  template <typename T>
-  GDUT_CONSTEXPR
-  typename gdut::enable_if<gdut::is_floating_point<T>::value, bool>::type
-    is_zero(T value)
-  {
-    return value == 0;
-  }
-#include "private/diagnostic_pop.hpp"
-#endif
-
-  template <typename T>
-  GDUT_CONSTEXPR
-  typename gdut::enable_if<gdut::is_integral<T>::value, bool>::type
-    is_zero(T value)
-  {
-    return (value == 0);
-  }
-
-  //***************************************************************************
-  // is_exactly_equal
-  //***************************************************************************
-#include "private/diagnostic_float_equal_push.hpp"
-  template <typename T>
-  GDUT_CONSTEXPR
-  bool is_exactly_equal(T value1, T value2)
-  {
-    return value1 == value2;
-  }
-#include "private/diagnostic_pop.hpp"
+    is_nan(T value) {
+  return fpclassify(value) == FP_NAN;
 }
+#else
+#include "private/diagnostic_float_equal_push.hpp"
+template <typename T>
+GDUT_CONSTEXPR
+    typename gdut::enable_if<gdut::is_floating_point<T>::value, bool>::type
+    is_nan(T value) {
+  return (value != value);
+}
+#include "private/diagnostic_pop.hpp"
+#endif
+
+template <typename T>
+GDUT_CONSTEXPR typename gdut::enable_if<gdut::is_integral<T>::value, bool>::type
+is_nan(T) {
+  return false;
+}
+
+//***************************************************************************
+// is_infinity
+//***************************************************************************
+#if GDUT_USING_CPP11 && !defined(GDUT_NO_CPP_NAN_SUPPORT)
+template <typename T>
+GDUT_CONSTEXPR
+    typename gdut::enable_if<gdut::is_floating_point<T>::value, bool>::type
+    is_infinity(T value) {
+  return fpclassify(value) == FP_INFINITE;
+}
+#else
+#include "private/diagnostic_float_equal_push.hpp"
+template <typename T>
+GDUT_CONSTEXPR
+    typename gdut::enable_if<gdut::is_floating_point<T>::value, bool>::type
+    is_infinity(T value) {
+  return ((value == gdut::numeric_limits<T>::infinity()) ||
+          (value == -gdut::numeric_limits<T>::infinity()));
+}
+#include "private/diagnostic_pop.hpp"
+#endif
+
+template <typename T>
+GDUT_CONSTEXPR typename gdut::enable_if<gdut::is_integral<T>::value, bool>::type
+is_infinity(T) {
+  return false;
+}
+
+//***************************************************************************
+// is_zero
+//***************************************************************************
+#if GDUT_USING_CPP11 && !defined(GDUT_NO_CPP_NAN_SUPPORT)
+template <typename T>
+GDUT_CONSTEXPR
+    typename gdut::enable_if<gdut::is_floating_point<T>::value, bool>::type
+    is_zero(T value) {
+  return fpclassify(value) == FP_ZERO;
+}
+#else
+#include "private/diagnostic_float_equal_push.hpp"
+template <typename T>
+GDUT_CONSTEXPR
+    typename gdut::enable_if<gdut::is_floating_point<T>::value, bool>::type
+    is_zero(T value) {
+  return value == 0;
+}
+#include "private/diagnostic_pop.hpp"
+#endif
+
+template <typename T>
+GDUT_CONSTEXPR typename gdut::enable_if<gdut::is_integral<T>::value, bool>::type
+is_zero(T value) {
+  return (value == 0);
+}
+
+//***************************************************************************
+// is_exactly_equal
+//***************************************************************************
+#include "private/diagnostic_float_equal_push.hpp"
+template <typename T> GDUT_CONSTEXPR bool is_exactly_equal(T value1, T value2) {
+  return value1 == value2;
+}
+#include "private/diagnostic_pop.hpp"
+} // namespace gdut
 
 #endif

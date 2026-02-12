@@ -37,42 +37,38 @@ SOFTWARE.
 ///\defgroup crc32_xfer 32 bit CRC_Q calculation
 ///\ingroup crc
 
-namespace gdut
-{
+namespace gdut {
 #if GDUT_USING_CPP11
-  template <size_t Table_Size>
-  using crc32_xfer_t = gdut::crc_type<gdut::private_crc::crc32_xfer_parameters, Table_Size>;
+template <size_t Table_Size>
+using crc32_xfer_t =
+    gdut::crc_type<gdut::private_crc::crc32_xfer_parameters, Table_Size>;
 #else
-  template <size_t Table_Size>
-  class crc32_xfer_t : public gdut::crc_type<gdut::private_crc::crc32_xfer_parameters, Table_Size>
-  {
-  public:
+template <size_t Table_Size>
+class crc32_xfer_t
+    : public gdut::crc_type<gdut::private_crc::crc32_xfer_parameters,
+                            Table_Size> {
+public:
+  //*************************************************************************
+  /// Default constructor.
+  //*************************************************************************
+  crc32_xfer_t() { this->reset(); }
 
-    //*************************************************************************
-    /// Default constructor.
-    //*************************************************************************
-    crc32_xfer_t()
-    {
-      this->reset();
-    }
-
-    //*************************************************************************
-    /// Constructor from range.
-    /// \param begin Start of the range.
-    /// \param end   End of the range.
-    //*************************************************************************
-    template<typename TIterator>
-    crc32_xfer_t(TIterator begin, const TIterator end)
-    {
-      this->reset();
-      this->add(begin, end);
-    }
-  };
+  //*************************************************************************
+  /// Constructor from range.
+  /// \param begin Start of the range.
+  /// \param end   End of the range.
+  //*************************************************************************
+  template <typename TIterator>
+  crc32_xfer_t(TIterator begin, const TIterator end) {
+    this->reset();
+    this->add(begin, end);
+  }
+};
 #endif
 
-  typedef gdut::crc32_xfer_t<256U> crc32_xfer_t256;
-  typedef gdut::crc32_xfer_t<16U>  crc32_xfer_t16;
-  typedef gdut::crc32_xfer_t<4U>   crc32_xfer_t4;
-  typedef crc32_xfer_t256         crc32_xfer;
-}
+typedef gdut::crc32_xfer_t<256U> crc32_xfer_t256;
+typedef gdut::crc32_xfer_t<16U> crc32_xfer_t16;
+typedef gdut::crc32_xfer_t<4U> crc32_xfer_t4;
+typedef crc32_xfer_t256 crc32_xfer;
+} // namespace gdut
 #endif

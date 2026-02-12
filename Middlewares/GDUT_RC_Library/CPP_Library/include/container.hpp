@@ -31,10 +31,9 @@ SOFTWARE.
 #ifndef GDUT_CONTAINER_INCLUDED
 #define GDUT_CONTAINER_INCLUDED
 
-#include "platform.hpp"
 #include "iterator.hpp"
+#include "platform.hpp"
 
 #include <stddef.h>
 
 #endif
-

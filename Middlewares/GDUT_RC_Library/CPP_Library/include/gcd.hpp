@@ -31,131 +31,109 @@ SOFTWARE.
 #ifndef GDUT_GCD_INCLUDED
 #define GDUT_GCD_INCLUDED
 
-#include "platform.hpp"
-#include "type_traits.hpp"
 #include "absolute.hpp"
+#include "platform.hpp"
 #include "static_assert.hpp"
+#include "type_traits.hpp"
 
-namespace gdut
-{
-  //***************************************************************************
-  // Greatest Common Divisor.
-  // Compile time.
-  //***************************************************************************
-  template <intmax_t Value1, intmax_t Value2>
-  struct gcd_const
-  {
-    static GDUT_CONSTANT intmax_t value = gcd_const<Value2, Value1 % Value2>::value;
-  };
+namespace gdut {
+//***************************************************************************
+// Greatest Common Divisor.
+// Compile time.
+//***************************************************************************
+template <intmax_t Value1, intmax_t Value2> struct gcd_const {
+  static GDUT_CONSTANT intmax_t value =
+      gcd_const<Value2, Value1 % Value2>::value;
+};
 
-  template <intmax_t Value1>
-  struct gcd_const<Value1, 0>
-  {
-    static GDUT_CONSTANT intmax_t value = Value1;
-  };
+template <intmax_t Value1> struct gcd_const<Value1, 0> {
+  static GDUT_CONSTANT intmax_t value = Value1;
+};
 
-  //***************************************************************************
-  // Greatest Common Divisor.
-  // For unsigned types.
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  typename gdut::enable_if<gdut::is_unsigned<T>::value, T>::type
-    gcd(T a, T b) GDUT_NOEXCEPT
-  {
-    GDUT_STATIC_ASSERT(gdut::is_integral<T>::value, "Integral type required");
+//***************************************************************************
+// Greatest Common Divisor.
+// For unsigned types.
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14
+    typename gdut::enable_if<gdut::is_unsigned<T>::value, T>::type
+    gcd(T a, T b) GDUT_NOEXCEPT {
+  GDUT_STATIC_ASSERT(gdut::is_integral<T>::value, "Integral type required");
 
-    if ((a == 0 || b == 0))
-    {
-      return (a + b);
-    }
-
-    while (b != 0) 
-    {
-      T t = b;
-      b = a % b;
-      a = t;
-    }
-    
-    return a;
+  if ((a == 0 || b == 0)) {
+    return (a + b);
   }
 
-  //***************************************************************************
-  // Greatest Common Divisor.
-  // For signed types.
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  typename gdut::enable_if<gdut::is_signed<T>::value, T>::type
-    gcd(T a, T b) GDUT_NOEXCEPT
-  {
-    GDUT_STATIC_ASSERT(gdut::is_integral<T>::value, "Integral type required");
-
-    typedef typename gdut::make_unsigned<T>::type utype;
-
-    utype ua = gdut::absolute_unsigned(a);
-    utype ub = gdut::absolute_unsigned(b);
-
-    return static_cast<T>(gcd(ua, ub));
+  while (b != 0) {
+    T t = b;
+    b = a % b;
+    a = t;
   }
+
+  return a;
+}
+
+//***************************************************************************
+// Greatest Common Divisor.
+// For signed types.
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR14
+    typename gdut::enable_if<gdut::is_signed<T>::value, T>::type
+    gcd(T a, T b) GDUT_NOEXCEPT {
+  GDUT_STATIC_ASSERT(gdut::is_integral<T>::value, "Integral type required");
+
+  typedef typename gdut::make_unsigned<T>::type utype;
+
+  utype ua = gdut::absolute_unsigned(a);
+  utype ub = gdut::absolute_unsigned(b);
+
+  return static_cast<T>(gcd(ua, ub));
+}
 
 #if GDUT_USING_CPP11
-  #if GDUT_HAS_INITIALIZER_LIST
-  //***************************************************************************
-  // Greatest Common Divisor.
-  // Non-recursive, using an initializer_list.
-  // Top level variadic function.
-  //***************************************************************************
-  template<typename T, typename... TRest>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T gcd(T first, TRest... rest) GDUT_NOEXCEPT
-  {
-    T result = first;
+#if GDUT_HAS_INITIALIZER_LIST
+//***************************************************************************
+// Greatest Common Divisor.
+// Non-recursive, using an initializer_list.
+// Top level variadic function.
+//***************************************************************************
+template <typename T, typename... TRest>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T gcd(T first, TRest... rest) GDUT_NOEXCEPT {
+  T result = first;
 
-    for (T value : {rest...})
-    {
-      result = gcd(result, value);
+  for (T value : {rest...}) {
+    result = gcd(result, value);
 
-      if (result == 1)
-      {
-        // Early termination: if the GCD is one, it will remain one
-        // no matter what other numbers are processed.
-        return 1;
-      }
-    }
-
-    return result;
-  }
-  #else
-  //***************************************************************************
-  // Greatest Common Divisor.
-  // Recursive.
-  // Top level variadic function.
-  //***************************************************************************
-  template<typename T, typename... TRest>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR14
-  T gcd(T a, T b, TRest... rest) GDUT_NOEXCEPT
-  {
-    T gcd_ab = gcd(a, b);
-
-    if (gcd_ab == 1)
-    {
+    if (result == 1) {
       // Early termination: if the GCD is one, it will remain one
       // no matter what other numbers are processed.
       return 1;
     }
-    else
-    {
-      return gcd(gcd_ab, rest...);
-    }
   }
-  #endif
-#endif
+
+  return result;
 }
+#else
+//***************************************************************************
+// Greatest Common Divisor.
+// Recursive.
+// Top level variadic function.
+//***************************************************************************
+template <typename T, typename... TRest>
+GDUT_NODISCARD GDUT_CONSTEXPR14 T gcd(T a, T b, TRest... rest) GDUT_NOEXCEPT {
+  T gcd_ab = gcd(a, b);
+
+  if (gcd_ab == 1) {
+    // Early termination: if the GCD is one, it will remain one
+    // no matter what other numbers are processed.
+    return 1;
+  } else {
+    return gcd(gcd_ab, rest...);
+  }
+}
+#endif
+#endif
+} // namespace gdut
 
 #endif
-

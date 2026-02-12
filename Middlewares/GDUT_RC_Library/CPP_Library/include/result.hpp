@@ -34,446 +34,326 @@ SOFTWARE.
 ///\defgroup result result
 ///\ingroup utilities
 
+#include "optional.hpp"
 #include "platform.hpp"
 #include "variant.hpp"
-#include "optional.hpp"
 
 #if GDUT_CPP11_NOT_SUPPORTED
-  #if !defined(GDUT_IN_UNIT_TEST)
-  #error NOT SUPPORTED FOR C++03 OR BELOW
-  #endif
+#if !defined(GDUT_IN_UNIT_TEST)
+#error NOT SUPPORTED FOR C++03 OR BELOW
+#endif
 #else
 
-namespace gdut
-{
-  //*****************************************************************************
-  /// Result type.
-  //*****************************************************************************
-  template <typename TValue, typename TError>
-  class result
-  {
-  public:
+namespace gdut {
+//*****************************************************************************
+/// Result type.
+//*****************************************************************************
+template <typename TValue, typename TError> class result {
+public:
+  typedef TValue value_type;
+  typedef TError error_type;
 
-    typedef TValue value_type;
-    typedef TError error_type;
+  //*******************************************
+  /// Cannot be default constructed
+  //*******************************************
+  result() = delete;
 
-    //*******************************************
-    /// Cannot be default constructed
-    //*******************************************
-    result() = delete;
-
-    //*******************************************
-    /// Copy constructor
-    //*******************************************
-    result(const result& other)
-      : data(other.data)
-    {
-    }
+  //*******************************************
+  /// Copy constructor
+  //*******************************************
+  result(const result &other) : data(other.data) {}
 
 #if GDUT_CPP11_SUPPORTED
-    //*******************************************
-    /// Move constructor
-    //*******************************************
-    result(result&& other)
-      : data(gdut::move(other.data))
-    {
-    }
+  //*******************************************
+  /// Move constructor
+  //*******************************************
+  result(result &&other) : data(gdut::move(other.data)) {}
 #endif
 
-    //*******************************************
-    // Construct from a value
-    //*******************************************
-    result(const TValue& value)
-      : data(value)
-    {
-    }
+  //*******************************************
+  // Construct from a value
+  //*******************************************
+  result(const TValue &value) : data(value) {}
 
-    //*******************************************
-    // Move construct from a value
-    //*******************************************
-    result(TValue&& value)
-      : data(gdut::move(value))
-    {
-    }
+  //*******************************************
+  // Move construct from a value
+  //*******************************************
+  result(TValue &&value) : data(gdut::move(value)) {}
 
-    //*******************************************
-    /// Construct from error
-    //*******************************************
-    result(const TError& error)
-      : data(error)
-    {
-    }
+  //*******************************************
+  /// Construct from error
+  //*******************************************
+  result(const TError &error) : data(error) {}
 
-    //*******************************************
-    /// Move construct from error
-    //*******************************************
+  //*******************************************
+  /// Move construct from error
+  //*******************************************
 #if GDUT_CPP11_SUPPORTED
-    result(TError&& error)
-      : data(gdut::move(error))
-    {
-    }
+  result(TError &&error) : data(gdut::move(error)) {}
 #endif
 
-    //*******************************************
-    /// Copy assign
-    //*******************************************
-    result& operator =(const result& other)
-    {
-      data = other.data;
-      return *this;
-    }
+  //*******************************************
+  /// Copy assign
+  //*******************************************
+  result &operator=(const result &other) {
+    data = other.data;
+    return *this;
+  }
 
-    //*******************************************
-    /// Move assign 
-    //*******************************************
-    result& operator =(result&& other)
-    {
-      data = gdut::move(other.data);
-      return *this;
-    }
+  //*******************************************
+  /// Move assign
+  //*******************************************
+  result &operator=(result &&other) {
+    data = gdut::move(other.data);
+    return *this;
+  }
 
-    //*******************************************
-    /// Copy assign from value
-    //*******************************************
-    result& operator =(const TValue& value)
-    {
-      data = value;
-      return *this;
-    }
+  //*******************************************
+  /// Copy assign from value
+  //*******************************************
+  result &operator=(const TValue &value) {
+    data = value;
+    return *this;
+  }
 
-    //*******************************************
-    /// Move assign from value
-    //*******************************************
+  //*******************************************
+  /// Move assign from value
+  //*******************************************
 #if GDUT_CPP11_SUPPORTED
-    result& operator =(TValue&& value)
-    {
-      data = gdut::move(value);
-      return *this;
-    }
+  result &operator=(TValue &&value) {
+    data = gdut::move(value);
+    return *this;
+  }
 #endif
 
-    //*******************************************
-    /// Copy assign from error
-    //*******************************************
-    result& operator =(const TError& error)
-    {
-      data = error;
-      return *this;
-    }
+  //*******************************************
+  /// Copy assign from error
+  //*******************************************
+  result &operator=(const TError &error) {
+    data = error;
+    return *this;
+  }
 
-    //*******************************************
-    /// Move assign from error
-    //*******************************************
+  //*******************************************
+  /// Move assign from error
+  //*******************************************
 #if GDUT_CPP11_SUPPORTED
-    result& operator =(TError&& error)
-    {
-      data = gdut::move(error);
-      return *this;
-    }
+  result &operator=(TError &&error) {
+    data = gdut::move(error);
+    return *this;
+  }
 #endif
 
-    //*******************************************
-    /// <b>true</b> if result contains a value
-    //*******************************************
-    bool has_value() const
-    {
-      return (data.index() == 0U);
-    }
+  //*******************************************
+  /// <b>true</b> if result contains a value
+  //*******************************************
+  bool has_value() const { return (data.index() == 0U); }
 
-    //*******************************************
-    /// <b>true</b> if result contains a value
-    //*******************************************
-    bool is_value() const
-    {
-      return has_value();
-    }
+  //*******************************************
+  /// <b>true</b> if result contains a value
+  //*******************************************
+  bool is_value() const { return has_value(); }
 
-    //*******************************************
-    /// <b>true</b> if result contains an error
-    //*******************************************
-    bool is_error() const
-    {
-      return !has_value();
-    }
+  //*******************************************
+  /// <b>true</b> if result contains an error
+  //*******************************************
+  bool is_error() const { return !has_value(); }
 
-    //*******************************************
-    /// Returns a const reference to the value.
-    /// Undefined if the result does not contain an value.
-    //*******************************************
-    const TValue& value() const
-    {
-      return gdut::get<TValue>(data);
-    }
+  //*******************************************
+  /// Returns a const reference to the value.
+  /// Undefined if the result does not contain an value.
+  //*******************************************
+  const TValue &value() const { return gdut::get<TValue>(data); }
 
-    //*******************************************
-    /// Returns an rvalue reference to the value.
-    /// Undefined if the result does not contain an value.
-    //*******************************************
-    TValue&& value()
-    {
-      return gdut::move(gdut::get<TValue>(data));
-    }
+  //*******************************************
+  /// Returns an rvalue reference to the value.
+  /// Undefined if the result does not contain an value.
+  //*******************************************
+  TValue &&value() { return gdut::move(gdut::get<TValue>(data)); }
 
-    //*******************************************
-    /// Returns a const reference to the error.
-    /// Undefined if the result does not contain an error.
-    //*******************************************
-    const TError& error() const
-    {
-      return gdut::get<TError>(data);
-    }
+  //*******************************************
+  /// Returns a const reference to the error.
+  /// Undefined if the result does not contain an error.
+  //*******************************************
+  const TError &error() const { return gdut::get<TError>(data); }
 
-    //*******************************************
-    /// Returns an rvalue reference to the error.
-    /// Undefined if the result does not contain an error.
-    //*******************************************
+  //*******************************************
+  /// Returns an rvalue reference to the error.
+  /// Undefined if the result does not contain an error.
+  //*******************************************
 #if GDUT_CPP11_SUPPORTED
-    TError&& error()
-    {
-      return gdut::move(gdut::get<TError>(data));
-    }
+  TError &&error() { return gdut::move(gdut::get<TError>(data)); }
 #endif
 
-  private:
+private:
+  gdut::variant<TValue, TError> data;
+};
 
-    gdut::variant<TValue, TError> data;
-  };
+//*****************************************************************************
+/// Result type.
+/// Specialisation for void value type.
+//*****************************************************************************
+template <typename TError> class result<void, TError> {
+public:
+  typedef void value_type;
+  typedef TError error_type;
 
-  //*****************************************************************************
-  /// Result type.
-  /// Specialisation for void value type.
-  //*****************************************************************************
-  template<typename TError>
-  class result<void, TError>
-  {
-  public:
+  //*******************************************
+  /// Default Constructor
+  //*******************************************
+  result() {}
 
-    typedef void   value_type;
-    typedef TError error_type;
+  //*******************************************
+  /// Copy constructor
+  //*******************************************
+  result(const result &other) : data(other.data) {}
 
-    //*******************************************
-    /// Default Constructor
-    //*******************************************
-    result()
-    {
-    }
+  //*******************************************
+  /// Move constructor
+  //*******************************************
+  result(result &&other) : data(gdut::move(other.data)) {}
 
-    //*******************************************
-    /// Copy constructor
-    //*******************************************
-    result(const result& other)
-      : data(other.data)
-    {
-    }
+  //*******************************************
+  /// Construct from error
+  //*******************************************
+  result(const TError &error) : data(error) {}
 
-    //*******************************************
-    /// Move constructor
-    //*******************************************
-    result(result&& other)
-      : data(gdut::move(other.data))
-    {
-    }
-
-    //*******************************************
-    /// Construct from error
-    //*******************************************
-    result(const TError& error)
-      : data(error)
-    {
-    }
-
-    //*******************************************
-    /// Move construct from error
-    //*******************************************
+  //*******************************************
+  /// Move construct from error
+  //*******************************************
 #if GDUT_CPP11_SUPPORTED
-    result(TError&& error)
-      : data(gdut::move(error))
-    {
-    }
+  result(TError &&error) : data(gdut::move(error)) {}
 #endif
 
-    //*******************************************
-    /// Copy assign from error
-    //*******************************************
-    result& operator =(const TError& error)
-    {
-      data = error;
-      return *this;
-    }
+  //*******************************************
+  /// Copy assign from error
+  //*******************************************
+  result &operator=(const TError &error) {
+    data = error;
+    return *this;
+  }
 
-    //*******************************************
-    /// Move assign from error
-    //*******************************************
+  //*******************************************
+  /// Move assign from error
+  //*******************************************
 #if GDUT_CPP11_SUPPORTED
-    result& operator =(TError&& error)
-    {
-      data = gdut::move(error);
-      return *this;
-    }
+  result &operator=(TError &&error) {
+    data = gdut::move(error);
+    return *this;
+  }
 #endif
 
-    //*******************************************
-    /// <b>true</b> if result contains a value
-    //*******************************************
-    bool has_value() const
-    {
-      return !data.has_value();
-    }
+  //*******************************************
+  /// <b>true</b> if result contains a value
+  //*******************************************
+  bool has_value() const { return !data.has_value(); }
 
-    //*******************************************
-    /// <b>true</b> if result contains a value
-    //*******************************************
-    bool is_value() const
-    {
-      return has_value();
-    }
+  //*******************************************
+  /// <b>true</b> if result contains a value
+  //*******************************************
+  bool is_value() const { return has_value(); }
 
-    //*******************************************
-    /// <b>true</b> if result contains an error
-    //*******************************************
-    bool is_error() const
-    {
-      return !has_value();
-    }
+  //*******************************************
+  /// <b>true</b> if result contains an error
+  //*******************************************
+  bool is_error() const { return !has_value(); }
 
-    //*******************************************
-    /// Returns a const reference to the error.
-    /// Undefined if the result does not contain an error.
-    //*******************************************
-    const TError& error() const
-    {
-      return data.value();
-    }
+  //*******************************************
+  /// Returns a const reference to the error.
+  /// Undefined if the result does not contain an error.
+  //*******************************************
+  const TError &error() const { return data.value(); }
 
-    //*******************************************
-    /// Returns an rvalue reference to the error.
-    /// Undefined if the result does not contain an error.
-    //*******************************************
+  //*******************************************
+  /// Returns an rvalue reference to the error.
+  /// Undefined if the result does not contain an error.
+  //*******************************************
 #if GDUT_CPP11_SUPPORTED
-    TError&& error()
-    {
-      return gdut::move(data.value());
-    }
+  TError &&error() { return gdut::move(data.value()); }
 #endif
 
-  private:
+private:
+  gdut::optional<TError> data;
+};
 
-    gdut::optional<TError> data;
-  };
+//*****************************************************************************
+/// Result type.
+/// Specialisation for void error type.
+//*****************************************************************************
+template <typename TValue> class result<TValue, void> {
+public:
+  //*******************************************
+  /// Default Constructor
+  //*******************************************
+  result() {}
 
-  //*****************************************************************************
-  /// Result type.
-  /// Specialisation for void error type.
-  //*****************************************************************************
-  template<typename TValue>
-  class result<TValue, void>
-  {
-  public:
+  //*******************************************
+  /// Copy constructor
+  //*******************************************
+  result(const result &other) : data(other.data) {}
 
-    //*******************************************
-    /// Default Constructor
-    //*******************************************
-    result()
-    {
-    }
+  //*******************************************
+  /// Move constructor
+  //*******************************************
+  result(result &&other) : data(gdut::move(other.data)) {}
 
-    //*******************************************
-    /// Copy constructor
-    //*******************************************
-    result(const result& other)
-      : data(other.data)
-    {
-    }
+  //*******************************************
+  /// Construct from error
+  //*******************************************
+  result(const TValue &value) : data(value) {}
 
-    //*******************************************
-    /// Move constructor
-    //*******************************************
-    result(result&& other)
-      : data(gdut::move(other.data))
-    {
-    }
+  //*******************************************
+  /// Move construct from error
+  //*******************************************
+  result(TValue &&value) : data(gdut::move(value)) {}
 
-    //*******************************************
-    /// Construct from error
-    //*******************************************
-    result(const TValue& value)
-      : data(value)
-    {
-    }
+  //*******************************************
+  /// Copy assign from error
+  //*******************************************
+  result &operator=(const TValue &value) {
+    data = value;
+    return *this;
+  }
 
-    //*******************************************
-    /// Move construct from error
-    //*******************************************
-    result(TValue&& value)
-      : data(gdut::move(value))
-    {
-    }
+  //*******************************************
+  /// Move assign from error
+  //*******************************************
+  result &operator=(TValue &&value) {
+    data = gdut::move(value);
+    return *this;
+  }
 
-    //*******************************************
-    /// Copy assign from error
-    //*******************************************
-    result& operator =(const TValue& value)
-    {
-      data = value;
-      return *this;
-    }
+  //*******************************************
+  /// <b>true</b> if result contains a value
+  //*******************************************
+  bool has_value() const { return data.has_value(); }
 
-    //*******************************************
-    /// Move assign from error
-    //*******************************************
-    result& operator =(TValue&& value)
-    {
-      data = gdut::move(value);
-      return *this;
-    }
+  //*******************************************
+  /// <b>true</b> if result contains a value
+  //*******************************************
+  bool is_value() const { return has_value(); }
 
-    //*******************************************
-    /// <b>true</b> if result contains a value
-    //*******************************************
-    bool has_value() const
-    {
-      return data.has_value();
-    }
+  //*******************************************
+  /// <b>true</b> if result contains an error
+  //*******************************************
+  bool is_error() const { return !has_value(); }
 
-    //*******************************************
-    /// <b>true</b> if result contains a value
-    //*******************************************
-    bool is_value() const
-    {
-      return has_value();
-    }
+  //*******************************************
+  /// Returns a const reference to the error.
+  /// Undefined if the result does not contain an error.
+  //*******************************************
+  const TValue &value() const { return data.value(); }
 
-    //*******************************************
-    /// <b>true</b> if result contains an error
-    //*******************************************
-    bool is_error() const
-    {
-      return !has_value();
-    }
+  //*******************************************
+  /// Returns an rvalue reference to the error.
+  /// Undefined if the result does not contain an error.
+  //*******************************************
+  TValue &&value() { return gdut::move(data.value()); }
 
-    //*******************************************
-    /// Returns a const reference to the error.
-    /// Undefined if the result does not contain an error.
-    //*******************************************
-    const TValue& value() const
-    {
-      return data.value();
-    }
-
-    //*******************************************
-    /// Returns an rvalue reference to the error.
-    /// Undefined if the result does not contain an error.
-    //*******************************************
-    TValue&& value()
-    {
-      return gdut::move(data.value());
-    }
-
-  private:
-
-    gdut::optional<TValue> data;
-  };
-}  // namespace gdut
+private:
+  gdut::optional<TValue> data;
+};
+} // namespace gdut
 #endif
 
 #endif

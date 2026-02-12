@@ -31,11 +31,11 @@ SOFTWARE.
 #ifndef GDUT_GENERIC_POOL_INCLUDED
 #define GDUT_GENERIC_POOL_INCLUDED
 
-#include "platform.hpp"
-#include "ipool.hpp"
-#include "type_traits.hpp"
-#include "static_assert.hpp"
 #include "alignment.hpp"
+#include "ipool.hpp"
+#include "platform.hpp"
+#include "static_assert.hpp"
+#include "type_traits.hpp"
 
 #define GDUT_POOL_CPP03_CODE 0
 
@@ -45,313 +45,300 @@ SOFTWARE.
 ///\ingroup containers
 //*****************************************************************************
 
-namespace gdut
-{
+namespace gdut {
+//*************************************************************************
+/// A templated abstract pool implementation that uses a fixed size pool.
+///\ingroup pool
+//*************************************************************************
+template <size_t VTypeSize, size_t VAlignment, size_t VSize>
+class generic_pool : public gdut::ipool {
+public:
+  static GDUT_CONSTANT size_t SIZE = VSize;
+  static GDUT_CONSTANT size_t ALIGNMENT = VAlignment;
+  static GDUT_CONSTANT size_t TYPE_SIZE = VTypeSize;
+
   //*************************************************************************
-  /// A templated abstract pool implementation that uses a fixed size pool.
-  ///\ingroup pool
+  /// Constructor
   //*************************************************************************
-  template <size_t VTypeSize, size_t VAlignment, size_t VSize>
-  class generic_pool : public gdut::ipool
-  {
-  public:
+  generic_pool()
+      : gdut::ipool(reinterpret_cast<char *>(&buffer[0]), Element_Size, VSize) {
+  }
 
-    static GDUT_CONSTANT size_t SIZE      = VSize;
-    static GDUT_CONSTANT size_t ALIGNMENT = VAlignment;
-    static GDUT_CONSTANT size_t TYPE_SIZE = VTypeSize;
-
-    //*************************************************************************
-    /// Constructor
-    //*************************************************************************
-    generic_pool()
-      : gdut::ipool(reinterpret_cast<char*>(&buffer[0]), Element_Size, VSize)
-    {
-    }
-
-    //*************************************************************************
-    /// Allocate an object from the pool.
-    /// If asserts or exceptions are enabled and there are no more free items an
-    /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
-    /// Static asserts if the specified type is too large for the pool.
-    //*************************************************************************
-    template <typename U>
-    U* allocate()
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      return ipool::allocate<U>();
-    }
+  //*************************************************************************
+  /// Allocate an object from the pool.
+  /// If asserts or exceptions are enabled and there are no more free items an
+  /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
+  /// Static asserts if the specified type is too large for the pool.
+  //*************************************************************************
+  template <typename U> U *allocate() {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    return ipool::allocate<U>();
+  }
 
 #if GDUT_CPP11_NOT_SUPPORTED || GDUT_POOL_CPP03_CODE || GDUT_USING_STLPORT
-    //*************************************************************************
-    /// Allocate storage for an object from the pool and create with default.
-    /// If asserts or exceptions are enabled and there are no more free items an
-    /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
-    //*************************************************************************
-    template <typename U>
-    U* create()
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      return ipool::create<U>();
-    }
+  //*************************************************************************
+  /// Allocate storage for an object from the pool and create with default.
+  /// If asserts or exceptions are enabled and there are no more free items an
+  /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
+  //*************************************************************************
+  template <typename U> U *create() {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    return ipool::create<U>();
+  }
 
-    //*************************************************************************
-    /// Allocate storage for an object from the pool and create with 1 parameter.
-    /// If asserts or exceptions are enabled and there are no more free items an
-    /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
-    //*************************************************************************
-    template <typename U, typename T1>
-    U* create(const T1& value1)
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      return ipool::create<U>(value1);
-    }
+  //*************************************************************************
+  /// Allocate storage for an object from the pool and create with 1 parameter.
+  /// If asserts or exceptions are enabled and there are no more free items an
+  /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
+  //*************************************************************************
+  template <typename U, typename T1> U *create(const T1 &value1) {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    return ipool::create<U>(value1);
+  }
 
-    //*************************************************************************
-    /// Allocate storage for an object from the pool and create with 2 parameters.
-    /// If asserts or exceptions are enabled and there are no more free items an
-    /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
-    //*************************************************************************
-    template <typename U, typename T1, typename T2>
-    U* create(const T1& value1, const T2& value2)
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      return ipool::create<U>(value1, value2);
-    }
+  //*************************************************************************
+  /// Allocate storage for an object from the pool and create with 2 parameters.
+  /// If asserts or exceptions are enabled and there are no more free items an
+  /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
+  //*************************************************************************
+  template <typename U, typename T1, typename T2>
+  U *create(const T1 &value1, const T2 &value2) {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    return ipool::create<U>(value1, value2);
+  }
 
-    //*************************************************************************
-    /// Allocate storage for an object from the pool and create with 3 parameters.
-    /// If asserts or exceptions are enabled and there are no more free items an
-    /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
-    //*************************************************************************
-    template <typename U, typename T1, typename T2, typename T3>
-    U* create(const T1& value1, const T2& value2, const T3& value3)
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      return ipool::create<U>(value1, value2, value3);
-    }
+  //*************************************************************************
+  /// Allocate storage for an object from the pool and create with 3 parameters.
+  /// If asserts or exceptions are enabled and there are no more free items an
+  /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
+  //*************************************************************************
+  template <typename U, typename T1, typename T2, typename T3>
+  U *create(const T1 &value1, const T2 &value2, const T3 &value3) {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    return ipool::create<U>(value1, value2, value3);
+  }
 
-    //*************************************************************************
-    /// Allocate storage for an object from the pool and create with 4 parameters.
-    /// If asserts or exceptions are enabled and there are no more free items an
-    /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
-    //*************************************************************************
-    template <typename U, typename T1, typename T2, typename T3, typename T4>
-    U* create(const T1& value1, const T2& value2, const T3& value3, const T4& value4)
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      return ipool::create<U>(value1, value2, value3, value4);
-    }
+  //*************************************************************************
+  /// Allocate storage for an object from the pool and create with 4 parameters.
+  /// If asserts or exceptions are enabled and there are no more free items an
+  /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
+  //*************************************************************************
+  template <typename U, typename T1, typename T2, typename T3, typename T4>
+  U *create(const T1 &value1, const T2 &value2, const T3 &value3,
+            const T4 &value4) {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    return ipool::create<U>(value1, value2, value3, value4);
+  }
 #else
-    //*************************************************************************
-    /// Emplace with variadic constructor parameters.
-    //*************************************************************************
-    template <typename U, typename... Args>
-    U* create(Args&&... args)
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      return ipool::create<U>(gdut::forward<Args>(args)...);
-    }
+  //*************************************************************************
+  /// Emplace with variadic constructor parameters.
+  //*************************************************************************
+  template <typename U, typename... Args> U *create(Args &&...args) {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    return ipool::create<U>(gdut::forward<Args>(args)...);
+  }
 #endif
 
-    //*************************************************************************
-    /// Destroys the object.
-    /// Undefined behaviour if the pool does not contain a 'U'.
-    /// \param p_object A pointer to the object to be destroyed.
-    //*************************************************************************
-    template <typename U>
-    void destroy(const U* const p_object)
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      ipool::destroy(p_object);
-    }
+  //*************************************************************************
+  /// Destroys the object.
+  /// Undefined behaviour if the pool does not contain a 'U'.
+  /// \param p_object A pointer to the object to be destroyed.
+  //*************************************************************************
+  template <typename U> void destroy(const U *const p_object) {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    ipool::destroy(p_object);
+  }
 
-  private:
-
-    // The pool element.
-    union Element
-    {
-      char* next;              ///< Pointer to the next free element.
-      char      value[VTypeSize]; ///< Storage for value type.
-      typename  gdut::type_with_alignment<VAlignment>::type dummy; ///< Dummy item to get correct alignment.
-    };
-
-    ///< The memory for the pool of objects.
-    typename gdut::aligned_storage<sizeof(Element), gdut::alignment_of<Element>::value>::type buffer[VSize];
-
-    static GDUT_CONSTANT uint32_t Element_Size = sizeof(Element);
-
-    // Should not be copied.
-    generic_pool(const generic_pool&) GDUT_DELETE;
-    generic_pool& operator =(const generic_pool&) GDUT_DELETE;
+private:
+  // The pool element.
+  union Element {
+    char *next;            ///< Pointer to the next free element.
+    char value[VTypeSize]; ///< Storage for value type.
+    typename gdut::type_with_alignment<VAlignment>::type
+        dummy; ///< Dummy item to get correct alignment.
   };
 
-  template <size_t VTypeSize, size_t VAlignment, size_t VSize>
-  GDUT_CONSTANT size_t generic_pool<VTypeSize, VAlignment, VSize>::SIZE;
-  
-  template <size_t VTypeSize, size_t VAlignment, size_t VSize>
-  GDUT_CONSTANT size_t generic_pool<VTypeSize, VAlignment, VSize>::ALIGNMENT;
-  
-  template <size_t VTypeSize, size_t VAlignment, size_t VSize>
-  GDUT_CONSTANT size_t generic_pool<VTypeSize, VAlignment, VSize>::TYPE_SIZE;
+  ///< The memory for the pool of objects.
+  typename gdut::aligned_storage<
+      sizeof(Element), gdut::alignment_of<Element>::value>::type buffer[VSize];
+
+  static GDUT_CONSTANT uint32_t Element_Size = sizeof(Element);
+
+  // Should not be copied.
+  generic_pool(const generic_pool &) GDUT_DELETE;
+  generic_pool &operator=(const generic_pool &) GDUT_DELETE;
+};
+
+template <size_t VTypeSize, size_t VAlignment, size_t VSize>
+GDUT_CONSTANT size_t generic_pool<VTypeSize, VAlignment, VSize>::SIZE;
+
+template <size_t VTypeSize, size_t VAlignment, size_t VSize>
+GDUT_CONSTANT size_t generic_pool<VTypeSize, VAlignment, VSize>::ALIGNMENT;
+
+template <size_t VTypeSize, size_t VAlignment, size_t VSize>
+GDUT_CONSTANT size_t generic_pool<VTypeSize, VAlignment, VSize>::TYPE_SIZE;
+
+//*************************************************************************
+/// A templated abstract pool implementation that uses a fixed size pool.
+/// The storage for the pool is supplied externally.
+///\ingroup pool
+//*************************************************************************
+template <size_t VTypeSize, size_t VAlignment>
+class generic_pool_ext : public gdut::ipool {
+private:
+  // The pool element.
+  union element_internal {
+    char *next;            ///< Pointer to the next free element.
+    char value[VTypeSize]; ///< Storage for value type.
+    typename gdut::type_with_alignment<VAlignment>::type
+        dummy; ///< Dummy item to get correct alignment.
+  };
+
+  static const size_t ELEMENT_INTERNAL_SIZE = sizeof(element_internal);
+
+public:
+  static GDUT_CONSTANT size_t ALIGNMENT = VAlignment;
+  static GDUT_CONSTANT size_t TYPE_SIZE = VTypeSize;
+
+  typedef typename gdut::aligned_storage<
+      sizeof(element_internal),
+      gdut::alignment_of<element_internal>::value>::type element;
 
   //*************************************************************************
-  /// A templated abstract pool implementation that uses a fixed size pool.
-  /// The storage for the pool is supplied externally.
-  ///\ingroup pool
+  /// Constructor
   //*************************************************************************
-  template <size_t VTypeSize, size_t VAlignment>
-  class generic_pool_ext : public gdut::ipool 
-  {
-  private:
-    // The pool element.
-    union element_internal 
-    {
-      char* next;                                                 ///< Pointer to the next free element.
-      char value[VTypeSize];                                      ///< Storage for value type.
-      typename gdut::type_with_alignment<VAlignment>::type dummy;  ///< Dummy item to get correct alignment.
-    };
+  generic_pool_ext(element *buffer, size_t size)
+      : gdut::ipool(reinterpret_cast<char *>(&buffer[0]), ELEMENT_INTERNAL_SIZE,
+                    size) {}
 
-    static const size_t ELEMENT_INTERNAL_SIZE = sizeof(element_internal);
-
-  public:
-    static GDUT_CONSTANT size_t ALIGNMENT = VAlignment;
-    static GDUT_CONSTANT size_t TYPE_SIZE = VTypeSize;
-
-    typedef typename gdut::aligned_storage<sizeof(element_internal), gdut::alignment_of<element_internal>::value>::type element;
-
-    //*************************************************************************
-    /// Constructor
-    //*************************************************************************
-    generic_pool_ext(element* buffer, size_t size) 
-      : gdut::ipool(reinterpret_cast<char*>(&buffer[0]), ELEMENT_INTERNAL_SIZE, size) 
-    {
-    }
-
-    //*************************************************************************
-    /// Allocate an object from the pool.
-    /// If asserts or exceptions are enabled and there are no more free items an
-    /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
-    /// Static asserts if the specified type is too large for the pool.
-    //*************************************************************************
-    template <typename U>
-    U* allocate()
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      return ipool::allocate<U>();
-    }
+  //*************************************************************************
+  /// Allocate an object from the pool.
+  /// If asserts or exceptions are enabled and there are no more free items an
+  /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
+  /// Static asserts if the specified type is too large for the pool.
+  //*************************************************************************
+  template <typename U> U *allocate() {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    return ipool::allocate<U>();
+  }
 
 #if GDUT_CPP11_NOT_SUPPORTED || GDUT_POOL_CPP03_CODE || GDUT_USING_STLPORT
-    //*************************************************************************
-    /// Allocate storage for an object from the pool and create with default.
-    /// If asserts or exceptions are enabled and there are no more free items an
-    /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
-    //*************************************************************************
-    template <typename U>
-    U* create()
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      return ipool::create<U>();
-    }
+  //*************************************************************************
+  /// Allocate storage for an object from the pool and create with default.
+  /// If asserts or exceptions are enabled and there are no more free items an
+  /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
+  //*************************************************************************
+  template <typename U> U *create() {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    return ipool::create<U>();
+  }
 
-    //*************************************************************************
-    /// Allocate storage for an object from the pool and create with 1 parameter.
-    /// If asserts or exceptions are enabled and there are no more free items an
-    /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
-    //*************************************************************************
-    template <typename U, typename T1>
-    U* create(const T1& value1)
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      return ipool::create<U>(value1);
-    }
+  //*************************************************************************
+  /// Allocate storage for an object from the pool and create with 1 parameter.
+  /// If asserts or exceptions are enabled and there are no more free items an
+  /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
+  //*************************************************************************
+  template <typename U, typename T1> U *create(const T1 &value1) {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    return ipool::create<U>(value1);
+  }
 
-    //*************************************************************************
-    /// Allocate storage for an object from the pool and create with 2 parameters.
-    /// If asserts or exceptions are enabled and there are no more free items an
-    /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
-    //*************************************************************************
-    template <typename U, typename T1, typename T2>
-    U* create(const T1& value1, const T2& value2)
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      return ipool::create<U>(value1, value2);
-    }
+  //*************************************************************************
+  /// Allocate storage for an object from the pool and create with 2 parameters.
+  /// If asserts or exceptions are enabled and there are no more free items an
+  /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
+  //*************************************************************************
+  template <typename U, typename T1, typename T2>
+  U *create(const T1 &value1, const T2 &value2) {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    return ipool::create<U>(value1, value2);
+  }
 
-    //*************************************************************************
-    /// Allocate storage for an object from the pool and create with 3 parameters.
-    /// If asserts or exceptions are enabled and there are no more free items an
-    /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
-    //*************************************************************************
-    template <typename U, typename T1, typename T2, typename T3>
-    U* create(const T1& value1, const T2& value2, const T3& value3)
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      return ipool::create<U>(value1, value2, value3);
-    }
+  //*************************************************************************
+  /// Allocate storage for an object from the pool and create with 3 parameters.
+  /// If asserts or exceptions are enabled and there are no more free items an
+  /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
+  //*************************************************************************
+  template <typename U, typename T1, typename T2, typename T3>
+  U *create(const T1 &value1, const T2 &value2, const T3 &value3) {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    return ipool::create<U>(value1, value2, value3);
+  }
 
-    //*************************************************************************
-    /// Allocate storage for an object from the pool and create with 4 parameters.
-    /// If asserts or exceptions are enabled and there are no more free items an
-    /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
-    //*************************************************************************
-    template <typename U, typename T1, typename T2, typename T3, typename T4>
-    U* create(const T1& value1, const T2& value2, const T3& value3, const T4& value4)
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      return ipool::create<U>(value1, value2, value3, value4);
-    }
+  //*************************************************************************
+  /// Allocate storage for an object from the pool and create with 4 parameters.
+  /// If asserts or exceptions are enabled and there are no more free items an
+  /// gdut::pool_no_allocation if thrown, otherwise a null pointer is returned.
+  //*************************************************************************
+  template <typename U, typename T1, typename T2, typename T3, typename T4>
+  U *create(const T1 &value1, const T2 &value2, const T3 &value3,
+            const T4 &value4) {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    return ipool::create<U>(value1, value2, value3, value4);
+  }
 #else
-    //*************************************************************************
-    /// Emplace with variadic constructor parameters.
-    //*************************************************************************
-    template <typename U, typename... Args>
-    U* create(Args&&... args)
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      return ipool::create<U>(gdut::forward<Args>(args)...);
-    }
+  //*************************************************************************
+  /// Emplace with variadic constructor parameters.
+  //*************************************************************************
+  template <typename U, typename... Args> U *create(Args &&...args) {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    return ipool::create<U>(gdut::forward<Args>(args)...);
+  }
 #endif
 
-    //*************************************************************************
-    /// Destroys the object.
-    /// Undefined behaviour if the pool does not contain a 'U'.
-    /// \param p_object A pointer to the object to be destroyed.
-    //*************************************************************************
-    template <typename U>
-    void destroy(const U* const p_object)
-    {
-      GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment, "Type has incompatible alignment");
-      GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
-      ipool::destroy(p_object);
-    }
+  //*************************************************************************
+  /// Destroys the object.
+  /// Undefined behaviour if the pool does not contain a 'U'.
+  /// \param p_object A pointer to the object to be destroyed.
+  //*************************************************************************
+  template <typename U> void destroy(const U *const p_object) {
+    GDUT_STATIC_ASSERT(gdut::alignment_of<U>::value <= VAlignment,
+                       "Type has incompatible alignment");
+    GDUT_STATIC_ASSERT(sizeof(U) <= VTypeSize, "Type too large for pool");
+    ipool::destroy(p_object);
+  }
 
-  private:
-    // Should not be copied.
-    generic_pool_ext(const generic_pool_ext&) GDUT_DELETE;
-    generic_pool_ext& operator=(const generic_pool_ext&) GDUT_DELETE;
-  };
+private:
+  // Should not be copied.
+  generic_pool_ext(const generic_pool_ext &) GDUT_DELETE;
+  generic_pool_ext &operator=(const generic_pool_ext &) GDUT_DELETE;
+};
 
-  template <size_t VTypeSize, size_t VAlignment>
-  GDUT_CONSTANT size_t generic_pool_ext<VTypeSize, VAlignment>::ALIGNMENT;
+template <size_t VTypeSize, size_t VAlignment>
+GDUT_CONSTANT size_t generic_pool_ext<VTypeSize, VAlignment>::ALIGNMENT;
 
-  template <size_t VTypeSize, size_t VAlignment>
-  GDUT_CONSTANT size_t generic_pool_ext<VTypeSize, VAlignment>::TYPE_SIZE;
-}
+template <size_t VTypeSize, size_t VAlignment>
+GDUT_CONSTANT size_t generic_pool_ext<VTypeSize, VAlignment>::TYPE_SIZE;
+} // namespace gdut
 
 #endif
-

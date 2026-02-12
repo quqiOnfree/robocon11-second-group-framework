@@ -31,24 +31,22 @@ SOFTWARE.
 #ifndef GDUT_TUPLE_ELEMENT_INCLUDED
 #define GDUT_TUPLE_ELEMENT_INCLUDED
 
-namespace gdut
-{
+namespace gdut {
 #if GDUT_USING_CPP11
-  //***************************************************************************
-  template <size_t Index, typename TType>
-  struct tuple_element;
+//***************************************************************************
+template <size_t Index, typename TType> struct tuple_element;
 
-  //***************************************************************************
-  template<size_t Index, typename TType>
-  struct tuple_element<Index, const TType>
-  {
-    using type = typename gdut::add_const_t<typename gdut::tuple_element<Index, TType>::type>;
-  };
+//***************************************************************************
+template <size_t Index, typename TType>
+struct tuple_element<Index, const TType> {
+  using type = typename gdut::add_const_t<
+      typename gdut::tuple_element<Index, TType>::type>;
+};
 
-  //***************************************************************************
-  template <size_t Index, typename TType>
-  using tuple_element_t = typename tuple_element<Index, TType>::type;
+//***************************************************************************
+template <size_t Index, typename TType>
+using tuple_element_t = typename tuple_element<Index, TType>::type;
 #endif
-}
+} // namespace gdut
 
 #endif

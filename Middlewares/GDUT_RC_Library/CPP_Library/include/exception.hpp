@@ -34,113 +34,100 @@ SOFTWARE.
 #include "platform.hpp"
 
 #if GDUT_USING_STD_EXCEPTION
-  #include <exception>
-  #define GDUT_EXCEPTION_CONSTEXPR
+#include <exception>
+#define GDUT_EXCEPTION_CONSTEXPR
 #else
-  #define GDUT_EXCEPTION_CONSTEXPR GDUT_CONSTEXPR
+#define GDUT_EXCEPTION_CONSTEXPR GDUT_CONSTEXPR
 #endif
 
 ///\defgroup exception exception
 /// The base class for all ETL exceptions.
 ///\ingroup utilities
 
-namespace gdut
-{
-  //***************************************************************************
-  ///\ingroup exception
-  /// A low overhead exception base class.
-  //***************************************************************************
-  class exception
+namespace gdut {
+//***************************************************************************
+///\ingroup exception
+/// A low overhead exception base class.
+//***************************************************************************
+class exception
 #if GDUT_USING_STD_EXCEPTION
     : public std::exception
 #endif
-  {
-  public:
+{
+public:
+  typedef const char *string_type;
+  typedef int numeric_type;
 
-    typedef const char* string_type;
-    typedef int         numeric_type;
-    
-    //*************************************************************************
-    /// Constructor.
-    //*************************************************************************
+  //*************************************************************************
+  /// Constructor.
+  //*************************************************************************
 #if defined(GDUT_VERBOSE_ERRORS)
-    GDUT_EXCEPTION_CONSTEXPR
-    exception(string_type reason_, string_type file_, numeric_type line_)
-      : reason_text(reason_),
-        file_text(file_),
-        line(line_)
-    {
-    }
+  GDUT_EXCEPTION_CONSTEXPR
+  exception(string_type reason_, string_type file_, numeric_type line_)
+      : reason_text(reason_), file_text(file_), line(line_) {}
 #elif defined(GDUT_MINIMAL_ERRORS)
-    GDUT_EXCEPTION_CONSTEXPR
-    exception(string_type /*reason_*/, string_type /*file_*/, numeric_type /*line_*/)
-    {
-    }
+  GDUT_EXCEPTION_CONSTEXPR
+  exception(string_type /*reason_*/, string_type /*file_*/,
+            numeric_type /*line_*/) {}
 #else
-    GDUT_EXCEPTION_CONSTEXPR
-    exception(string_type reason_, string_type /*file_*/, numeric_type /*line_*/)
-      : reason_text(reason_)
-    {
-    }
+  GDUT_EXCEPTION_CONSTEXPR
+  exception(string_type reason_, string_type /*file_*/, numeric_type /*line_*/)
+      : reason_text(reason_) {}
 #endif
 
-    //***************************************************************************
-    /// Gets the reason for the exception.
-    /// \return const char* to the reason.
-    //***************************************************************************
-    GDUT_EXCEPTION_CONSTEXPR
-    string_type what() const GDUT_NOEXCEPT
+  //***************************************************************************
+  /// Gets the reason for the exception.
+  /// \return const char* to the reason.
+  //***************************************************************************
+  GDUT_EXCEPTION_CONSTEXPR
+  string_type what() const GDUT_NOEXCEPT
 #if GDUT_USING_STD_EXCEPTION
       override
 #endif
-    {
+  {
 #if !defined(GDUT_MINIMAL_ERRORS)
-      return reason_text;
+    return reason_text;
 #else
-      return "";
+    return "";
 #endif
-    }
+  }
 
-
-    //***************************************************************************
-    /// Gets the file for the exception.
-    /// \return const char* to the file.
-    //***************************************************************************
-    GDUT_EXCEPTION_CONSTEXPR
-    string_type file_name() const
-    {
+  //***************************************************************************
+  /// Gets the file for the exception.
+  /// \return const char* to the file.
+  //***************************************************************************
+  GDUT_EXCEPTION_CONSTEXPR
+  string_type file_name() const {
 #if defined(GDUT_VERBOSE_ERRORS)
-      return file_text;
+    return file_text;
 #else
-      return "";
+    return "";
 #endif
-    }
+  }
 
-    //***************************************************************************
-    /// Gets the line for the exception.
-    /// \return int as line number.
-    //***************************************************************************
-    GDUT_EXCEPTION_CONSTEXPR
-    numeric_type line_number() const
-    {
+  //***************************************************************************
+  /// Gets the line for the exception.
+  /// \return int as line number.
+  //***************************************************************************
+  GDUT_EXCEPTION_CONSTEXPR
+  numeric_type line_number() const {
 #if defined(GDUT_VERBOSE_ERRORS)
-      return line;
+    return line;
 #else
-      return -1;
+    return -1;
 #endif
-    }
+  }
 
-  private:
-
+private:
 #if !defined(GDUT_MINIMAL_ERRORS)
-  string_type  reason_text; ///< The reason for the exception.
+  string_type reason_text; ///< The reason for the exception.
 #endif
 
 #if defined(GDUT_VERBOSE_ERRORS)
-    string_type  file_text;   ///< The file for the exception.
-    numeric_type line;   ///< The line for the exception.
+  string_type file_text; ///< The file for the exception.
+  numeric_type line;     ///< The line for the exception.
 #endif
-  };
-}
+};
+} // namespace gdut
 
 #endif

@@ -31,65 +31,58 @@ SOFTWARE.
 #ifndef GDUT_ABSOLUTE_INCLUDED
 #define GDUT_ABSOLUTE_INCLUDED
 
+#include "integral_limits.hpp"
 #include "platform.hpp"
 #include "type_traits.hpp"
-#include "integral_limits.hpp"
 
-namespace gdut
-{
-  //***************************************************************************
-  // For signed types.
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR 
-  typename gdut::enable_if<gdut::is_signed<T>::value, T>::type
-    absolute(T value) GDUT_NOEXCEPT
-  {
-    return (value < T(0)) ? -value : value;
-  }
-
-  //***************************************************************************
-  // For unsigned types.
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR
-  typename gdut::enable_if<gdut::is_unsigned<T>::value, T>::type
-    absolute(T value) GDUT_NOEXCEPT
-  {
-    return value;
-  }
-
-  //***************************************************************************
-  // For signed types.
-  // Returns the result as the unsigned type.
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR 
-  typename gdut::enable_if<gdut::is_signed<T>::value, typename gdut::make_unsigned<T>::type>::type
-    absolute_unsigned(T value) GDUT_NOEXCEPT
-  {
-    typedef typename gdut::make_unsigned<T>::type TReturn;
-
-    return (value == gdut::integral_limits<T>::min) ? (gdut::integral_limits<TReturn>::max / 2U) + 1U
-                                                   : (value < T(0)) ? TReturn(-value) : TReturn(value);
-  }
-
-  //***************************************************************************
-  // For unsigned types.
-  // Returns the result as the unsigned type.
-  //***************************************************************************
-  template <typename T>
-  GDUT_NODISCARD
-  GDUT_CONSTEXPR
-  typename gdut::enable_if<gdut::is_unsigned<T>::value, T>::type
-    absolute_unsigned(T value) GDUT_NOEXCEPT
-  {
-    return gdut::absolute(value);
-  }
+namespace gdut {
+//***************************************************************************
+// For signed types.
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR
+    typename gdut::enable_if<gdut::is_signed<T>::value, T>::type
+    absolute(T value) GDUT_NOEXCEPT {
+  return (value < T(0)) ? -value : value;
 }
 
-#endif
+//***************************************************************************
+// For unsigned types.
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR
+    typename gdut::enable_if<gdut::is_unsigned<T>::value, T>::type
+    absolute(T value) GDUT_NOEXCEPT {
+  return value;
+}
 
+//***************************************************************************
+// For signed types.
+// Returns the result as the unsigned type.
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR
+    typename gdut::enable_if<gdut::is_signed<T>::value,
+                             typename gdut::make_unsigned<T>::type>::type
+    absolute_unsigned(T value) GDUT_NOEXCEPT {
+  typedef typename gdut::make_unsigned<T>::type TReturn;
+
+  return (value == gdut::integral_limits<T>::min)
+             ? (gdut::integral_limits<TReturn>::max / 2U) + 1U
+         : (value < T(0)) ? TReturn(-value)
+                          : TReturn(value);
+}
+
+//***************************************************************************
+// For unsigned types.
+// Returns the result as the unsigned type.
+//***************************************************************************
+template <typename T>
+GDUT_NODISCARD GDUT_CONSTEXPR
+    typename gdut::enable_if<gdut::is_unsigned<T>::value, T>::type
+    absolute_unsigned(T value) GDUT_NOEXCEPT {
+  return gdut::absolute(value);
+}
+} // namespace gdut
+
+#endif

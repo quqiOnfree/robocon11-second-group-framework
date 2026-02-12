@@ -31,26 +31,29 @@ SOFTWARE.
 // The header include guard has been intentionally omitted.
 // This file is intended to evaluated multiple times by design.
 #ifdef GDUT_PUSHED_MIN_MAX
-  #if !defined(GDUT_COMPILER_GREEN_HILLS) && !defined(GDUT_COMPILER_IAR) && !defined(GDUT_COMPILER_TASKING) && \
-      (!defined(__GNUC__) || (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))))
-    #if !defined(GDUT_COMPILER_ARM5)
-      #pragma pop_macro("min")
-      #pragma pop_macro("max")
-    #else
-      #ifdef GDUT_RESTORE_MIN
-        #define min(a,b) ((a)<(b)?(a):(b))
-        #undef GDUT_RESTORE_MIN
-      #endif
-  
-      #ifdef GDUT_RESTORE_MAX
-        #define max(a,b) ((a)<(b)?(b):(a))
-        #undef GDUT_RESTORE_MAX
-      #endif
-    #endif
-  #endif
-    
-  #undef GDUT_PUSHED_MIN_MAX
+#if !defined(GDUT_COMPILER_GREEN_HILLS) && !defined(GDUT_COMPILER_IAR) &&      \
+    !defined(GDUT_COMPILER_TASKING) &&                                         \
+    (!defined(__GNUC__) ||                                                     \
+     (defined(__GNUC__) &&                                                     \
+      (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))))
+#if !defined(GDUT_COMPILER_ARM5)
+#pragma pop_macro("min")
+#pragma pop_macro("max")
+#else
+#ifdef GDUT_RESTORE_MIN
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#undef GDUT_RESTORE_MIN
+#endif
+
+#ifdef GDUT_RESTORE_MAX
+#define max(a, b) ((a) < (b) ? (b) : (a))
+#undef GDUT_RESTORE_MAX
+#endif
+#endif
+#endif
+
+#undef GDUT_PUSHED_MIN_MAX
 
 #else
-  #error minmax_pop without matching push
+#error minmax_pop without matching push
 #endif

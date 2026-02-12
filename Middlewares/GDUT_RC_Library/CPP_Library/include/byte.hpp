@@ -29,295 +29,264 @@ SOFTWARE.
 #include "platform.hpp"
 #include "type_traits.hpp"
 
-namespace gdut
-{
+namespace gdut {
 #if GDUT_USING_CPP11 && !defined(GDUT_BYTE_FORCE_CPP03_IMPLEMENTATION)
 
-  enum class byte : unsigned char {};
+enum class byte : unsigned char {};
 
-  //*************************************************************************
-  /// To integer.
-  //*************************************************************************
-  template <typename TInteger>
-  constexpr
+//*************************************************************************
+/// To integer.
+//*************************************************************************
+template <typename TInteger>
+constexpr
     typename gdut::enable_if<gdut::is_integral<TInteger>::value, TInteger>::type
-    to_integer(gdut::byte b) GDUT_NOEXCEPT
-  {
-    return TInteger(b);
-  }
+    to_integer(gdut::byte b) GDUT_NOEXCEPT {
+  return TInteger(b);
+}
 
-  //*************************************************************************
-  /// Shift left.
-  //*************************************************************************
-  template <typename TInteger>
-  constexpr
-    typename gdut::enable_if<gdut::is_integral<TInteger>::value, gdut::byte>::type
-    operator <<(gdut::byte b, TInteger shift) GDUT_NOEXCEPT
-  {
-    return  gdut::byte(static_cast<unsigned int>(b) << shift);
-  }
+//*************************************************************************
+/// Shift left.
+//*************************************************************************
+template <typename TInteger>
+constexpr typename gdut::enable_if<gdut::is_integral<TInteger>::value,
+                                   gdut::byte>::type
+operator<<(gdut::byte b, TInteger shift) GDUT_NOEXCEPT {
+  return gdut::byte(static_cast<unsigned int>(b) << shift);
+}
 
-  //*************************************************************************
-  /// Shift right
-  //*************************************************************************
-  template <typename TInteger>
-  constexpr
-    typename gdut::enable_if<gdut::is_integral<TInteger>::value, gdut::byte>::type
-    operator >>(gdut::byte b, TInteger shift) GDUT_NOEXCEPT
-  {
-    return  gdut::byte(static_cast<unsigned int>(b) >> shift);
-  }
+//*************************************************************************
+/// Shift right
+//*************************************************************************
+template <typename TInteger>
+constexpr typename gdut::enable_if<gdut::is_integral<TInteger>::value,
+                                   gdut::byte>::type
+operator>>(gdut::byte b, TInteger shift) GDUT_NOEXCEPT {
+  return gdut::byte(static_cast<unsigned int>(b) >> shift);
+}
 
-  //*************************************************************************
-  /// Shift left equals.
-  //*************************************************************************
-  template <typename TInteger>
-  constexpr
-    typename gdut::enable_if<gdut::is_integral<TInteger>::value, gdut::byte&>::type
-    operator <<=(gdut::byte& b, TInteger shift) GDUT_NOEXCEPT
-  {
-    return b = b << shift;
-  }
+//*************************************************************************
+/// Shift left equals.
+//*************************************************************************
+template <typename TInteger>
+constexpr typename gdut::enable_if<gdut::is_integral<TInteger>::value,
+                                   gdut::byte &>::type
+operator<<=(gdut::byte &b, TInteger shift) GDUT_NOEXCEPT {
+  return b = b << shift;
+}
 
-  //*************************************************************************
-  /// Shift right equals.
-  //*************************************************************************
-  template <typename TInteger>
-  constexpr
-    typename gdut::enable_if<gdut::is_integral<TInteger>::value, gdut::byte&>::type
-    operator >>=(gdut::byte& b, TInteger shift) GDUT_NOEXCEPT
-  {
-    return b = b >> shift;
-  }
+//*************************************************************************
+/// Shift right equals.
+//*************************************************************************
+template <typename TInteger>
+constexpr typename gdut::enable_if<gdut::is_integral<TInteger>::value,
+                                   gdut::byte &>::type
+operator>>=(gdut::byte &b, TInteger shift) GDUT_NOEXCEPT {
+  return b = b >> shift;
+}
 
-  //*************************************************************************
-  /// Or.
-  //*************************************************************************
-  inline constexpr gdut::byte operator |(gdut::byte lhs, gdut::byte rhs) GDUT_NOEXCEPT
-  {
-    return gdut::byte(static_cast<unsigned int>(lhs) | static_cast<unsigned int>(rhs));
-  }
+//*************************************************************************
+/// Or.
+//*************************************************************************
+inline constexpr gdut::byte operator|(gdut::byte lhs,
+                                      gdut::byte rhs) GDUT_NOEXCEPT {
+  return gdut::byte(static_cast<unsigned int>(lhs) |
+                    static_cast<unsigned int>(rhs));
+}
 
-  //*************************************************************************
-  /// And.
-  //*************************************************************************
-  inline constexpr gdut::byte operator &(gdut::byte lhs, gdut::byte rhs) GDUT_NOEXCEPT
-  {
-    return gdut::byte(static_cast<unsigned int>(lhs) & static_cast<unsigned int>(rhs));
-  }
+//*************************************************************************
+/// And.
+//*************************************************************************
+inline constexpr gdut::byte operator&(gdut::byte lhs,
+                                      gdut::byte rhs) GDUT_NOEXCEPT {
+  return gdut::byte(static_cast<unsigned int>(lhs) &
+                    static_cast<unsigned int>(rhs));
+}
 
-  //*************************************************************************
-  /// Exclusive Or.
-  //*************************************************************************
-  inline constexpr gdut::byte operator ^(gdut::byte lhs, gdut::byte rhs) GDUT_NOEXCEPT
-  {
-    return gdut::byte(static_cast<unsigned int>(lhs) ^ static_cast<unsigned int>(rhs));
-  }
+//*************************************************************************
+/// Exclusive Or.
+//*************************************************************************
+inline constexpr gdut::byte operator^(gdut::byte lhs,
+                                      gdut::byte rhs) GDUT_NOEXCEPT {
+  return gdut::byte(static_cast<unsigned int>(lhs) ^
+                    static_cast<unsigned int>(rhs));
+}
 
-  //*************************************************************************
-  /// Or equals.
-  //*************************************************************************
-  inline GDUT_CONSTEXPR14 gdut::byte& operator |=(gdut::byte& lhs, gdut::byte rhs) GDUT_NOEXCEPT
-  {
-    return lhs = lhs | rhs;
-  }
+//*************************************************************************
+/// Or equals.
+//*************************************************************************
+inline GDUT_CONSTEXPR14 gdut::byte &operator|=(gdut::byte &lhs,
+                                               gdut::byte rhs) GDUT_NOEXCEPT {
+  return lhs = lhs | rhs;
+}
 
-  //*************************************************************************
-  /// And equals
-  //*************************************************************************
-  inline GDUT_CONSTEXPR14 gdut::byte& operator &=(gdut::byte& lhs, gdut::byte rhs) GDUT_NOEXCEPT
-  {
-    return lhs = lhs & rhs;
-  }
+//*************************************************************************
+/// And equals
+//*************************************************************************
+inline GDUT_CONSTEXPR14 gdut::byte &operator&=(gdut::byte &lhs,
+                                               gdut::byte rhs) GDUT_NOEXCEPT {
+  return lhs = lhs & rhs;
+}
 
-  //*************************************************************************
-  /// Exclusive or equals.
-  //*************************************************************************
-  inline GDUT_CONSTEXPR14 gdut::byte& operator ^=(gdut::byte& lhs, gdut::byte rhs) GDUT_NOEXCEPT
-  {
-    return lhs = lhs ^ rhs;
-  }
+//*************************************************************************
+/// Exclusive or equals.
+//*************************************************************************
+inline GDUT_CONSTEXPR14 gdut::byte &operator^=(gdut::byte &lhs,
+                                               gdut::byte rhs) GDUT_NOEXCEPT {
+  return lhs = lhs ^ rhs;
+}
 
-  //*************************************************************************
-  /// Not.
-  //*************************************************************************
-  inline constexpr gdut::byte operator ~(gdut::byte b) GDUT_NOEXCEPT
-  {
-    return gdut::byte(~static_cast<unsigned int>(b));
-  }
+//*************************************************************************
+/// Not.
+//*************************************************************************
+inline constexpr gdut::byte operator~(gdut::byte b) GDUT_NOEXCEPT {
+  return gdut::byte(~static_cast<unsigned int>(b));
+}
 
 #else
 
-  //*************************************************************************
-  /// The byte class.
-  //*************************************************************************
-  class byte
-  {
-  public:
-
-    // Friend functions
-    template <typename TInteger>
-    friend
-    typename gdut::enable_if<gdut::is_integral<TInteger>::value, TInteger>::type
-    to_integer(gdut::byte b);
-
-    friend bool operator ==(gdut::byte lhs, gdut::byte rhs);
-
-    // Default constructor
-    byte()
-      : value(0U)
-    {
-    }
-
-    // Construct from a value castable to unsigned char
-    template <typename T>
-    explicit byte(T v)
-      : value(static_cast<unsigned char>(v))
-    {
-    }
-
-    // Cast to a T
-    template <typename T>
-    operator T() const
-    {
-      return static_cast<T>(value);
-    }
-
-  private:
-
-    // The byte value
-    unsigned char value;
-  };
-
-  //*************************************************************************
-  /// Equality test
-  //*************************************************************************
-  inline bool operator ==(gdut::byte lhs, gdut::byte rhs)
-  {
-    return (lhs.value == rhs.value);
-  }
-
-  //*************************************************************************
-  /// Inequality test
-  //*************************************************************************
-  inline bool operator !=(gdut::byte lhs, gdut::byte rhs)
-  {
-    return !(lhs == rhs);
-  }
-
-  //*************************************************************************
-  /// To integer.
-  //*************************************************************************
-  template <typename TInteger> 
-  typename gdut::enable_if<gdut::is_integral<TInteger>::value, TInteger>::type
-  to_integer(gdut::byte b)
-  {
-    return TInteger(b);
-  }
-
-  //*************************************************************************
-  /// Shift left.
-  //*************************************************************************
+//*************************************************************************
+/// The byte class.
+//*************************************************************************
+class byte {
+public:
+  // Friend functions
   template <typename TInteger>
-  typename gdut::enable_if<gdut::is_integral<TInteger>::value, gdut::byte>::type
-  operator <<(gdut::byte b, TInteger shift)
-  {
-    return  gdut::byte(to_integer<unsigned int>(b) << shift);
-  }
+  friend typename gdut::enable_if<gdut::is_integral<TInteger>::value,
+                                  TInteger>::type
+  to_integer(gdut::byte b);
 
-  //*************************************************************************
-  /// Shift right
-  //*************************************************************************
-  template <typename TInteger>
-  typename gdut::enable_if<gdut::is_integral<TInteger>::value, gdut::byte>::type
-  operator >>(gdut::byte b, TInteger shift)
-  {
-    return  gdut::byte(to_integer<unsigned int>(b) >> shift);
-  }
+  friend bool operator==(gdut::byte lhs, gdut::byte rhs);
 
-  //*************************************************************************
-  /// Shift left equals.
-  //*************************************************************************
-  template <typename TInteger>  
-  typename gdut::enable_if<gdut::is_integral<TInteger>::value, gdut::byte&>::type
-  operator <<=(gdut::byte& b, TInteger shift)
-  {
-    b = b << shift;
+  // Default constructor
+  byte() : value(0U) {}
 
-    return b;
-  }
+  // Construct from a value castable to unsigned char
+  template <typename T>
+  explicit byte(T v) : value(static_cast<unsigned char>(v)) {}
 
-  //*************************************************************************
-  /// Shift right equals.
-  //*************************************************************************
-  template <typename TInteger>
-  typename gdut::enable_if<gdut::is_integral<TInteger>::value, gdut::byte&>::type
-  operator >>=(gdut::byte& b, TInteger shift)
-  {
-    b = b >> shift;
+  // Cast to a T
+  template <typename T> operator T() const { return static_cast<T>(value); }
 
-    return b;
-  }
+private:
+  // The byte value
+  unsigned char value;
+};
 
-  //*************************************************************************
-  /// Or.
-  //*************************************************************************
-  inline gdut::byte operator |(gdut::byte lhs, gdut::byte rhs)
-  {
-    return gdut::byte(to_integer<unsigned int>(lhs) | to_integer<unsigned int>(rhs));
-  }
+//*************************************************************************
+/// Equality test
+//*************************************************************************
+inline bool operator==(gdut::byte lhs, gdut::byte rhs) {
+  return (lhs.value == rhs.value);
+}
 
-  //*************************************************************************
-  /// And.
-  //*************************************************************************
-  inline gdut::byte operator &(gdut::byte lhs, gdut::byte rhs)
-  {
-    return gdut::byte(to_integer<unsigned int>(lhs) & to_integer<unsigned int>(rhs));
-  }
+//*************************************************************************
+/// Inequality test
+//*************************************************************************
+inline bool operator!=(gdut::byte lhs, gdut::byte rhs) { return !(lhs == rhs); }
 
-  //*************************************************************************
-  /// Exclusive Or.
-  //*************************************************************************
-  inline gdut::byte operator ^(gdut::byte lhs, gdut::byte rhs)
-  {
-   return gdut::byte(to_integer<unsigned int>(lhs) ^ to_integer<unsigned int>(rhs));
-  }
+//*************************************************************************
+/// To integer.
+//*************************************************************************
+template <typename TInteger>
+typename gdut::enable_if<gdut::is_integral<TInteger>::value, TInteger>::type
+to_integer(gdut::byte b) {
+  return TInteger(b);
+}
 
-  //*************************************************************************
-  /// Or equals.
-  //*************************************************************************
-  inline gdut::byte& operator |=(gdut::byte& lhs, gdut::byte rhs)
-  {
-    return lhs = lhs | rhs;
-  }
+//*************************************************************************
+/// Shift left.
+//*************************************************************************
+template <typename TInteger>
+typename gdut::enable_if<gdut::is_integral<TInteger>::value, gdut::byte>::type
+operator<<(gdut::byte b, TInteger shift) {
+  return gdut::byte(to_integer<unsigned int>(b) << shift);
+}
 
-  //*************************************************************************
-  /// And equals
-  //*************************************************************************
-  inline gdut::byte& operator &=(gdut::byte& lhs, gdut::byte rhs)
-  {
-    return lhs = lhs & rhs;
-  }
+//*************************************************************************
+/// Shift right
+//*************************************************************************
+template <typename TInteger>
+typename gdut::enable_if<gdut::is_integral<TInteger>::value, gdut::byte>::type
+operator>>(gdut::byte b, TInteger shift) {
+  return gdut::byte(to_integer<unsigned int>(b) >> shift);
+}
 
-  //*************************************************************************
-  /// Exclusive or equals.
-  //*************************************************************************
-  inline gdut::byte& operator ^=(gdut::byte& lhs, gdut::byte rhs)
-  {
-    return lhs = lhs ^ rhs;
-  }
+//*************************************************************************
+/// Shift left equals.
+//*************************************************************************
+template <typename TInteger>
+typename gdut::enable_if<gdut::is_integral<TInteger>::value, gdut::byte &>::type
+operator<<=(gdut::byte &b, TInteger shift) {
+  b = b << shift;
 
-  //*************************************************************************
-  /// Not.
-  //*************************************************************************
-  inline gdut::byte operator ~(gdut::byte b)
-  {
-    return gdut::byte(~to_integer<unsigned char>(b));
-  }
+  return b;
+}
+
+//*************************************************************************
+/// Shift right equals.
+//*************************************************************************
+template <typename TInteger>
+typename gdut::enable_if<gdut::is_integral<TInteger>::value, gdut::byte &>::type
+operator>>=(gdut::byte &b, TInteger shift) {
+  b = b >> shift;
+
+  return b;
+}
+
+//*************************************************************************
+/// Or.
+//*************************************************************************
+inline gdut::byte operator|(gdut::byte lhs, gdut::byte rhs) {
+  return gdut::byte(to_integer<unsigned int>(lhs) |
+                    to_integer<unsigned int>(rhs));
+}
+
+//*************************************************************************
+/// And.
+//*************************************************************************
+inline gdut::byte operator&(gdut::byte lhs, gdut::byte rhs) {
+  return gdut::byte(to_integer<unsigned int>(lhs) &
+                    to_integer<unsigned int>(rhs));
+}
+
+//*************************************************************************
+/// Exclusive Or.
+//*************************************************************************
+inline gdut::byte operator^(gdut::byte lhs, gdut::byte rhs) {
+  return gdut::byte(to_integer<unsigned int>(lhs) ^
+                    to_integer<unsigned int>(rhs));
+}
+
+//*************************************************************************
+/// Or equals.
+//*************************************************************************
+inline gdut::byte &operator|=(gdut::byte &lhs, gdut::byte rhs) {
+  return lhs = lhs | rhs;
+}
+
+//*************************************************************************
+/// And equals
+//*************************************************************************
+inline gdut::byte &operator&=(gdut::byte &lhs, gdut::byte rhs) {
+  return lhs = lhs & rhs;
+}
+
+//*************************************************************************
+/// Exclusive or equals.
+//*************************************************************************
+inline gdut::byte &operator^=(gdut::byte &lhs, gdut::byte rhs) {
+  return lhs = lhs ^ rhs;
+}
+
+//*************************************************************************
+/// Not.
+//*************************************************************************
+inline gdut::byte operator~(gdut::byte b) {
+  return gdut::byte(~to_integer<unsigned char>(b));
+}
 
 #endif
 
-
-}
+} // namespace gdut
 
 #endif

@@ -31,25 +31,23 @@ SOFTWARE.
 #ifndef GDUT_BITSET_LEGACY_INCLUDED
 #define GDUT_BITSET_LEGACY_INCLUDED
 
-#include "../platform.hpp"
 #include "../algorithm.hpp"
-#include "../iterator.hpp"
-#include "../integral_limits.hpp"
-#include "../algorithm.hpp"
-#include "../nullptr.hpp"
-#include "../log.hpp"
-#include "../exception.hpp"
-#include "../integral_limits.hpp"
 #include "../binary.hpp"
 #include "../char_traits.hpp"
-#include "../static_assert.hpp"
 #include "../error_handler.hpp"
+#include "../exception.hpp"
+#include "../integral_limits.hpp"
+#include "../iterator.hpp"
+#include "../log.hpp"
+#include "../nullptr.hpp"
+#include "../platform.hpp"
 #include "../span.hpp"
+#include "../static_assert.hpp"
 #include "../string.hpp"
 
-#include <string.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "minmax_push.hpp"
 
@@ -58,15 +56,15 @@ SOFTWARE.
 #endif
 
 #if GDUT_USING_CPP11
-  #define GDUT_STR(x)  x
-  #define GDUT_STRL(x) L##x
-  #define GDUT_STRu(x) u##x
-  #define GDUT_STRU(x) U##x
+#define GDUT_STR(x) x
+#define GDUT_STRL(x) L##x
+#define GDUT_STRu(x) u##x
+#define GDUT_STRU(x) U##x
 #else
-  #define GDUT_STR(x)  x
-  #define GDUT_STRL(x) x
-  #define GDUT_STRu(x) x
-  #define GDUT_STRU(x) x
+#define GDUT_STR(x) x
+#define GDUT_STRL(x) x
+#define GDUT_STRu(x) x
+#define GDUT_STRU(x) x
 #endif
 
 //*****************************************************************************
@@ -75,1469 +73,1257 @@ SOFTWARE.
 ///\ingroup containers
 //*****************************************************************************
 
-namespace gdut
-{
-  //***************************************************************************
-  /// Exception base for bitset
-  ///\ingroup bitset
-  //***************************************************************************
-  class bitset_exception : public gdut::exception
-  {
-  public:
+namespace gdut {
+//***************************************************************************
+/// Exception base for bitset
+///\ingroup bitset
+//***************************************************************************
+class bitset_exception : public gdut::exception {
+public:
+  bitset_exception(string_type reason_, string_type file_name_,
+                   numeric_type line_number_)
+      : exception(reason_, file_name_, line_number_) {}
+};
 
-    bitset_exception(string_type reason_, string_type file_name_, numeric_type line_number_)
-      : exception(reason_, file_name_, line_number_)
-    {
-    }
-  };
+//***************************************************************************
+/// Bitset null pointer exception.
+///\ingroup bitset
+//***************************************************************************
+class bitset_nullptr : public bitset_exception {
+public:
+  bitset_nullptr(string_type file_name_, numeric_type line_number_)
+      : bitset_exception(
+            GDUT_ERROR_TEXT("bitset:null pointer", GDUT_BITSET_FILE_ID "A"),
+            file_name_, line_number_) {}
+};
 
-  //***************************************************************************
-  /// Bitset null pointer exception.
-  ///\ingroup bitset
-  //***************************************************************************
-  class bitset_nullptr : public bitset_exception
-  {
-  public:
+//***************************************************************************
+/// Bitset type_too_small exception.
+///\ingroup bitset
+//***************************************************************************
+class bitset_type_too_small : public bitset_exception {
+public:
+  bitset_type_too_small(string_type file_name_, numeric_type line_number_)
+      : bitset_exception(
+            GDUT_ERROR_TEXT("bitset:type_too_small", GDUT_BITSET_FILE_ID "B"),
+            file_name_, line_number_) {}
+};
 
-    bitset_nullptr(string_type file_name_, numeric_type line_number_)
-      : bitset_exception(GDUT_ERROR_TEXT("bitset:null pointer", GDUT_BITSET_FILE_ID"A"), file_name_, line_number_)
-    {
-    }
-  };
+//***************************************************************************
+/// Bitset overflow exception.
+///\ingroup bitset
+//***************************************************************************
+class bitset_overflow : public bitset_exception {
+public:
+  bitset_overflow(string_type file_name_, numeric_type line_number_)
+      : bitset_exception(
+            GDUT_ERROR_TEXT("bitset:overflow", GDUT_BITSET_FILE_ID "C"),
+            file_name_, line_number_) {}
+};
 
-  //***************************************************************************
-  /// Bitset type_too_small exception.
-  ///\ingroup bitset
-  //***************************************************************************
-  class bitset_type_too_small : public bitset_exception
-  {
-  public:
-
-    bitset_type_too_small(string_type file_name_, numeric_type line_number_)
-      : bitset_exception(GDUT_ERROR_TEXT("bitset:type_too_small", GDUT_BITSET_FILE_ID"B"), file_name_, line_number_)
-    {
-    }
-  };
-
-  //***************************************************************************
-  /// Bitset overflow exception.
-  ///\ingroup bitset
-  //***************************************************************************
-  class bitset_overflow : public bitset_exception
-  {
-  public:
-
-    bitset_overflow(string_type file_name_, numeric_type line_number_)
-      : bitset_exception(GDUT_ERROR_TEXT("bitset:overflow", GDUT_BITSET_FILE_ID"C"), file_name_, line_number_)
-    {
-    }
-  };
-
-  //*************************************************************************
-  /// The base class for gdut::bitset
-  ///\ingroup bitset
-  //*************************************************************************
-  class ibitset
-  {
-  protected:
-
-    // The type used for each element in the array.
+//*************************************************************************
+/// The base class for gdut::bitset
+///\ingroup bitset
+//*************************************************************************
+class ibitset {
+protected:
+  // The type used for each element in the array.
 #if !defined(GDUT_BITSET_ELEMENT_TYPE)
-    #define GDUT_BITSET_ELEMENT_TYPE uint_least8_t
+#define GDUT_BITSET_ELEMENT_TYPE uint_least8_t
 #endif
 
-  public:
+public:
+  typedef size_t size_type;
 
-    typedef size_t size_type;
+  typedef
+      typename gdut::make_unsigned<GDUT_BITSET_ELEMENT_TYPE>::type element_type;
+  typedef element_type element_t; // Backward compatibility
 
-    typedef typename gdut::make_unsigned<GDUT_BITSET_ELEMENT_TYPE>::type element_type;
-    typedef element_type element_t; // Backward compatibility
+  static GDUT_CONSTANT element_type ALL_SET =
+      gdut::integral_limits<element_type>::max;
+  static GDUT_CONSTANT element_type ALL_CLEAR = 0;
 
-    static GDUT_CONSTANT element_type ALL_SET   = gdut::integral_limits<element_type>::max;
-    static GDUT_CONSTANT element_type ALL_CLEAR = 0;
-
-    static GDUT_CONSTANT size_t       Bits_Per_Element  = gdut::integral_limits<element_type>::bits;
+  static GDUT_CONSTANT size_t Bits_Per_Element =
+      gdut::integral_limits<element_type>::bits;
 
 #if GDUT_USING_CPP11
-    typedef gdut::span<element_type>       span_type;
-    typedef gdut::span<const element_type> const_span_type;
+  typedef gdut::span<element_type> span_type;
+  typedef gdut::span<const element_type> const_span_type;
 #endif
 
-    enum
-    {
-      npos = gdut::integral_limits<size_t>::max
-    };
+  enum { npos = gdut::integral_limits<size_t>::max };
 
-    //*************************************************************************
-    /// The reference type returned.
-    //*************************************************************************
-    class bit_reference
-    {
-    public:
+  //*************************************************************************
+  /// The reference type returned.
+  //*************************************************************************
+  class bit_reference {
+  public:
+    friend class ibitset;
 
-      friend class ibitset;
+    //*******************************
+    /// Conversion operator.
+    //*******************************
+    operator bool() const { return p_bitset->test(position); }
 
-      //*******************************
-      /// Conversion operator.
-      //*******************************
-      operator bool() const
-      {
-        return p_bitset->test(position);
-      }
+    //*******************************
+    /// Copy constructor.
+    //*******************************
+    bit_reference(const bit_reference &other)
+        : p_bitset(other.p_bitset), position(other.position) {}
 
-      //*******************************
-      /// Copy constructor.
-      //*******************************
-      bit_reference(const bit_reference& other)
-        : p_bitset(other.p_bitset)
-        , position(other.position)
-      {
-      }
+    //*******************************
+    /// Assignment operator.
+    //*******************************
+    bit_reference &operator=(bool b) {
+      p_bitset->set(position, b);
+      return *this;
+    }
 
-      //*******************************
-      /// Assignment operator.
-      //*******************************
-      bit_reference& operator = (bool b)
-      {
-        p_bitset->set(position, b);
+    //*******************************
+    /// Assignment operator.
+    //*******************************
+    bit_reference &operator=(const bit_reference &r) {
+      p_bitset->set(position, bool(r));
+      return *this;
+    }
+
+    //*******************************
+    /// Flip the bit.
+    //*******************************
+    bit_reference &flip() {
+      p_bitset->flip(position);
+      return *this;
+    }
+
+    //*******************************
+    /// Return the logical inverse of the bit.
+    //*******************************
+    bool operator~() const { return !p_bitset->test(position); }
+
+  private:
+    //*******************************
+    /// Default constructor.
+    //*******************************
+    bit_reference() : p_bitset(GDUT_NULLPTR), position(0) {}
+
+    //*******************************
+    /// Constructor.
+    //*******************************
+    bit_reference(ibitset &r_bitset, size_t position_)
+        : p_bitset(&r_bitset), position(position_) {}
+
+    ibitset *p_bitset; ///< The bitset.
+    size_t position;   ///< The position in the bitset.
+  };
+
+  //*************************************************************************
+  /// The number of bits in the bitset.
+  //*************************************************************************
+  size_t size() const { return Active_Bits; }
+
+  //*************************************************************************
+  /// Count the number of bits set.
+  //*************************************************************************
+  size_t count() const {
+    size_t n = 0UL;
+
+    for (size_t i = 0UL; i < Number_Of_Elements; ++i) {
+      n += gdut::count_bits(pdata[i]);
+    }
+
+    return n;
+  }
+
+  //*************************************************************************
+  /// Tests a bit at a position.
+  /// Positions greater than the number of configured bits will return
+  /// <b>false</b>.
+  //*************************************************************************
+  bool test(size_t position) const {
+    GDUT_ASSERT_OR_RETURN_VALUE(position < Active_Bits,
+                                GDUT_ERROR(bitset_overflow), false);
+    size_t index;
+    element_type mask;
+
+    if (position >= Active_Bits) {
+      return false;
+    }
+    if (Number_Of_Elements == 0) {
+      return false;
+    } else if (Number_Of_Elements == 1) {
+      index = 0;
+      mask = element_type(1) << position;
+    } else {
+      index = position >> gdut::log2<Bits_Per_Element>::value;
+      mask = element_type(1) << (position & (Bits_Per_Element - 1));
+    }
+
+    return (pdata[index] & mask) != 0;
+  }
+
+  //*************************************************************************
+  /// Set all bits.
+  //*************************************************************************
+  ibitset &set() {
+    gdut::fill_n(pdata, Number_Of_Elements - 1U, ALL_SET);
+    pdata[Number_Of_Elements - 1U] = Top_Mask;
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set the bit at the position.
+  //*************************************************************************
+  ibitset &set(size_t position, bool value = true) {
+    GDUT_ASSERT_OR_RETURN_VALUE(position < Active_Bits,
+                                GDUT_ERROR(bitset_overflow), *this);
+    size_t index;
+    element_type bit;
+
+    if (position < Active_Bits) {
+      if (Number_Of_Elements == 0) {
         return *this;
-      }
-
-      //*******************************
-      /// Assignment operator.
-      //*******************************
-      bit_reference& operator = (const bit_reference& r)
-      {
-        p_bitset->set(position, bool(r));
-        return *this;
-      }
-
-      //*******************************
-      /// Flip the bit.
-      //*******************************
-      bit_reference& flip()
-      {
-        p_bitset->flip(position);
-        return *this;
-      }
-
-      //*******************************
-      /// Return the logical inverse of the bit.
-      //*******************************
-      bool operator~() const
-      {
-        return !p_bitset->test(position);
-      }
-
-    private:
-
-      //*******************************
-      /// Default constructor.
-      //*******************************
-      bit_reference()
-        : p_bitset(GDUT_NULLPTR)
-        , position(0)
-      {
-      }
-
-      //*******************************
-      /// Constructor.
-      //*******************************
-      bit_reference(ibitset& r_bitset, size_t position_)
-        : p_bitset(&r_bitset)
-        , position(position_)
-      {
-      }
-
-      ibitset* p_bitset; ///< The bitset.
-      size_t   position; ///< The position in the bitset.
-    };
-
-    //*************************************************************************
-    /// The number of bits in the bitset.
-    //*************************************************************************
-    size_t size() const
-    {
-      return Active_Bits;
-    }
-
-    //*************************************************************************
-    /// Count the number of bits set.
-    //*************************************************************************
-    size_t count() const
-    {
-      size_t n = 0UL;
-
-      for (size_t i = 0UL; i < Number_Of_Elements; ++i)
-      {
-        n += gdut::count_bits(pdata[i]);
-      }
-
-      return n;
-    }
-
-    //*************************************************************************
-    /// Tests a bit at a position.
-    /// Positions greater than the number of configured bits will return <b>false</b>.
-    //*************************************************************************
-    bool test(size_t position) const
-    {
-      GDUT_ASSERT_OR_RETURN_VALUE(position < Active_Bits, GDUT_ERROR(bitset_overflow), false);
-      size_t    index;
-      element_type mask;
-
-      if (position >= Active_Bits)
-      {
-        return false;
-      }
-      if (Number_Of_Elements == 0)
-      {
-        return false;
-      }
-      else if (Number_Of_Elements == 1)
-      {
-        index = 0;
-        mask = element_type(1) << position;
-      }
-      else
-      {
-        index = position >> gdut::log2<Bits_Per_Element>::value;
-        mask = element_type(1) << (position & (Bits_Per_Element - 1));
-      }
-
-      return (pdata[index] & mask) != 0;
-    }
-
-    //*************************************************************************
-    /// Set all bits.
-    //*************************************************************************
-    ibitset& set()
-    {
-      gdut::fill_n(pdata, Number_Of_Elements - 1U, ALL_SET);
-      pdata[Number_Of_Elements - 1U] = Top_Mask;
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set the bit at the position.
-    //*************************************************************************
-    ibitset& set(size_t position, bool value = true)
-    {
-      GDUT_ASSERT_OR_RETURN_VALUE(position < Active_Bits, GDUT_ERROR(bitset_overflow), *this);
-      size_t    index;
-      element_type bit;
-
-      if (position < Active_Bits)
-      {
-        if (Number_Of_Elements == 0) 
-        {
-          return *this;
-        }
-        else if (Number_Of_Elements == 1)
-        {
-          index = 0;
-          bit = element_type(1) << position;
-        }
-        else
-        {
-          index = position >> gdut::log2<Bits_Per_Element>::value;
-          bit = element_type(1) << (position & (Bits_Per_Element - 1));
-        }
-
-        if (value)
-        {
-          pdata[index] |= bit;
-        }
-        else
-        {
-          pdata[index] &= ~bit;
-        }
-      }
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a string.
-    //*************************************************************************
-    ibitset& from_string(const char* text)
-    {
-      reset();
-
-      size_t i = gdut::min(Active_Bits, gdut::strlen(text));
-
-      while (i > 0)
-      {
-        set(--i, *text++ == GDUT_STRL('1'));
-      }
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a wide string.
-    //*************************************************************************
-    ibitset& from_string(const wchar_t* text)
-    {
-      reset();
-
-      size_t i = gdut::min(Active_Bits, gdut::strlen(text));
-
-      while (i > 0)
-      {
-        set(--i, *text++ == GDUT_STRL('1'));
-      }
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a u16 string.
-    //*************************************************************************
-    ibitset& from_string(const char16_t* text)
-    {
-      reset();
-
-      size_t i = gdut::min(Active_Bits, gdut::strlen(text));
-
-      while (i > 0)
-      {
-        set(--i, *text++ == GDUT_STRu('1'));
-      }
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a u32 string.
-    //*************************************************************************
-    ibitset& from_string(const char32_t* text)
-    {
-      reset();
-
-      size_t i = gdut::min(Active_Bits, gdut::strlen(text));
-
-      while (i > 0)
-      {
-        set(--i, *text++ == GDUT_STRU('1'));
-      }
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a string.
-    //*************************************************************************
-    ibitset& set(const char* text)
-    {
-      if (text == GDUT_NULLPTR)
-      {
-        reset();
-      }
-      else
-      {
-        from_string(text);
-      }
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a wstring.
-    //*************************************************************************
-    ibitset& set(const wchar_t* text)
-    {
-      if (text == GDUT_NULLPTR)
-      {
-        reset();
-      }
-      else
-      {
-        from_string(text);
-      }
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a u16string.
-    //*************************************************************************
-    ibitset& set(const char16_t* text)
-    {
-      if (text == GDUT_NULLPTR)
-      {
-        reset();
-      }
-      else
-      {
-        from_string(text);
-      }
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a u32string.
-    //*************************************************************************
-    ibitset& set(const char32_t* text)
-    {
-      if (text == GDUT_NULLPTR)
-      {
-        reset();
-      }
-      else
-      {
-        from_string(text);
-      }
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Put to a value.
-    //*************************************************************************
-    template <typename T>
-    typename gdut::enable_if<gdut::is_integral<T>::value, T>::type
-      value() const
-    {
-      T v = T(0);
-
-      const bool OK = (sizeof(T) * CHAR_BIT) >= (Number_Of_Elements * Bits_Per_Element);
-
-      GDUT_ASSERT_OR_RETURN_VALUE(OK, GDUT_ERROR(gdut::bitset_type_too_small), T(0));
-
-      if (OK)
-      {
-        uint_least8_t shift = 0U;
-
-        for (size_t i = 0UL; i < Number_Of_Elements; ++i)
-        {
-          v |= T(typename gdut::make_unsigned<T>::type(pdata[i]) << shift);
-          shift += uint_least8_t(Bits_Per_Element);
-        }
-      }
-
-      return v;
-    }
-
-    //************************************************************************* 
-    /// Put to a unsigned long.
-    //*************************************************************************
-    unsigned long to_ulong() const
-    {
-      return value<unsigned long>();
-    }
-
-    //*************************************************************************
-    /// Put to a unsigned long long.
-    //*************************************************************************
-    unsigned long long to_ullong() const
-    {
-      return value<unsigned long long>();
-    }
-
-    //*************************************************************************
-    /// Resets the bitset.
-    //*************************************************************************
-    ibitset& reset()
-    {
-      gdut::fill_n(pdata, Number_Of_Elements, ALL_CLEAR);
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Reset the bit at the position.
-    //*************************************************************************
-    ibitset& reset(size_t position)
-    {
-      GDUT_ASSERT_OR_RETURN_VALUE(position < Active_Bits, GDUT_ERROR(bitset_overflow), *this);
-      size_t       index;
-      element_type bit;
-
-      if (position < Active_Bits)
-      {
-        if (Number_Of_Elements == 0)
-        {
-          return *this;
-        }
-        else if (Number_Of_Elements == 1)
-        {
-          index = 0;
-          bit = element_type(1) << position;
-        }
-        else
-        {
-          index = position >> gdut::log2<Bits_Per_Element>::value;
-          bit = element_type(1) << (position & (Bits_Per_Element - 1));
-        }
-
-        pdata[index] &= ~bit;
-      }
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Flip all of the bits.
-    //*************************************************************************
-    ibitset& flip()
-    {
-      gdut::transform_n(pdata, 
-                       Number_Of_Elements, 
-                       pdata, 
-                       gdut::binary_not<element_type>());
-
-      clear_unused_bits_in_msb();
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Flip the bit at the position.
-    //*************************************************************************
-    ibitset& flip(size_t position)
-    {
-      GDUT_ASSERT_OR_RETURN_VALUE(position < Active_Bits, GDUT_ERROR(bitset_overflow), *this);
-      size_t    index;
-      element_type bit;
-      
-      if (Number_Of_Elements == 0)
-      {
-        return *this;
-      }
-      else if (Number_Of_Elements == 1)
-      {
+      } else if (Number_Of_Elements == 1) {
         index = 0;
         bit = element_type(1) << position;
-      }
-      else
-      {
-        index = position >> log2<Bits_Per_Element>::value;
+      } else {
+        index = position >> gdut::log2<Bits_Per_Element>::value;
         bit = element_type(1) << (position & (Bits_Per_Element - 1));
       }
 
-      pdata[index] ^= bit;
-
-      return *this;
+      if (value) {
+        pdata[index] |= bit;
+      } else {
+        pdata[index] &= ~bit;
+      }
     }
 
-    //*************************************************************************
-    // Are all the bits sets?
-    //*************************************************************************
-    bool all() const
-    {
-      if (Number_Of_Elements == 0UL)
-      {
-        return true;
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a string.
+  //*************************************************************************
+  ibitset &from_string(const char *text) {
+    reset();
+
+    size_t i = gdut::min(Active_Bits, gdut::strlen(text));
+
+    while (i > 0) {
+      set(--i, *text++ == GDUT_STRL('1'));
+    }
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a wide string.
+  //*************************************************************************
+  ibitset &from_string(const wchar_t *text) {
+    reset();
+
+    size_t i = gdut::min(Active_Bits, gdut::strlen(text));
+
+    while (i > 0) {
+      set(--i, *text++ == GDUT_STRL('1'));
+    }
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a u16 string.
+  //*************************************************************************
+  ibitset &from_string(const char16_t *text) {
+    reset();
+
+    size_t i = gdut::min(Active_Bits, gdut::strlen(text));
+
+    while (i > 0) {
+      set(--i, *text++ == GDUT_STRu('1'));
+    }
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a u32 string.
+  //*************************************************************************
+  ibitset &from_string(const char32_t *text) {
+    reset();
+
+    size_t i = gdut::min(Active_Bits, gdut::strlen(text));
+
+    while (i > 0) {
+      set(--i, *text++ == GDUT_STRU('1'));
+    }
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a string.
+  //*************************************************************************
+  ibitset &set(const char *text) {
+    if (text == GDUT_NULLPTR) {
+      reset();
+    } else {
+      from_string(text);
+    }
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a wstring.
+  //*************************************************************************
+  ibitset &set(const wchar_t *text) {
+    if (text == GDUT_NULLPTR) {
+      reset();
+    } else {
+      from_string(text);
+    }
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a u16string.
+  //*************************************************************************
+  ibitset &set(const char16_t *text) {
+    if (text == GDUT_NULLPTR) {
+      reset();
+    } else {
+      from_string(text);
+    }
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a u32string.
+  //*************************************************************************
+  ibitset &set(const char32_t *text) {
+    if (text == GDUT_NULLPTR) {
+      reset();
+    } else {
+      from_string(text);
+    }
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Put to a value.
+  //*************************************************************************
+  template <typename T>
+  typename gdut::enable_if<gdut::is_integral<T>::value, T>::type value() const {
+    T v = T(0);
+
+    const bool OK =
+        (sizeof(T) * CHAR_BIT) >= (Number_Of_Elements * Bits_Per_Element);
+
+    GDUT_ASSERT_OR_RETURN_VALUE(OK, GDUT_ERROR(gdut::bitset_type_too_small),
+                                T(0));
+
+    if (OK) {
+      uint_least8_t shift = 0U;
+
+      for (size_t i = 0UL; i < Number_Of_Elements; ++i) {
+        v |= T(typename gdut::make_unsigned<T>::type(pdata[i]) << shift);
+        shift += uint_least8_t(Bits_Per_Element);
+      }
+    }
+
+    return v;
+  }
+
+  //*************************************************************************
+  /// Put to a unsigned long.
+  //*************************************************************************
+  unsigned long to_ulong() const { return value<unsigned long>(); }
+
+  //*************************************************************************
+  /// Put to a unsigned long long.
+  //*************************************************************************
+  unsigned long long to_ullong() const { return value<unsigned long long>(); }
+
+  //*************************************************************************
+  /// Resets the bitset.
+  //*************************************************************************
+  ibitset &reset() {
+    gdut::fill_n(pdata, Number_Of_Elements, ALL_CLEAR);
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Reset the bit at the position.
+  //*************************************************************************
+  ibitset &reset(size_t position) {
+    GDUT_ASSERT_OR_RETURN_VALUE(position < Active_Bits,
+                                GDUT_ERROR(bitset_overflow), *this);
+    size_t index;
+    element_type bit;
+
+    if (position < Active_Bits) {
+      if (Number_Of_Elements == 0) {
+        return *this;
+      } else if (Number_Of_Elements == 1) {
+        index = 0;
+        bit = element_type(1) << position;
+      } else {
+        index = position >> gdut::log2<Bits_Per_Element>::value;
+        bit = element_type(1) << (position & (Bits_Per_Element - 1));
       }
 
-      // All but the last.
-      for (size_t i = 0UL; i < (Number_Of_Elements - 1U); ++i)
-      {
-        if (pdata[i] != ALL_SET)
-        {
-          return false;
-        }
-      }
+      pdata[index] &= ~bit;
+    }
 
-      // The last.
-      if (pdata[Number_Of_Elements - 1U] != (ALL_SET & Top_Mask))
-      {
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Flip all of the bits.
+  //*************************************************************************
+  ibitset &flip() {
+    gdut::transform_n(pdata, Number_Of_Elements, pdata,
+                      gdut::binary_not<element_type>());
+
+    clear_unused_bits_in_msb();
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Flip the bit at the position.
+  //*************************************************************************
+  ibitset &flip(size_t position) {
+    GDUT_ASSERT_OR_RETURN_VALUE(position < Active_Bits,
+                                GDUT_ERROR(bitset_overflow), *this);
+    size_t index;
+    element_type bit;
+
+    if (Number_Of_Elements == 0) {
+      return *this;
+    } else if (Number_Of_Elements == 1) {
+      index = 0;
+      bit = element_type(1) << position;
+    } else {
+      index = position >> log2<Bits_Per_Element>::value;
+      bit = element_type(1) << (position & (Bits_Per_Element - 1));
+    }
+
+    pdata[index] ^= bit;
+
+    return *this;
+  }
+
+  //*************************************************************************
+  // Are all the bits sets?
+  //*************************************************************************
+  bool all() const {
+    if (Number_Of_Elements == 0UL) {
+      return true;
+    }
+
+    // All but the last.
+    for (size_t i = 0UL; i < (Number_Of_Elements - 1U); ++i) {
+      if (pdata[i] != ALL_SET) {
         return false;
       }
-
-      return true;
     }
 
-    //*************************************************************************
-    /// Are any of the bits set?
-    //*************************************************************************
-    bool any() const
-    {
-      return !none();
+    // The last.
+    if (pdata[Number_Of_Elements - 1U] != (ALL_SET & Top_Mask)) {
+      return false;
     }
 
-    //*************************************************************************
-    /// Are none of the bits set?
-    //*************************************************************************
-    bool none() const
-    {
-      for (size_t i = 0UL; i < Number_Of_Elements; ++i)
-      {
-        if (pdata[i] != 0)
-        {
-          return false;
-        }
-      }
+    return true;
+  }
 
-      return true;
+  //*************************************************************************
+  /// Are any of the bits set?
+  //*************************************************************************
+  bool any() const { return !none(); }
+
+  //*************************************************************************
+  /// Are none of the bits set?
+  //*************************************************************************
+  bool none() const {
+    for (size_t i = 0UL; i < Number_Of_Elements; ++i) {
+      if (pdata[i] != 0) {
+        return false;
+      }
     }
 
-    //*************************************************************************
-    /// Finds the first bit in the specified state.
-    ///\param state The state to search for.
-    ///\returns The position of the bit or Number_Of_Elements if none were found.
-    //*************************************************************************
-    size_t find_first(bool state) const
-    {
-      return find_next(state, 0);
-    }
+    return true;
+  }
 
-    //*************************************************************************
-    /// Finds the next bit in the specified state.
-    ///\param state    The state to search for.
-    ///\param position The position to start from.
-    ///\returns The position of the bit or ibitset::npos if none were found.
-    //*************************************************************************
-    size_t find_next(bool state, size_t position) const
-    {
-      // Where to start.
-      size_t index;
-      size_t bit;
+  //*************************************************************************
+  /// Finds the first bit in the specified state.
+  ///\param state The state to search for.
+  ///\returns The position of the bit or Number_Of_Elements if none were found.
+  //*************************************************************************
+  size_t find_first(bool state) const { return find_next(state, 0); }
 
-      if (Number_Of_Elements == 0)
-      {
-        return ibitset::npos;
-      }
-      else if (Number_Of_Elements == 1)
-      {
-        index = 0;
-        bit = position;
-      }
-      else
-      {
-        index = position >> log2<Bits_Per_Element>::value;
-        bit = position & (Bits_Per_Element - 1);
-      }
+  //*************************************************************************
+  /// Finds the next bit in the specified state.
+  ///\param state    The state to search for.
+  ///\param position The position to start from.
+  ///\returns The position of the bit or ibitset::npos if none were found.
+  //*************************************************************************
+  size_t find_next(bool state, size_t position) const {
+    // Where to start.
+    size_t index;
+    size_t bit;
 
-      element_type mask = 1 << bit;
-
-      // For each element in the bitset...
-      while (index < Number_Of_Elements)
-      {
-        element_type value = pdata[index];
-
-        // Needs checking?
-        if ((state && (value != ALL_CLEAR)) ||
-            (!state && (value != ALL_SET)))
-        {
-          // For each bit in the element...
-          while ((bit < Bits_Per_Element) && (position < Active_Bits))
-          {
-            // Equal to the required state?
-            if (((value & mask) != 0) == state)
-            {
-              return position;
-            }
-
-            // Move on to the next bit.
-            mask <<= 1;
-            ++position;
-            ++bit;
-          }
-        }
-        else
-        {
-          position += (Bits_Per_Element - bit);
-        }
-
-        // Start at the beginning for all other elements.
-        bit = 0;
-        mask = 1;
-
-        ++index;
-      }
-
+    if (Number_Of_Elements == 0) {
       return ibitset::npos;
+    } else if (Number_Of_Elements == 1) {
+      index = 0;
+      bit = position;
+    } else {
+      index = position >> log2<Bits_Per_Element>::value;
+      bit = position & (Bits_Per_Element - 1);
     }
 
-    //*************************************************************************
-    /// Read [] operator.
-    //*************************************************************************
-    bool operator[] (size_t position) const
-    {
-      return test(position);
-    }
+    element_type mask = 1 << bit;
 
-    //*************************************************************************
-    /// Write [] operator.
-    //*************************************************************************
-    bit_reference operator [] (size_t position)
-    {
-      return bit_reference(*this, position);
-    }
+    // For each element in the bitset...
+    while (index < Number_Of_Elements) {
+      element_type value = pdata[index];
 
-    //*************************************************************************
-    /// operator &=
-    //*************************************************************************
-    ibitset& operator &=(const ibitset& other)
-    {
-      for (size_t i = 0UL; i < Number_Of_Elements; ++i)
-      {
-        pdata[i] &= other.pdata[i];
-      }
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// operator |=
-    //*************************************************************************
-    ibitset& operator |=(const ibitset& other)
-    {
-      for (size_t i = 0UL; i < Number_Of_Elements; ++i)
-      {
-        pdata[i] |= other.pdata[i];
-      }
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// operator ^=
-    //*************************************************************************
-    ibitset& operator ^=(const ibitset& other)
-    {
-      for (size_t i = 0UL; i < Number_Of_Elements; ++i)
-      {
-        pdata[i] ^= other.pdata[i];
-      }
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// operator <<=
-    //*************************************************************************
-    ibitset& operator<<=(size_t shift)
-    {
-      if (shift >= Active_Bits)
-      {
-        reset();
-      }
-      else if (Number_Of_Elements != 0UL)
-      {
-        // Just one element?
-        if (Number_Of_Elements == 1UL)
-        {
-          pdata[0] <<= shift;
-        }
-        else if (shift == Bits_Per_Element)
-        {
-          gdut::copy_backward(pdata, pdata + Number_Of_Elements - 1U, pdata + Number_Of_Elements);
-          pdata[0] = 0;
-        }
-        else
-        {
-          // The place where the elements are split when shifting.
-          const size_t split_position = Bits_Per_Element - (shift % Bits_Per_Element);
-
-          // Where we are shifting from.
-          int src_index = int(Number_Of_Elements - (shift / Bits_Per_Element) - 1U);
-
-          // Where we are shifting to.
-          int dst_index = int(Number_Of_Elements - 1U);
-
-          // Shift control constants.
-          const size_t lsb_shift = Bits_Per_Element - split_position;
-          const size_t msb_shift = split_position;
-
-          const element_type lsb_mask         = element_type(gdut::integral_limits<element_type>::max >> (Bits_Per_Element - split_position));
-          const element_type msb_mask         = gdut::integral_limits<element_type>::max - lsb_mask;
-          const element_type lsb_shifted_mask = element_type(lsb_mask << lsb_shift);
-          
-          // First lsb.
-          element_type lsb = element_type((pdata[src_index] & lsb_mask) << lsb_shift);
-          pdata[dst_index] = lsb;
-          --src_index;
-
-          // Now do the shifting.
-          while (src_index >= 0)
-          {
-            // Shift msb.
-            element_type msb = element_type((pdata[src_index] & msb_mask) >> msb_shift);
-            pdata[dst_index] = pdata[dst_index] | msb;
-            --dst_index;
-
-            // Shift lsb.
-            lsb = element_type((pdata[src_index] & lsb_mask) << lsb_shift);
-            pdata[dst_index] = lsb;
-            --src_index;
+      // Needs checking?
+      if ((state && (value != ALL_CLEAR)) || (!state && (value != ALL_SET))) {
+        // For each bit in the element...
+        while ((bit < Bits_Per_Element) && (position < Active_Bits)) {
+          // Equal to the required state?
+          if (((value & mask) != 0) == state) {
+            return position;
           }
 
-          // Clear the remaining bits.
-          // First lsb.
-          pdata[dst_index] &= lsb_shifted_mask;
+          // Move on to the next bit.
+          mask <<= 1;
+          ++position;
+          ++bit;
+        }
+      } else {
+        position += (Bits_Per_Element - bit);
+      }
+
+      // Start at the beginning for all other elements.
+      bit = 0;
+      mask = 1;
+
+      ++index;
+    }
+
+    return ibitset::npos;
+  }
+
+  //*************************************************************************
+  /// Read [] operator.
+  //*************************************************************************
+  bool operator[](size_t position) const { return test(position); }
+
+  //*************************************************************************
+  /// Write [] operator.
+  //*************************************************************************
+  bit_reference operator[](size_t position) {
+    return bit_reference(*this, position);
+  }
+
+  //*************************************************************************
+  /// operator &=
+  //*************************************************************************
+  ibitset &operator&=(const ibitset &other) {
+    for (size_t i = 0UL; i < Number_Of_Elements; ++i) {
+      pdata[i] &= other.pdata[i];
+    }
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// operator |=
+  //*************************************************************************
+  ibitset &operator|=(const ibitset &other) {
+    for (size_t i = 0UL; i < Number_Of_Elements; ++i) {
+      pdata[i] |= other.pdata[i];
+    }
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// operator ^=
+  //*************************************************************************
+  ibitset &operator^=(const ibitset &other) {
+    for (size_t i = 0UL; i < Number_Of_Elements; ++i) {
+      pdata[i] ^= other.pdata[i];
+    }
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// operator <<=
+  //*************************************************************************
+  ibitset &operator<<=(size_t shift) {
+    if (shift >= Active_Bits) {
+      reset();
+    } else if (Number_Of_Elements != 0UL) {
+      // Just one element?
+      if (Number_Of_Elements == 1UL) {
+        pdata[0] <<= shift;
+      } else if (shift == Bits_Per_Element) {
+        gdut::copy_backward(pdata, pdata + Number_Of_Elements - 1U,
+                            pdata + Number_Of_Elements);
+        pdata[0] = 0;
+      } else {
+        // The place where the elements are split when shifting.
+        const size_t split_position =
+            Bits_Per_Element - (shift % Bits_Per_Element);
+
+        // Where we are shifting from.
+        int src_index =
+            int(Number_Of_Elements - (shift / Bits_Per_Element) - 1U);
+
+        // Where we are shifting to.
+        int dst_index = int(Number_Of_Elements - 1U);
+
+        // Shift control constants.
+        const size_t lsb_shift = Bits_Per_Element - split_position;
+        const size_t msb_shift = split_position;
+
+        const element_type lsb_mask =
+            element_type(gdut::integral_limits<element_type>::max >>
+                         (Bits_Per_Element - split_position));
+        const element_type msb_mask =
+            gdut::integral_limits<element_type>::max - lsb_mask;
+        const element_type lsb_shifted_mask =
+            element_type(lsb_mask << lsb_shift);
+
+        // First lsb.
+        element_type lsb =
+            element_type((pdata[src_index] & lsb_mask) << lsb_shift);
+        pdata[dst_index] = lsb;
+        --src_index;
+
+        // Now do the shifting.
+        while (src_index >= 0) {
+          // Shift msb.
+          element_type msb =
+              element_type((pdata[src_index] & msb_mask) >> msb_shift);
+          pdata[dst_index] = pdata[dst_index] | msb;
           --dst_index;
 
-          // The other remaining elements.
-          for (int i = 0; i <= dst_index; ++i)
-          {
-            pdata[i] = 0;
-          }
+          // Shift lsb.
+          lsb = element_type((pdata[src_index] & lsb_mask) << lsb_shift);
+          pdata[dst_index] = lsb;
+          --src_index;
         }
 
-        // Truncate any bits shifted to the left.
-        clear_unused_bits_in_msb();
+        // Clear the remaining bits.
+        // First lsb.
+        pdata[dst_index] &= lsb_shifted_mask;
+        --dst_index;
+
+        // The other remaining elements.
+        for (int i = 0; i <= dst_index; ++i) {
+          pdata[i] = 0;
+        }
       }
 
-      return *this;
+      // Truncate any bits shifted to the left.
+      clear_unused_bits_in_msb();
     }
 
-    //*************************************************************************
-    /// operator >>=
-    //*************************************************************************
-    ibitset& operator>>=(size_t shift)
-    {
-      if (shift >= Active_Bits)
-      {
-        reset();
+    return *this;
+  }
+
+  //*************************************************************************
+  /// operator >>=
+  //*************************************************************************
+  ibitset &operator>>=(size_t shift) {
+    if (shift >= Active_Bits) {
+      reset();
+    } else if (Number_Of_Elements != 0UL) {
+      // Just one element?
+      if (Number_Of_Elements == 1UL) {
+        pdata[0] >>= shift;
       }
-      else if (Number_Of_Elements != 0UL)
-      {
-        // Just one element?
-        if (Number_Of_Elements == 1UL)
-        {
-          pdata[0] >>= shift;
-        }
-        // Shift is the size of an element?
-        else if (shift == Bits_Per_Element)
-        {
-          gdut::copy(pdata + 1, pdata + Number_Of_Elements, pdata);
-          pdata[Number_Of_Elements - 1U] = 0;
-        }
-        else
-        {
-          // The place where the elements are split when shifting.
-          const size_t split_position = shift % Bits_Per_Element;
+      // Shift is the size of an element?
+      else if (shift == Bits_Per_Element) {
+        gdut::copy(pdata + 1, pdata + Number_Of_Elements, pdata);
+        pdata[Number_Of_Elements - 1U] = 0;
+      } else {
+        // The place where the elements are split when shifting.
+        const size_t split_position = shift % Bits_Per_Element;
 
-          // Where we are shifting from.
-          int src_index = int(shift / Bits_Per_Element);
+        // Where we are shifting from.
+        int src_index = int(shift / Bits_Per_Element);
 
-          // Where we are shifting to.
-          int dst_index = 0;
+        // Where we are shifting to.
+        int dst_index = 0;
 
-          // Shift control constants.
-          const size_t lsb_shift = Bits_Per_Element - split_position;
-          const size_t msb_shift = split_position;
+        // Shift control constants.
+        const size_t lsb_shift = Bits_Per_Element - split_position;
+        const size_t msb_shift = split_position;
 
-          const element_type lsb_mask         = element_type(gdut::integral_limits<element_type>::max >> (Bits_Per_Element - split_position));
-          const element_type msb_mask         = gdut::integral_limits<element_type>::max - lsb_mask;
-          const element_type msb_shifted_mask = element_type(msb_mask >> msb_shift);
+        const element_type lsb_mask =
+            element_type(gdut::integral_limits<element_type>::max >>
+                         (Bits_Per_Element - split_position));
+        const element_type msb_mask =
+            gdut::integral_limits<element_type>::max - lsb_mask;
+        const element_type msb_shifted_mask =
+            element_type(msb_mask >> msb_shift);
 
-          // Now do the shifting.
-          while (src_index < int(Number_Of_Elements - 1))
-          {
-            // Shift msb.
-            element_type msb = element_type((pdata[src_index] & msb_mask) >> msb_shift);
-            ++src_index;
-            
-            // Shift lsb.
-            element_type lsb = element_type((pdata[src_index] & lsb_mask) << lsb_shift);
-            
-            // Combine them.
-            pdata[dst_index] = lsb | msb;
-            ++dst_index;
-          }
+        // Now do the shifting.
+        while (src_index < int(Number_Of_Elements - 1)) {
+          // Shift msb.
+          element_type msb =
+              element_type((pdata[src_index] & msb_mask) >> msb_shift);
+          ++src_index;
 
-          // Final msb.
-          element_type msb = element_type((pdata[src_index] & msb_mask) >> msb_shift);
-          pdata[dst_index] = msb;
+          // Shift lsb.
+          element_type lsb =
+              element_type((pdata[src_index] & lsb_mask) << lsb_shift);
 
-          // Clear the remaining bits.
-          // First msb.
-          pdata[dst_index] &= msb_shifted_mask;
+          // Combine them.
+          pdata[dst_index] = lsb | msb;
           ++dst_index;
+        }
 
-          // The other remaining elements.
-          for (int i = dst_index; i < int(Number_Of_Elements); ++i)
-          {
-            pdata[i] = 0;
-          }
+        // Final msb.
+        element_type msb =
+            element_type((pdata[src_index] & msb_mask) >> msb_shift);
+        pdata[dst_index] = msb;
+
+        // Clear the remaining bits.
+        // First msb.
+        pdata[dst_index] &= msb_shifted_mask;
+        ++dst_index;
+
+        // The other remaining elements.
+        for (int i = dst_index; i < int(Number_Of_Elements); ++i) {
+          pdata[i] = 0;
         }
       }
-
-      return *this;
     }
 
-    //*************************************************************************
-    /// operator =
-    //*************************************************************************
-    ibitset& operator =(const ibitset& other)
-    {
-      if (this != &other)
-      {
-        gdut::copy_n(other.pdata, Number_Of_Elements, pdata);
-      }
+    return *this;
+  }
 
-      return *this;
+  //*************************************************************************
+  /// operator =
+  //*************************************************************************
+  ibitset &operator=(const ibitset &other) {
+    if (this != &other) {
+      gdut::copy_n(other.pdata, Number_Of_Elements, pdata);
     }
 
-    //*************************************************************************
-    /// swap
-    //*************************************************************************
-    void swap(ibitset& other)
-    {
-      gdut::swap_ranges(pdata, pdata + Number_Of_Elements, other.pdata);
-    }
+    return *this;
+  }
+
+  //*************************************************************************
+  /// swap
+  //*************************************************************************
+  void swap(ibitset &other) {
+    gdut::swap_ranges(pdata, pdata + Number_Of_Elements, other.pdata);
+  }
 
 #if GDUT_USING_CPP11
-    //*************************************************************************
-    /// span
-    /// Returns a span of the underlying data.
-    //*************************************************************************
-    span_type span()
-    {
-      return span_type(pdata, pdata + Number_Of_Elements);
-    }
+  //*************************************************************************
+  /// span
+  /// Returns a span of the underlying data.
+  //*************************************************************************
+  span_type span() { return span_type(pdata, pdata + Number_Of_Elements); }
 
-    //*************************************************************************
-    /// span
-    /// Returns a const span of the underlying data.
-    //*************************************************************************
-    const_span_type span() const
-    {
-      return const_span_type(pdata, pdata + Number_Of_Elements);
-    }
+  //*************************************************************************
+  /// span
+  /// Returns a const span of the underlying data.
+  //*************************************************************************
+  const_span_type span() const {
+    return const_span_type(pdata, pdata + Number_Of_Elements);
+  }
 #endif
 
-  protected:
+protected:
+  //*************************************************************************
+  /// Initialise from an unsigned long long.
+  //*************************************************************************
+  ibitset &initialise(unsigned long long value) {
+    reset();
 
-    //*************************************************************************
-    /// Initialise from an unsigned long long.
-    //*************************************************************************
-    ibitset& initialise(unsigned long long value)
-    {
-      reset();
+    const size_t Shift =
+        (integral_limits<unsigned long long>::bits <= (int)Bits_Per_Element)
+            ? 0
+            : Bits_Per_Element;
 
-      const size_t Shift = (integral_limits<unsigned long long>::bits <= (int)Bits_Per_Element) ? 0 : Bits_Per_Element;
+    // Can we do it in one hit?
+    if (Shift == 0) {
+      pdata[0] = element_type(value);
+    } else {
+      size_t i = 0UL;
 
-      // Can we do it in one hit?
-      if (Shift == 0)
-      {
-        pdata[0] = element_type(value);
+      while ((value != 0) && (i < Number_Of_Elements)) {
+        pdata[i++] = value & ALL_SET;
+        value = value >> Shift;
       }
-      else
-      {
-        size_t i = 0UL;
-
-        while ((value != 0) && (i < Number_Of_Elements))
-        {
-          pdata[i++] = value & ALL_SET;
-          value = value >> Shift;
-        }
-      }
-
-      clear_unused_bits_in_msb();
-
-      return *this;
     }
 
-    //*************************************************************************
-    /// Invert
-    //*************************************************************************
-    void invert()
-    {
-      for (size_t i = 0UL; i < Number_Of_Elements; ++i)
-      {
-        pdata[i] = ~pdata[i];
-      }
+    clear_unused_bits_in_msb();
 
-      clear_unused_bits_in_msb();
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Invert
+  //*************************************************************************
+  void invert() {
+    for (size_t i = 0UL; i < Number_Of_Elements; ++i) {
+      pdata[i] = ~pdata[i];
     }
 
-    //*************************************************************************
-    /// Gets a reference to the specified bit.
-    //*************************************************************************
-    bit_reference get_bit_reference(size_t position)
-    {
-      return bit_reference(*this, position);
-    }
+    clear_unused_bits_in_msb();
+  }
 
-    //*************************************************************************
-    /// Constructor.
-    //*************************************************************************
-    ibitset(size_t nbits_, size_t size_, element_type* pdata_)
-      : Active_Bits(nbits_)
-      , Number_Of_Elements(size_)
-      , pdata(pdata_)
-    {
-      const size_t allocated_bits = Number_Of_Elements * Bits_Per_Element;
-      const size_t top_mask_shift = ((Bits_Per_Element - (allocated_bits - Active_Bits)) % Bits_Per_Element);
-      Top_Mask = element_type(top_mask_shift == 0 ? ALL_SET : ~(ALL_SET << top_mask_shift));
-    }
+  //*************************************************************************
+  /// Gets a reference to the specified bit.
+  //*************************************************************************
+  bit_reference get_bit_reference(size_t position) {
+    return bit_reference(*this, position);
+  }
 
-    //*************************************************************************
-    /// Compare bitsets.
-    //*************************************************************************
-    static bool is_equal(const ibitset& lhs, const ibitset&rhs)
-    {
-      return gdut::equal(lhs.pdata, lhs.pdata + lhs.Number_Of_Elements, rhs.pdata);
-    }
+  //*************************************************************************
+  /// Constructor.
+  //*************************************************************************
+  ibitset(size_t nbits_, size_t size_, element_type *pdata_)
+      : Active_Bits(nbits_), Number_Of_Elements(size_), pdata(pdata_) {
+    const size_t allocated_bits = Number_Of_Elements * Bits_Per_Element;
+    const size_t top_mask_shift =
+        ((Bits_Per_Element - (allocated_bits - Active_Bits)) %
+         Bits_Per_Element);
+    Top_Mask = element_type(top_mask_shift == 0 ? ALL_SET
+                                                : ~(ALL_SET << top_mask_shift));
+  }
 
-    element_type Top_Mask;
+  //*************************************************************************
+  /// Compare bitsets.
+  //*************************************************************************
+  static bool is_equal(const ibitset &lhs, const ibitset &rhs) {
+    return gdut::equal(lhs.pdata, lhs.pdata + lhs.Number_Of_Elements,
+                       rhs.pdata);
+  }
 
-  private:
+  element_type Top_Mask;
 
-    //*************************************************************************
-    /// Correct the unused top bits after bit manipulation.
-    //*************************************************************************
-    void clear_unused_bits_in_msb()
-    {
-      pdata[Number_Of_Elements - 1U] &= Top_Mask;
-    }
+private:
+  //*************************************************************************
+  /// Correct the unused top bits after bit manipulation.
+  //*************************************************************************
+  void clear_unused_bits_in_msb() {
+    pdata[Number_Of_Elements - 1U] &= Top_Mask;
+  }
 
-    // Disable copy construction.
-    ibitset(const ibitset&);
+  // Disable copy construction.
+  ibitset(const ibitset &);
 
-    const size_t  Active_Bits;
-    const size_t  Number_Of_Elements;
-    element_type* pdata;
+  const size_t Active_Bits;
+  const size_t Number_Of_Elements;
+  element_type *pdata;
 
-    //*************************************************************************
-    /// Destructor.
-    //*************************************************************************
+  //*************************************************************************
+  /// Destructor.
+  //*************************************************************************
 #if defined(GDUT_POLYMORPHIC_BITSET) || defined(GDUT_POLYMORPHIC_CONTAINERS)
-  public:
-    virtual ~ibitset()
-    {
-    }
+public:
+  virtual ~ibitset() {}
 #else
-  protected:
-    ~ibitset()
-    {
-    }
+protected:
+  ~ibitset() {}
 #endif
-  };
+};
 
-  GDUT_CONSTANT ibitset::element_type ibitset::ALL_SET;
+GDUT_CONSTANT ibitset::element_type ibitset::ALL_SET;
 
-  GDUT_CONSTANT ibitset::element_type ibitset::ALL_CLEAR;
+GDUT_CONSTANT ibitset::element_type ibitset::ALL_CLEAR;
 
-  GDUT_CONSTANT size_t ibitset::Bits_Per_Element;
+GDUT_CONSTANT size_t ibitset::Bits_Per_Element;
+
+//*************************************************************************
+/// The class emulates an array of bool elements, but optimized for space
+/// allocation. Will accommodate any number of bits. Does not use std::string.
+///\tparam MaxN The number of bits.
+///\ingroup bitset
+//*************************************************************************
+template <size_t MaxN> class bitset : public gdut::ibitset {
+
+  static GDUT_CONSTANT size_t Array_Size = (MaxN % Bits_Per_Element == 0)
+                                               ? MaxN / Bits_Per_Element
+                                               : MaxN / Bits_Per_Element + 1;
+
+public:
+  static GDUT_CONSTANT size_t ALLOCATED_BITS = Array_Size * Bits_Per_Element;
+  static GDUT_CONSTANT size_t Allocated_Bits = ALLOCATED_BITS;
+
+public:
+  //*************************************************************************
+  /// Default constructor.
+  //*************************************************************************
+  bitset() : gdut::ibitset(MaxN, Array_Size, data) { reset(); }
 
   //*************************************************************************
-  /// The class emulates an array of bool elements, but optimized for space allocation.
-  /// Will accommodate any number of bits.
-  /// Does not use std::string.
-  ///\tparam MaxN The number of bits.
-  ///\ingroup bitset
+  /// Copy constructor.
   //*************************************************************************
-  template <size_t MaxN>
-  class bitset : public gdut::ibitset
-  {
+  bitset(const bitset<MaxN> &other) : gdut::ibitset(MaxN, Array_Size, data) {
+    gdut::copy_n(other.data, Array_Size, data);
+  }
 
-    static GDUT_CONSTANT size_t Array_Size = (MaxN % Bits_Per_Element == 0) ? MaxN / Bits_Per_Element : MaxN / Bits_Per_Element + 1;
+  //*************************************************************************
+  /// Construct from a value.
+  //*************************************************************************
+  bitset(unsigned long long value) : gdut::ibitset(MaxN, Array_Size, data) {
+    initialise(value);
+  }
 
-  public:
+  //*************************************************************************
+  /// Construct from a string.
+  //*************************************************************************
+  bitset(const char *text) : gdut::ibitset(MaxN, Array_Size, data) {
+    set(text);
+  }
 
-    static GDUT_CONSTANT size_t ALLOCATED_BITS = Array_Size * Bits_Per_Element;
-    static GDUT_CONSTANT size_t Allocated_Bits = ALLOCATED_BITS;
+  //*************************************************************************
+  /// Construct from a string.
+  //*************************************************************************
+  bitset(const wchar_t *text) : gdut::ibitset(MaxN, Array_Size, data) {
+    set(text);
+  }
 
-  public:
+  //*************************************************************************
+  /// Construct from a string.
+  //*************************************************************************
+  bitset(const char16_t *text) : gdut::ibitset(MaxN, Array_Size, data) {
+    set(text);
+  }
 
-    //*************************************************************************
-    /// Default constructor.
-    //*************************************************************************
-    bitset()
-      : gdut::ibitset(MaxN, Array_Size, data)
-    {
-      reset();
+  //*************************************************************************
+  /// Construct from a string.
+  //*************************************************************************
+  bitset(const char32_t *text) : gdut::ibitset(MaxN, Array_Size, data) {
+    set(text);
+  }
+
+  //*************************************************************************
+  /// Set all of the bits.
+  //*************************************************************************
+  bitset<MaxN> &set() {
+    gdut::ibitset::set();
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set the bit at the position.
+  //*************************************************************************
+  bitset<MaxN> &set(size_t position, bool value = true) {
+    gdut::ibitset::set(position, value);
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a string.
+  //*************************************************************************
+  bitset<MaxN> &set(const char *text) {
+    gdut::ibitset::set(text);
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a string.
+  //*************************************************************************
+  bitset<MaxN> &set(const wchar_t *text) {
+    gdut::ibitset::set(text);
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a string.
+  //*************************************************************************
+  bitset<MaxN> &set(const char16_t *text) {
+    gdut::ibitset::set(text);
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a string.
+  //*************************************************************************
+  bitset<MaxN> &set(const char32_t *text) {
+    gdut::ibitset::set(text);
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a string.
+  //*************************************************************************
+  bitset<MaxN> &from_string(const char *text) {
+    ibitset::from_string(text);
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a wide string.
+  //*************************************************************************
+  bitset<MaxN> &from_string(const wchar_t *text) {
+    ibitset::from_string(text);
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a u16 string.
+  //*************************************************************************
+  bitset<MaxN> &from_string(const char16_t *text) {
+    ibitset::from_string(text);
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Set from a u32 string.
+  //*************************************************************************
+  bitset<MaxN> &from_string(const char32_t *text) {
+    ibitset::from_string(text);
+
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Put to a value.
+  //*************************************************************************
+  template <typename T>
+  typename gdut::enable_if<gdut::is_integral<T>::value, T>::type value() const {
+    GDUT_STATIC_ASSERT(gdut::is_integral<T>::value,
+                       "Only integral types are supported");
+    GDUT_STATIC_ASSERT((sizeof(T) * CHAR_BIT) >=
+                           (Array_Size * Bits_Per_Element),
+                       "Type too small");
+
+    return ibitset::value<T>();
+  }
+
+  //*************************************************************************
+  /// Reset all of the bits.
+  //*************************************************************************
+  bitset<MaxN> &reset() {
+    ibitset::reset();
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Reset the bit at the position.
+  //*************************************************************************
+  bitset<MaxN> &reset(size_t position) {
+    gdut::ibitset::reset(position);
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Flip all of the bits.
+  //*************************************************************************
+  bitset<MaxN> &flip() {
+    ibitset::flip();
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Flip the bit at the position.
+  //*************************************************************************
+  bitset<MaxN> &flip(size_t position) {
+    gdut::ibitset::flip(position);
+    return *this;
+  }
+
+  //*************************************************************************
+  /// Returns a string representing the bitset.
+  //*************************************************************************
+#if GDUT_USING_CPP11
+  template <typename TString = gdut::string<MaxN>>
+#else
+  template <typename TString>
+#endif
+  TString to_string(
+      typename TString::value_type zero = typename TString::value_type('0'),
+      typename TString::value_type one =
+          typename TString::value_type('1')) const {
+    TString result;
+
+    result.resize(MaxN, '\0');
+
+    GDUT_ASSERT_OR_RETURN_VALUE((result.size() == MaxN),
+                                GDUT_ERROR(gdut::bitset_overflow), result);
+
+    for (size_t i = MaxN; i > 0; --i) {
+      result[MaxN - i] = test(i - 1) ? one : zero;
     }
 
-    //*************************************************************************
-    /// Copy constructor.
-    //*************************************************************************
-    bitset(const bitset<MaxN>& other)
-      : gdut::ibitset(MaxN, Array_Size, data)
-    {
+    return result;
+  }
+
+  //*************************************************************************
+  /// operator =
+  //*************************************************************************
+  bitset<MaxN> &operator=(const bitset<MaxN> &other) {
+    if (this != &other) {
       gdut::copy_n(other.data, Array_Size, data);
     }
 
-    //*************************************************************************
-    /// Construct from a value.
-    //*************************************************************************
-    bitset(unsigned long long value)
-      : gdut::ibitset(MaxN, Array_Size, data)
-    {
-      initialise(value);
-    }
+    return *this;
+  }
 
-    //*************************************************************************
-    /// Construct from a string.
-    //*************************************************************************
-    bitset(const char* text)
-      : gdut::ibitset(MaxN, Array_Size, data)
-    {
-      set(text);
-    }
+  //*************************************************************************
+  /// operator &=
+  //*************************************************************************
+  bitset<MaxN> &operator&=(const bitset<MaxN> &other) {
+    gdut::ibitset::operator&=(other);
+    return *this;
+  }
 
-    //*************************************************************************
-    /// Construct from a string.
-    //*************************************************************************
-    bitset(const wchar_t* text)
-      : gdut::ibitset(MaxN, Array_Size, data)
-    {
-      set(text);
-    }
+  //*************************************************************************
+  /// operator |=
+  //*************************************************************************
+  bitset<MaxN> &operator|=(const bitset<MaxN> &other) {
+    gdut::ibitset::operator|=(other);
+    return *this;
+  }
 
-    //*************************************************************************
-    /// Construct from a string.
-    //*************************************************************************
-    bitset(const char16_t* text)
-      : gdut::ibitset(MaxN, Array_Size, data)
-    {
-      set(text);
-    }
+  //*************************************************************************
+  /// operator ^=
+  //*************************************************************************
+  bitset<MaxN> &operator^=(const bitset<MaxN> &other) {
+    ibitset::operator^=(other);
+    return *this;
+  }
 
-    //*************************************************************************
-    /// Construct from a string.
-    //*************************************************************************
-    bitset(const char32_t* text)
-      : gdut::ibitset(MaxN, Array_Size, data)
-    {
-      set(text);
-    }
+  //*************************************************************************
+  /// operator ~
+  //*************************************************************************
+  bitset<MaxN> operator~() const {
+    gdut::bitset<MaxN> temp(*this);
 
-    //*************************************************************************
-    /// Set all of the bits.
-    //*************************************************************************
-    bitset<MaxN>& set()
-    {
-      gdut::ibitset::set();
-      return *this;
-    }
+    temp.invert();
 
-    //*************************************************************************
-    /// Set the bit at the position.
-    //*************************************************************************
-    bitset<MaxN>& set(size_t position, bool value = true)
-    {
-      gdut::ibitset::set(position, value);
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a string.
-    //*************************************************************************
-    bitset<MaxN>& set(const char* text)
-    {
-      gdut::ibitset::set(text);
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a string.
-    //*************************************************************************
-    bitset<MaxN>& set(const wchar_t* text)
-    {
-      gdut::ibitset::set(text);
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a string.
-    //*************************************************************************
-    bitset<MaxN>& set(const char16_t* text)
-    {
-      gdut::ibitset::set(text);
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a string.
-    //*************************************************************************
-    bitset<MaxN>& set(const char32_t* text)
-    {
-      gdut::ibitset::set(text);
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a string.
-    //*************************************************************************
-    bitset<MaxN>& from_string(const char* text)
-    {
-      ibitset::from_string(text);
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a wide string.
-    //*************************************************************************
-    bitset<MaxN>& from_string(const wchar_t* text)
-    {
-      ibitset::from_string(text);
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a u16 string.
-    //*************************************************************************
-    bitset<MaxN>& from_string(const char16_t* text)
-    {
-      ibitset::from_string(text);
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Set from a u32 string.
-    //*************************************************************************
-    bitset<MaxN>& from_string(const char32_t* text)
-    {
-      ibitset::from_string(text);
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Put to a value.
-    //*************************************************************************
-    template <typename T>
-    typename gdut::enable_if<gdut::is_integral<T>::value, T>::type
-      value() const
-    {
-      GDUT_STATIC_ASSERT(gdut::is_integral<T>::value, "Only integral types are supported");
-      GDUT_STATIC_ASSERT((sizeof(T) * CHAR_BIT) >= (Array_Size * Bits_Per_Element), "Type too small");
-
-      return ibitset::value<T>();
-    }
-
-    //*************************************************************************
-    /// Reset all of the bits.
-    //*************************************************************************
-    bitset<MaxN>& reset()
-    {
-      ibitset::reset();
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Reset the bit at the position.
-    //*************************************************************************
-    bitset<MaxN>& reset(size_t position)
-    {
-      gdut::ibitset::reset(position);
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Flip all of the bits.
-    //*************************************************************************
-    bitset<MaxN>& flip()
-    {
-      ibitset::flip();
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Flip the bit at the position.
-    //*************************************************************************
-    bitset<MaxN>& flip(size_t position)
-    {
-      gdut::ibitset::flip(position);
-      return *this;
-    }
-
-    //*************************************************************************
-    /// Returns a string representing the bitset.
-    //*************************************************************************
-#if GDUT_USING_CPP11
-    template <typename TString = gdut::string<MaxN>>
-#else
-    template <typename TString>
-#endif
-    TString to_string(typename TString::value_type zero = typename TString::value_type('0'), typename TString::value_type one = typename TString::value_type('1')) const
-    {
-      TString result;
-
-      result.resize(MaxN, '\0');
-
-      GDUT_ASSERT_OR_RETURN_VALUE((result.size() == MaxN), GDUT_ERROR(gdut::bitset_overflow), result);
-
-      for (size_t i = MaxN; i > 0; --i) 
-      {
-        result[MaxN - i] = test(i - 1) ? one : zero;
-      }
-      
-      return result;
-    }
-
-    //*************************************************************************
-    /// operator =
-    //*************************************************************************
-    bitset<MaxN>& operator =(const bitset<MaxN>& other)
-    {
-      if (this != &other)
-      {
-        gdut::copy_n(other.data, Array_Size, data);
-      }
-
-      return *this;
-    }
-
-    //*************************************************************************
-    /// operator &=
-    //*************************************************************************
-    bitset<MaxN>& operator &=(const bitset<MaxN>& other)
-    {
-      gdut::ibitset::operator &=(other);
-      return *this;
-    }
-
-    //*************************************************************************
-    /// operator |=
-    //*************************************************************************
-    bitset<MaxN>& operator |=(const bitset<MaxN>& other)
-    {
-      gdut::ibitset::operator |=(other);
-      return *this;
-    }
-
-    //*************************************************************************
-    /// operator ^=
-    //*************************************************************************
-    bitset<MaxN>& operator ^=(const bitset<MaxN>& other)
-    {
-      ibitset::operator ^=(other);
-      return *this;
-    }
-
-    //*************************************************************************
-    /// operator ~
-    //*************************************************************************
-    bitset<MaxN> operator ~() const
-    {
-      gdut::bitset<MaxN> temp(*this);
-
-      temp.invert();
-
-      return temp;
-    }
-
-    //*************************************************************************
-    /// operator <<
-    //*************************************************************************
-    bitset<MaxN> operator<<(size_t shift) const
-    {
-      gdut::bitset<MaxN> temp(*this);
-
-      temp <<= shift;
-
-      return temp;
-    }
-
-    //*************************************************************************
-    /// operator <<=
-    //*************************************************************************
-    bitset<MaxN>& operator<<=(size_t shift)
-    {
-      gdut::ibitset::operator <<=(shift);
-      return *this;
-    }
-
-    //*************************************************************************
-    /// operator >>
-    //*************************************************************************
-    bitset<MaxN> operator>>(size_t shift) const
-    {
-      bitset<MaxN> temp(*this);
-
-      temp >>= shift;
-
-      return temp;
-    }
-
-    //*************************************************************************
-    /// operator >>=
-    //*************************************************************************
-    bitset<MaxN>& operator>>=(size_t shift)
-    {
-      gdut::ibitset::operator >>=(shift);
-      return *this;
-    }
-
-    //*************************************************************************
-    /// operator ==
-    //*************************************************************************
-    friend bool operator == (const bitset<MaxN>& lhs, const bitset<MaxN>& rhs)
-    {
-      return gdut::ibitset::is_equal(lhs, rhs);
-    }
-
-  private:
-
-    element_type data[Array_Size > 0U ? Array_Size : 1U];
-  };
-
-  template <size_t MaxN>
-  GDUT_CONSTANT size_t bitset<MaxN>::ALLOCATED_BITS;
-  
-  template <size_t MaxN>
-  GDUT_CONSTANT size_t bitset<MaxN>::Allocated_Bits;
-
-  //***************************************************************************
-  /// operator &
-  ///\ingroup bitset
-  //***************************************************************************
-  template <size_t MaxN>
-  bitset<MaxN> operator & (const bitset<MaxN>& lhs, const bitset<MaxN>& rhs)
-  {
-    bitset<MaxN> temp(lhs);
-    temp &= rhs;
     return temp;
   }
 
-  //***************************************************************************
-  /// operator |
-  ///\ingroup bitset
-  //***************************************************************************
-  template<size_t MaxN>
-  bitset<MaxN> operator | (const bitset<MaxN>& lhs, const bitset<MaxN>& rhs)
-  {
-    bitset<MaxN> temp(lhs);
-    temp |= rhs;
+  //*************************************************************************
+  /// operator <<
+  //*************************************************************************
+  bitset<MaxN> operator<<(size_t shift) const {
+    gdut::bitset<MaxN> temp(*this);
+
+    temp <<= shift;
+
     return temp;
   }
 
-  //***************************************************************************
-  /// operator ^
-  ///\ingroup bitset
-  //***************************************************************************
-  template<size_t MaxN>
-  bitset<MaxN> operator ^ (const bitset<MaxN>& lhs, const bitset<MaxN>& rhs)
-  {
-    bitset<MaxN> temp(lhs);
-    temp ^= rhs;
+  //*************************************************************************
+  /// operator <<=
+  //*************************************************************************
+  bitset<MaxN> &operator<<=(size_t shift) {
+    gdut::ibitset::operator<<=(shift);
+    return *this;
+  }
+
+  //*************************************************************************
+  /// operator >>
+  //*************************************************************************
+  bitset<MaxN> operator>>(size_t shift) const {
+    bitset<MaxN> temp(*this);
+
+    temp >>= shift;
+
     return temp;
   }
 
-  //***************************************************************************
-  /// operator !=
-  ///\ingroup bitset
-  //***************************************************************************
-  template<size_t MaxN>
-  bool operator != (const bitset<MaxN>& lhs, const bitset<MaxN>& rhs)
-  {
-    return !(lhs == rhs);
+  //*************************************************************************
+  /// operator >>=
+  //*************************************************************************
+  bitset<MaxN> &operator>>=(size_t shift) {
+    gdut::ibitset::operator>>=(shift);
+    return *this;
   }
+
+  //*************************************************************************
+  /// operator ==
+  //*************************************************************************
+  friend bool operator==(const bitset<MaxN> &lhs, const bitset<MaxN> &rhs) {
+    return gdut::ibitset::is_equal(lhs, rhs);
+  }
+
+private:
+  element_type data[Array_Size > 0U ? Array_Size : 1U];
+};
+
+template <size_t MaxN> GDUT_CONSTANT size_t bitset<MaxN>::ALLOCATED_BITS;
+
+template <size_t MaxN> GDUT_CONSTANT size_t bitset<MaxN>::Allocated_Bits;
+
+//***************************************************************************
+/// operator &
+///\ingroup bitset
+//***************************************************************************
+template <size_t MaxN>
+bitset<MaxN> operator&(const bitset<MaxN> &lhs, const bitset<MaxN> &rhs) {
+  bitset<MaxN> temp(lhs);
+  temp &= rhs;
+  return temp;
 }
+
+//***************************************************************************
+/// operator |
+///\ingroup bitset
+//***************************************************************************
+template <size_t MaxN>
+bitset<MaxN> operator|(const bitset<MaxN> &lhs, const bitset<MaxN> &rhs) {
+  bitset<MaxN> temp(lhs);
+  temp |= rhs;
+  return temp;
+}
+
+//***************************************************************************
+/// operator ^
+///\ingroup bitset
+//***************************************************************************
+template <size_t MaxN>
+bitset<MaxN> operator^(const bitset<MaxN> &lhs, const bitset<MaxN> &rhs) {
+  bitset<MaxN> temp(lhs);
+  temp ^= rhs;
+  return temp;
+}
+
+//***************************************************************************
+/// operator !=
+///\ingroup bitset
+//***************************************************************************
+template <size_t MaxN>
+bool operator!=(const bitset<MaxN> &lhs, const bitset<MaxN> &rhs) {
+  return !(lhs == rhs);
+}
+} // namespace gdut
 
 //*************************************************************************
 /// swap
 //*************************************************************************
 template <size_t MaxN>
-void swap(gdut::bitset<MaxN>& lhs, gdut::bitset<MaxN>& rhs)
-{
+void swap(gdut::bitset<MaxN> &lhs, gdut::bitset<MaxN> &rhs) {
   lhs.swap(rhs);
 }
 

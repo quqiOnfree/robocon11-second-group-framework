@@ -31,57 +31,47 @@ SOFTWARE.
 #ifndef GDUT_QUANTIZE_INCLUDED
 #define GDUT_QUANTIZE_INCLUDED
 
-#include "platform.hpp"
 #include "functional.hpp"
+#include "platform.hpp"
 #include "type_traits.hpp"
 
 ////#include <math.h>
 #include <stdint.h>
 
-namespace gdut
-{
-  //***************************************************************************
-  /// Quantize .
-  //***************************************************************************
-  template<typename TInput, typename TCompare = gdut::less<TInput> >
-  class quantize  : public gdut::unary_function<TInput, TInput>
-  {
-  public:
+namespace gdut {
+//***************************************************************************
+/// Quantize .
+//***************************************************************************
+template <typename TInput, typename TCompare = gdut::less<TInput>>
+class quantize : public gdut::unary_function<TInput, TInput> {
+public:
+  //*****************************************************************
+  // Constructor.
+  //*****************************************************************
+  quantize(const TInput *p_thresholds_, const TInput *p_quantizations_,
+           size_t n_quantizations_, TCompare compare_ = TCompare())
+      : p_thresholds(p_thresholds_), p_quantizations(p_quantizations_),
+        n_levels(n_quantizations_ - 1U), compare(compare_) {}
 
-    //*****************************************************************
-    // Constructor.
-    //*****************************************************************
-    quantize (const TInput* p_thresholds_, const TInput* p_quantizations_, size_t n_quantizations_, TCompare compare_ = TCompare())
-      : p_thresholds(p_thresholds_)
-      , p_quantizations(p_quantizations_)
-      , n_levels(n_quantizations_ - 1U)
-      , compare(compare_)
-    {
-    }
-
-    //*****************************************************************
-    // operator ()
-    //*****************************************************************
-    TInput operator ()(TInput value) const
-    {
-      for (size_t i = 0UL; i < n_levels; ++i)
-      {
-        if (compare(value, p_thresholds[i]))
-        {
-          return p_quantizations[i];
-        }
+  //*****************************************************************
+  // operator ()
+  //*****************************************************************
+  TInput operator()(TInput value) const {
+    for (size_t i = 0UL; i < n_levels; ++i) {
+      if (compare(value, p_thresholds[i])) {
+        return p_quantizations[i];
       }
-
-      return p_quantizations[n_levels];
     }
 
-  private:
+    return p_quantizations[n_levels];
+  }
 
-    const TInput* const p_thresholds;
-    const TInput* const p_quantizations;
-    const size_t   n_levels;
-    const TCompare compare;
-  };
-}
+private:
+  const TInput *const p_thresholds;
+  const TInput *const p_quantizations;
+  const size_t n_levels;
+  const TCompare compare;
+};
+} // namespace gdut
 
 #endif

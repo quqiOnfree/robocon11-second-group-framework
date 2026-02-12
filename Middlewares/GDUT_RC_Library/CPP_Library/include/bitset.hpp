@@ -34,9 +34,9 @@ SOFTWARE.
 #include "platform.hpp"
 
 #if defined(GDUT_USE_LEGACY_BITSET)
-  #include "private/bitset_legacy.hpp" // IWYU pragma: export
+#include "private/bitset_legacy.hpp" // IWYU pragma: export
 #else
-  #include "private/bitset_new.hpp" // IWYU pragma: export
+#include "private/bitset_new.hpp" // IWYU pragma: export
 #endif
 
 #endif

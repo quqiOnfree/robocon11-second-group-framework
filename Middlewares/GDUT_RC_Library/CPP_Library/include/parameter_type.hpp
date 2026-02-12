@@ -34,24 +34,21 @@ SOFTWARE.
 #include "platform.hpp"
 #include "type_traits.hpp"
 
-namespace gdut
-{
-  //*************************************************************************
-  /// Determine how to pass parameters.
-  //*************************************************************************
-  template <typename T>
-  struct parameter_type
-  {
-    /// By default fundamental and pointer types are passed by value.
-    typedef typename gdut::conditional<gdut::is_fundamental<T>::value || gdut::is_pointer<T>::value,
-                                         T,
-                                         const T&>::type type;
-  };
+namespace gdut {
+//*************************************************************************
+/// Determine how to pass parameters.
+//*************************************************************************
+template <typename T> struct parameter_type {
+  /// By default fundamental and pointer types are passed by value.
+  typedef typename gdut::conditional<gdut::is_fundamental<T>::value ||
+                                         gdut::is_pointer<T>::value,
+                                     T, const T &>::type type;
+};
 
 #if GDUT_USING_CPP11
-  template <typename T>
-  using parameter_type_t = typename gdut::parameter_type<T>::type;
+template <typename T>
+using parameter_type_t = typename gdut::parameter_type<T>::type;
 #endif
-}
+} // namespace gdut
 
 #endif

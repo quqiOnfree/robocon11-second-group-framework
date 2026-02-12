@@ -37,136 +37,121 @@ SOFTWARE.
 /// for singletons.
 ///\ingroup etl
 
-#include "platform.hpp"
 #include "error_handler.hpp"
-#include "nullptr.hpp"
 #include "file_error_numbers.hpp"
+#include "nullptr.hpp"
+#include "platform.hpp"
 
-namespace gdut
-{
-  //*************************************************************************
-  /// Base singleton error exception.
-  //*************************************************************************
-  class singleton_base_exception : public gdut::exception
-  {
-  public:
+namespace gdut {
+//*************************************************************************
+/// Base singleton error exception.
+//*************************************************************************
+class singleton_base_exception : public gdut::exception {
+public:
+  singleton_base_exception(string_type reason_, string_type file_name_,
+                           numeric_type line_number_)
+      : exception(reason_, file_name_, line_number_) {}
+};
 
-    singleton_base_exception(string_type reason_, string_type file_name_, numeric_type line_number_)
-      : exception(reason_, file_name_, line_number_)
-    {
-    }
-  };
+//*************************************************************************
+/// Singleton not created error exception.
+//*************************************************************************
+class singleton_base_not_created : public gdut::singleton_base_exception {
+public:
+  singleton_base_not_created(string_type file_name_, numeric_type line_number_)
+      : singleton_base_exception(GDUT_ERROR_TEXT("singleton_base:not created",
+                                                 GDUT_SINGLETON_BASE_FILE_ID
+                                                 "A"),
+                                 file_name_, line_number_) {}
+};
 
-  //*************************************************************************
-  /// Singleton not created error exception.
-  //*************************************************************************
-  class singleton_base_not_created : public gdut::singleton_base_exception
-  {
-  public:
+//*************************************************************************
+/// Singleton instance already exists.
+//*************************************************************************
+class singleton_base_already_created : public gdut::singleton_base_exception {
+public:
+  singleton_base_already_created(string_type file_name_,
+                                 numeric_type line_number_)
+      : singleton_base_exception(
+            GDUT_ERROR_TEXT("singleton_base:already created",
+                            GDUT_SINGLETON_BASE_FILE_ID "B"),
+            file_name_, line_number_) {}
+};
 
-    singleton_base_not_created(string_type file_name_, numeric_type line_number_)
-      : singleton_base_exception(GDUT_ERROR_TEXT("singleton_base:not created", GDUT_SINGLETON_BASE_FILE_ID"A"), file_name_, line_number_)
-    {
-    }
-  };
+//***********************************************************************
+/// Base class for singletons.
+/// \tparam T   Any type that wants to expose the instance() interface.
+///
+/// This class is designed to work as a generic base class for any class that
+/// wants to provide a singleton interface. It'll also work for classes that do
+/// not have a default constructor.
+///
+/// Usage example:
+///
+/// class Origin
+///   : singleton<Origin>
+/// {
+/// public:
+///     Origin(int x, int y)
+///     :   singleton<Origin>(*this)
+///     {}
+///
+///     int getX() const;
+/// } theOrigin(0, 0);
+///
+/// int x = Origin::instance().getX();
+///
+///
+/// Note:
+///
+/// It is important that a call to instance() will not create the instance of
+/// the class. It needs to be created by the user before calling instance().
+/// This way, the user has better control over the instance lifetime instead of
+/// e.g. lazy initialization.
+//***********************************************************************
+template <typename T> class singleton_base {
+public:
+  //***********************************************************************
+  // Returns a reference to the instance.
+  //***********************************************************************
+  static T &instance() {
+    GDUT_ASSERT(m_self != GDUT_NULLPTR,
+                GDUT_ERROR(gdut::singleton_base_not_created));
 
-  //*************************************************************************
-  /// Singleton instance already exists.
-  //*************************************************************************
-  class singleton_base_already_created : public gdut::singleton_base_exception
-  {
-  public:
-
-    singleton_base_already_created(string_type file_name_, numeric_type line_number_)
-      : singleton_base_exception(GDUT_ERROR_TEXT("singleton_base:already created", GDUT_SINGLETON_BASE_FILE_ID"B"), file_name_, line_number_)
-    {
-    }
-  };
+    return *m_self;
+  }
 
   //***********************************************************************
-  /// Base class for singletons.
-  /// \tparam T   Any type that wants to expose the instance() interface.
-  ///
-  /// This class is designed to work as a generic base class for any class that wants to
-  /// provide a singleton interface. It'll also work for classes that do not have a
-  /// default constructor.
-  ///
-  /// Usage example:
-  ///
-  /// class Origin
-  ///   : singleton<Origin>
-  /// {
-  /// public:
-  ///     Origin(int x, int y)
-  ///     :   singleton<Origin>(*this)
-  ///     {}
-  ///
-  ///     int getX() const;
-  /// } theOrigin(0, 0);
-  ///
-  /// int x = Origin::instance().getX();
-  ///
-  ///
-  /// Note:
-  ///
-  /// It is important that a call to instance() will not create the instance of the class. It needs
-  /// to be created by the user before calling instance(). This way, the user has better control
-  /// over the instance lifetime instead of e.g. lazy initialization.
+  /// Returns whether an instance has been attached to singleton<T> or not.
   //***********************************************************************
-  template <typename T>
-  class singleton_base
-  {
-  public:
+  static bool is_valid() { return (m_self != GDUT_NULLPTR); }
 
-    //***********************************************************************
-    // Returns a reference to the instance.
-    //***********************************************************************
-    static T& instance()
-    {
-      GDUT_ASSERT(m_self != GDUT_NULLPTR, GDUT_ERROR(gdut::singleton_base_not_created));
+protected:
+  //***********************************************************************
+  /// Constructs the instance of singleton.
+  /// theInstance Reference to T, which will be returned when instance() is
+  /// called.
+  //***********************************************************************
+  explicit singleton_base(T &theInstance) {
+    GDUT_ASSERT(m_self == GDUT_NULLPTR,
+                GDUT_ERROR(gdut::singleton_base_already_created));
 
-      return *m_self;
-    }
-
-    //***********************************************************************
-    /// Returns whether an instance has been attached to singleton<T> or not.
-    //***********************************************************************
-    static bool is_valid() 
-    { 
-      return (m_self != GDUT_NULLPTR); 
-    }
-
-  protected:
-
-    //***********************************************************************
-    /// Constructs the instance of singleton.
-    /// theInstance Reference to T, which will be returned when instance() is called.
-    //***********************************************************************
-    explicit singleton_base(T& theInstance)
-    {
-      GDUT_ASSERT(m_self == GDUT_NULLPTR, GDUT_ERROR(gdut::singleton_base_already_created));
-
-      m_self = &theInstance;
-    }
-
-    //***********************************************************************
-    /// Removes the internal reference to the instance passed in the constructor.
-    //***********************************************************************
-    ~singleton_base() 
-    { 
-      m_self = GDUT_NULLPTR; 
-    }
-
-  private:
-
-    static T* m_self;
-  };
+    m_self = &theInstance;
+  }
 
   //***********************************************************************
-  /// No violation of one definition rule as this is a class template
+  /// Removes the internal reference to the instance passed in the constructor.
   //***********************************************************************
-  template<class T>
-  T* singleton_base<T>::m_self = GDUT_NULLPTR;
-}
+  ~singleton_base() { m_self = GDUT_NULLPTR; }
+
+private:
+  static T *m_self;
+};
+
+//***********************************************************************
+/// No violation of one definition rule as this is a class template
+//***********************************************************************
+template <class T> T *singleton_base<T>::m_self = GDUT_NULLPTR;
+} // namespace gdut
 
 #endif

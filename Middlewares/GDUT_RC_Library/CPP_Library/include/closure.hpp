@@ -31,355 +31,299 @@ SOFTWARE.
 #ifndef GDUT_CLOSURE_INCLUDED
 #define GDUT_CLOSURE_INCLUDED
 
-#include "platform.hpp"
 #include "delegate.hpp"
+#include "platform.hpp"
 #include "tuple.hpp"
-#include "utility.hpp"
 #include "type_list.hpp"
+#include "utility.hpp"
 
-namespace gdut
-{
+namespace gdut {
 #if GDUT_USING_CPP11 && !defined(GDUT_CLOSURE_FORCE_CPP03_IMPLEMENTATION)
-  //*************************************************************************
-  /// Base template for closure.
-  //*************************************************************************
-  template <typename>
-  class closure;
+//*************************************************************************
+/// Base template for closure.
+//*************************************************************************
+template <typename> class closure;
 
-  //*************************************************************************
-  /// Closure for binding arguments to a delegate and invoking it later.
-  /// Stores a delegate and its arguments, allowing deferred execution.
-  /// Arguments are stored in a tuple and can be rebound using bind().
-  /// Example usage:
-  /// \code
-  /// gdut::closure<void(int, int)> c(my_delegate, 1, 2);
-  /// c(); // Invokes my_delegate(1, 2)
-  /// \endcode
-  /// \tparam TReturn The return type of the delegate.
-  /// \tparam TArgs   The argument types of the delegate.
-  //*************************************************************************
-  template <typename TReturn, typename... TArgs>
-  class closure<TReturn(TArgs...)>
-  {
-  public:
-   
-    using delegate_type  = gdut::delegate<TReturn(TArgs...)>; ///< The delegate type to be invoked.
-    using argument_types = gdut::type_list<TArgs...>;         ///< The type list of arguments.
-    
-    //*********************************************************************
-    /// Construct a closure with a delegate and its arguments.
-    /// \param f    The delegate to be invoked.
-    /// \param args The arguments to bind to the delegate.
-    //*********************************************************************
-    GDUT_CONSTEXPR14 closure(const delegate_type& f, const TArgs... args)
-      : m_f(f)
-      , m_args(args...)
-    {
-    }
+//*************************************************************************
+/// Closure for binding arguments to a delegate and invoking it later.
+/// Stores a delegate and its arguments, allowing deferred execution.
+/// Arguments are stored in a tuple and can be rebound using bind().
+/// Example usage:
+/// \code
+/// gdut::closure<void(int, int)> c(my_delegate, 1, 2);
+/// c(); // Invokes my_delegate(1, 2)
+/// \endcode
+/// \tparam TReturn The return type of the delegate.
+/// \tparam TArgs   The argument types of the delegate.
+//*************************************************************************
+template <typename TReturn, typename... TArgs>
+class closure<TReturn(TArgs...)> {
+public:
+  using delegate_type =
+      gdut::delegate<TReturn(TArgs...)>; ///< The delegate type to be invoked.
+  using argument_types =
+      gdut::type_list<TArgs...>; ///< The type list of arguments.
 
-    //*********************************************************************
-    /// Invoke the stored delegate with the bound arguments.
-    /// \return The result of the delegate invocation.
-    //*********************************************************************
-    GDUT_CONSTEXPR14 TReturn operator()() const
-    {
-      return execute(gdut::index_sequence_for<TArgs...>{});
-    }
+  //*********************************************************************
+  /// Construct a closure with a delegate and its arguments.
+  /// \param f    The delegate to be invoked.
+  /// \param args The arguments to bind to the delegate.
+  //*********************************************************************
+  GDUT_CONSTEXPR14 closure(const delegate_type &f, const TArgs... args)
+      : m_f(f), m_args(args...) {}
 
-    //*********************************************************************
-    /// Bind a new value to the argument at the specified index.
-    /// Only non-reference types can be rebound.
-    /// \tparam index Index of the argument to bind.
-    /// \tparam TArg  Type of the argument.
-    /// \param arg    The new value to bind.
-    //*********************************************************************
-    template <size_t Index, typename UArg>
-    GDUT_CONSTEXPR14 void bind(UArg arg)
-    {
-      static_assert(gdut::is_convertible<UArg, gdut::type_list_type_at_index_t<argument_types, Index>>::value, "Argument is not convertible");
-      static_assert(!gdut::is_reference<UArg>::value, "Cannot bind reference arguments");
+  //*********************************************************************
+  /// Invoke the stored delegate with the bound arguments.
+  /// \return The result of the delegate invocation.
+  //*********************************************************************
+  GDUT_CONSTEXPR14 TReturn operator()() const {
+    return execute(gdut::index_sequence_for<TArgs...>{});
+  }
 
-      gdut::get<Index>(m_args) = arg;
-    }
+  //*********************************************************************
+  /// Bind a new value to the argument at the specified index.
+  /// Only non-reference types can be rebound.
+  /// \tparam index Index of the argument to bind.
+  /// \tparam TArg  Type of the argument.
+  /// \param arg    The new value to bind.
+  //*********************************************************************
+  template <size_t Index, typename UArg> GDUT_CONSTEXPR14 void bind(UArg arg) {
+    static_assert(gdut::is_convertible<UArg, gdut::type_list_type_at_index_t<
+                                                 argument_types, Index>>::value,
+                  "Argument is not convertible");
+    static_assert(!gdut::is_reference<UArg>::value,
+                  "Cannot bind reference arguments");
 
-    //*********************************************************************
-    /// Bind new values to multiple arguments at once.
-    /// The number of arguments must match the tuple.
-    /// \param args The new values to bind.
-    ///*********************************************************************
-    template <typename... UArgs>
-    GDUT_CONSTEXPR14 void bind(UArgs&&... args)
-    {
-      static_assert(sizeof...(UArgs) == sizeof...(TArgs), "Argument count mismatch");
-      bind_impl(gdut::make_index_sequence<sizeof...(TArgs)>{}, gdut::forward<UArgs>(args)...);
-    }
+    gdut::get<Index>(m_args) = arg;
+  }
 
-  private:
+  //*********************************************************************
+  /// Bind new values to multiple arguments at once.
+  /// The number of arguments must match the tuple.
+  /// \param args The new values to bind.
+  ///*********************************************************************
+  template <typename... UArgs> GDUT_CONSTEXPR14 void bind(UArgs &&...args) {
+    static_assert(sizeof...(UArgs) == sizeof...(TArgs),
+                  "Argument count mismatch");
+    bind_impl(gdut::make_index_sequence<sizeof...(TArgs)>{},
+              gdut::forward<UArgs>(args)...);
+  }
 
-    //*********************************************************************
-    /// Implementation to bind new values to multiple arguments at once.
-    /// \param args The new values to bind.
-    ///*********************************************************************
-    template <size_t... Indexes, typename... UArgs>
-    GDUT_CONSTEXPR14 void bind_impl(gdut::index_sequence<Indexes...>, UArgs&&... args)
-    {
-      // Expand the pack and call bind<Index>(arg) for each argument
-      int dummy[] = {0, (bind<Indexes>(gdut::forward<UArgs>(args)), 0)...};
-      (void)dummy; // Suppress unused variable warning
-    }
+private:
+  //*********************************************************************
+  /// Implementation to bind new values to multiple arguments at once.
+  /// \param args The new values to bind.
+  ///*********************************************************************
+  template <size_t... Indexes, typename... UArgs>
+  GDUT_CONSTEXPR14 void bind_impl(gdut::index_sequence<Indexes...>,
+                                  UArgs &&...args) {
+    // Expand the pack and call bind<Index>(arg) for each argument
+    int dummy[] = {0, (bind<Indexes>(gdut::forward<UArgs>(args)), 0)...};
+    (void)dummy; // Suppress unused variable warning
+  }
 
-    //*********************************************************************
-    /// Execute the closure with the stored arguments.
-    /// \tparam idx Index sequence for tuple unpacking.
-    /// \return The result of the delegate invocation.
-    //*********************************************************************
-    template<size_t... Indexes>
-    GDUT_CONSTEXPR14 TReturn execute(gdut::index_sequence<Indexes...>) const
-    {
-      return m_f(gdut::get<Indexes>(m_args)...);
-    }
+  //*********************************************************************
+  /// Execute the closure with the stored arguments.
+  /// \tparam idx Index sequence for tuple unpacking.
+  /// \return The result of the delegate invocation.
+  //*********************************************************************
+  template <size_t... Indexes>
+  GDUT_CONSTEXPR14 TReturn execute(gdut::index_sequence<Indexes...>) const {
+    return m_f(gdut::get<Indexes>(m_args)...);
+  }
 
-    delegate_type m_f;           ///< The delegate to invoke.
-    gdut::tuple<TArgs...> m_args; ///< The bound arguments.
-  };
+  delegate_type m_f;            ///< The delegate to invoke.
+  gdut::tuple<TArgs...> m_args; ///< The bound arguments.
+};
 #else
-  //*************************************************************************
-  /// Base template for closure.
-  //*************************************************************************
-  template <typename>
-  class closure;
+//*************************************************************************
+/// Base template for closure.
+//*************************************************************************
+template <typename> class closure;
 
-  //*************************************************************************
-  /// Closure for binding one argument to a delegate and invoking it later.
-  /// \tparam TReturn The return type of the delegate.
-  /// \tparam TArg0    The type of the argument.
-  //*************************************************************************
-  template<typename TReturn, typename TArg0>
-  class closure<TReturn(TArg0)>
-  {
-  public:
+//*************************************************************************
+/// Closure for binding one argument to a delegate and invoking it later.
+/// \tparam TReturn The return type of the delegate.
+/// \tparam TArg0    The type of the argument.
+//*************************************************************************
+template <typename TReturn, typename TArg0> class closure<TReturn(TArg0)> {
+public:
+  /// The delegate type to be invoked.
+  typedef gdut::delegate<TReturn(TArg0)> delegate_type;
 
-    /// The delegate type to be invoked.
-    typedef gdut::delegate<TReturn(TArg0)> delegate_type;
+  //*********************************************************************
+  /// Construct a closure with a delegate and its argument.
+  /// \param f    The delegate to be invoked.
+  /// \param arg0 The argument to bind to the delegate.
+  //*********************************************************************
+  closure(const delegate_type &f, const TArg0 arg0) : m_f(f), m_arg0(arg0) {}
 
-    //*********************************************************************
-    /// Construct a closure with a delegate and its argument.
-    /// \param f    The delegate to be invoked.
-    /// \param arg0 The argument to bind to the delegate.
-    //*********************************************************************
-    closure(const delegate_type& f, const TArg0 arg0)
-      : m_f(f)
-      , m_arg0(arg0)
-    {
-    }
+  //*********************************************************************
+  /// Invoke the stored delegate with the bound argument.
+  /// \return The result of the delegate invocation.
+  //*********************************************************************
+  TReturn operator()() const { return m_f(m_arg0); }
 
-    //*********************************************************************
-    /// Invoke the stored delegate with the bound argument.
-    /// \return The result of the delegate invocation.
-    //*********************************************************************
-    TReturn operator()() const 
-    {
-      return m_f(m_arg0);
-    }
+private:
+  delegate_type m_f; ///< The delegate to invoke.
+  TArg0 m_arg0;
+};
 
-  private:
+//*************************************************************************
+/// Closure for binding two arguments to a delegate and invoking it later.
+/// \tparam TReturn The return type of the delegate.
+/// \tparam TArg0    The type of the first argument.
+/// \tparam TArg1    The type of the second argument.
+//*************************************************************************
+template <typename TReturn, typename TArg0, typename TArg1>
+class closure<TReturn(TArg0, TArg1)> {
+public:
+  typedef gdut::delegate<TReturn(TArg0, TArg1)> delegate_type;
 
-    delegate_type m_f; ///< The delegate to invoke.
-    TArg0 m_arg0;
-  };
+  //*********************************************************************
+  /// Construct a closure with a delegate and its arguments.
+  /// \param f    The delegate to be invoked.
+  /// \param arg0 The first argument to bind.
+  /// \param arg1 The second argument to bind.
+  //*********************************************************************
+  closure(const delegate_type &f, const TArg0 arg0, const TArg1 arg1)
+      : m_f(f), m_arg0(arg0), m_arg1(arg1) {}
 
-  //*************************************************************************
-  /// Closure for binding two arguments to a delegate and invoking it later.
-  /// \tparam TReturn The return type of the delegate.
-  /// \tparam TArg0    The type of the first argument.
-  /// \tparam TArg1    The type of the second argument.
-  //*************************************************************************
-  template<typename TReturn, typename TArg0, typename TArg1>
-  class closure<TReturn(TArg0, TArg1)>
-  {
-  public:
+  //*********************************************************************
+  /// Invoke the stored delegate with the bound arguments.
+  /// \return The result of the delegate invocation.
+  //*********************************************************************
+  TReturn operator()() const { return m_f(m_arg0, m_arg1); }
 
-    typedef gdut::delegate<TReturn(TArg0, TArg1)> delegate_type;
+private:
+  delegate_type m_f; ///< The delegate to invoke.
+  TArg0 m_arg0;
+  TArg1 m_arg1;
+};
 
-    //*********************************************************************
-    /// Construct a closure with a delegate and its arguments.
-    /// \param f    The delegate to be invoked.
-    /// \param arg0 The first argument to bind.
-    /// \param arg1 The second argument to bind.
-    //*********************************************************************
-    closure(const delegate_type& f, const TArg0 arg0, const TArg1 arg1)
-      : m_f(f)
-      , m_arg0(arg0)
-      , m_arg1(arg1)
-    {
-    }
+//*************************************************************************
+/// Closure for binding three arguments to a delegate and invoking it later.
+/// \tparam TReturn The return type of the delegate.
+/// \tparam TArg0    The type of the first argument.
+/// \tparam TArg1    The type of the second argument.
+/// \tparam TArg2    The type of the third argument.
+//*************************************************************************
+template <typename TReturn, typename TArg0, typename TArg1, typename TArg2>
+class closure<TReturn(TArg0, TArg1, TArg2)> {
+public:
+  typedef gdut::delegate<TReturn(TArg0, TArg1, TArg2)> delegate_type;
 
-    //*********************************************************************
-    /// Invoke the stored delegate with the bound arguments.
-    /// \return The result of the delegate invocation.
-    //*********************************************************************
-    TReturn operator()() const 
-    {
-      return m_f(m_arg0, m_arg1);
-    }
+  //*********************************************************************
+  /// Construct a closure with a delegate and its arguments.
+  /// \param f    The delegate to be invoked.
+  /// \param arg0 The first argument to bind.
+  /// \param arg1 The second argument to bind.
+  /// \param arg2 The third argument to bind.
+  //*********************************************************************
+  closure(const delegate_type &f, const TArg0 arg0, const TArg1 arg1,
+          const TArg2 arg2)
+      : m_f(f), m_arg0(arg0), m_arg1(arg1), m_arg2(arg2) {}
 
-  private:
+  //*********************************************************************
+  /// Invoke the stored delegate with the bound arguments.
+  /// \return The result of the delegate invocation.
+  //*********************************************************************
+  TReturn operator()() const { return m_f(m_arg0, m_arg1, m_arg2); }
 
-    delegate_type m_f; ///< The delegate to invoke.
-    TArg0 m_arg0;
-    TArg1 m_arg1;
-  };
+private:
+  delegate_type m_f; ///< The delegate to invoke.
+  TArg0 m_arg0;
+  TArg1 m_arg1;
+  TArg2 m_arg2;
+};
 
-  //*************************************************************************
-  /// Closure for binding three arguments to a delegate and invoking it later.
-  /// \tparam TReturn The return type of the delegate.
-  /// \tparam TArg0    The type of the first argument.
-  /// \tparam TArg1    The type of the second argument.
-  /// \tparam TArg2    The type of the third argument.
-  //*************************************************************************
-  template<typename TReturn, typename TArg0, typename TArg1, typename TArg2>
-  class closure<TReturn(TArg0, TArg1, TArg2)>
-  {
-  public:
+//*************************************************************************
+/// Closure for binding four arguments to a delegate and invoking it later.
+/// \tparam TReturn The return type of the delegate.
+/// \tparam TArg0    The type of the first argument.
+/// \tparam TArg1    The type of the second argument.
+/// \tparam TArg2    The type of the third argument.
+/// \tparam TArg3    The type of the fourth argument.
+//*************************************************************************
+template <typename TReturn, typename TArg0, typename TArg1, typename TArg2,
+          typename TArg3>
+class closure<TReturn(TArg0, TArg1, TArg2, TArg3)> {
+public:
+  typedef gdut::delegate<TReturn(TArg0, TArg1, TArg2, TArg3)> delegate_type;
 
-    typedef gdut::delegate<TReturn(TArg0, TArg1, TArg2)> delegate_type;
+  //*********************************************************************
+  /// Construct a closure with a delegate and its arguments.
+  /// \param f    The delegate to be invoked.
+  /// \param arg0 The first argument to bind.
+  /// \param arg1 The second argument to bind.
+  /// \param arg2 The third argument to bind.
+  /// \param arg3 The fourth argument to bind.
+  //*********************************************************************
+  closure(const delegate_type &f, const TArg0 arg0, const TArg1 arg1,
+          const TArg2 arg2, const TArg3 arg3)
+      : m_f(f), m_arg0(arg0), m_arg1(arg1), m_arg2(arg2), m_arg3(arg3) {}
 
-    //*********************************************************************
-    /// Construct a closure with a delegate and its arguments.
-    /// \param f    The delegate to be invoked.
-    /// \param arg0 The first argument to bind.
-    /// \param arg1 The second argument to bind.
-    /// \param arg2 The third argument to bind.
-    //*********************************************************************
-    closure(const delegate_type& f, const TArg0 arg0, const TArg1 arg1, const TArg2 arg2)
-      : m_f(f)
-      , m_arg0(arg0)
-      , m_arg1(arg1)
-      , m_arg2(arg2)
-    {
-    }
+  //*********************************************************************
+  /// Invoke the stored delegate with the bound arguments.
+  /// \return The result of the delegate invocation.
+  //*********************************************************************
+  TReturn operator()() const { return m_f(m_arg0, m_arg1, m_arg2, m_arg3); }
 
-    //*********************************************************************
-    /// Invoke the stored delegate with the bound arguments.
-    /// \return The result of the delegate invocation.
-    //*********************************************************************
-    TReturn operator()() const 
-    {
-      return m_f(m_arg0, m_arg1, m_arg2);
-    }
+private:
+  delegate_type m_f; ///< The delegate to invoke.
+  TArg0 m_arg0;
+  TArg1 m_arg1;
+  TArg2 m_arg2;
+  TArg3 m_arg3;
+};
 
-  private:
+//*************************************************************************
+/// Closure for binding five arguments to a delegate and invoking it later.
+/// \tparam TReturn The return type of the delegate.
+/// \tparam TArg0    The type of the first argument.
+/// \tparam TArg1    The type of the second argument.
+/// \tparam TArg2    The type of the third argument.
+/// \tparam TArg3    The type of the fourth argument.
+/// \tparam TArg4    The type of the fifth argument.
+//*************************************************************************
+template <typename TReturn, typename TArg0, typename TArg1, typename TArg2,
+          typename TArg3, typename TArg4>
+class closure<TReturn(TArg0, TArg1, TArg2, TArg3, TArg4)> {
+public:
+  typedef gdut::delegate<TReturn(TArg0, TArg1, TArg2, TArg3, TArg4)>
+      delegate_type;
 
-    delegate_type m_f; ///< The delegate to invoke.
-    TArg0 m_arg0;
-    TArg1 m_arg1;
-    TArg2 m_arg2;
-  };
+  //*********************************************************************
+  /// Construct a closure with a delegate and its arguments.
+  /// \param f    The delegate to be invoked.
+  /// \param arg0 The first argument to bind.
+  /// \param arg1 The second argument to bind.
+  /// \param arg2 The third argument to bind.
+  /// \param arg3 The fourth argument to bind.
+  /// \param arg4 The fifth argument to bind.
+  //*********************************************************************
+  closure(const delegate_type &f, const TArg0 arg0, const TArg1 arg1,
+          const TArg2 arg2, const TArg3 arg3, const TArg4 arg4)
+      : m_f(f), m_arg0(arg0), m_arg1(arg1), m_arg2(arg2), m_arg3(arg3),
+        m_arg4(arg4) {}
 
-  //*************************************************************************
-  /// Closure for binding four arguments to a delegate and invoking it later.
-  /// \tparam TReturn The return type of the delegate.
-  /// \tparam TArg0    The type of the first argument.
-  /// \tparam TArg1    The type of the second argument.
-  /// \tparam TArg2    The type of the third argument.
-  /// \tparam TArg3    The type of the fourth argument.
-  //*************************************************************************
-  template<typename TReturn, typename TArg0, typename TArg1, typename TArg2, typename TArg3>
-  class closure<TReturn(TArg0, TArg1, TArg2, TArg3)>
-  {
-  public:
+  //*********************************************************************
+  /// Invoke the stored delegate with the bound arguments.
+  /// \return The result of the delegate invocation.
+  //*********************************************************************
+  TReturn operator()() const {
+    return m_f(m_arg0, m_arg1, m_arg2, m_arg3, m_arg4);
+  }
 
-    typedef gdut::delegate<TReturn(TArg0, TArg1, TArg2, TArg3)> delegate_type;
-
-    //*********************************************************************
-    /// Construct a closure with a delegate and its arguments.
-    /// \param f    The delegate to be invoked.
-    /// \param arg0 The first argument to bind.
-    /// \param arg1 The second argument to bind.
-    /// \param arg2 The third argument to bind.
-    /// \param arg3 The fourth argument to bind.
-    //*********************************************************************
-    closure(const delegate_type& f, const TArg0 arg0, const TArg1 arg1, const TArg2 arg2, const TArg3 arg3)
-      : m_f(f)
-      , m_arg0(arg0)
-      , m_arg1(arg1)
-      , m_arg2(arg2)
-      , m_arg3(arg3)
-    {
-    }
-
-    //*********************************************************************
-    /// Invoke the stored delegate with the bound arguments.
-    /// \return The result of the delegate invocation.
-    //*********************************************************************
-    TReturn operator()() const 
-    {
-      return m_f(m_arg0, m_arg1, m_arg2, m_arg3);
-    }
-
-  private:
-
-    delegate_type m_f; ///< The delegate to invoke.
-    TArg0 m_arg0;
-    TArg1 m_arg1;
-    TArg2 m_arg2;
-    TArg3 m_arg3;
-  };
-
-  //*************************************************************************
-  /// Closure for binding five arguments to a delegate and invoking it later.
-  /// \tparam TReturn The return type of the delegate.
-  /// \tparam TArg0    The type of the first argument.
-  /// \tparam TArg1    The type of the second argument.
-  /// \tparam TArg2    The type of the third argument.
-  /// \tparam TArg3    The type of the fourth argument.
-  /// \tparam TArg4    The type of the fifth argument.
-  //*************************************************************************
-  template<typename TReturn, typename TArg0, typename TArg1, typename TArg2, typename TArg3, typename TArg4>
-  class closure<TReturn(TArg0, TArg1, TArg2, TArg3, TArg4)>
-  {
-  public:
-
-    typedef gdut::delegate<TReturn(TArg0, TArg1, TArg2, TArg3, TArg4)> delegate_type;
-
-    //*********************************************************************
-    /// Construct a closure with a delegate and its arguments.
-    /// \param f    The delegate to be invoked.
-    /// \param arg0 The first argument to bind.
-    /// \param arg1 The second argument to bind.
-    /// \param arg2 The third argument to bind.
-    /// \param arg3 The fourth argument to bind.
-    /// \param arg4 The fifth argument to bind.
-    //*********************************************************************
-    closure(const delegate_type& f, const TArg0 arg0, const TArg1 arg1, const TArg2 arg2, const TArg3 arg3, const TArg4 arg4)
-      : m_f(f)
-      , m_arg0(arg0)
-      , m_arg1(arg1)
-      , m_arg2(arg2)
-      , m_arg3(arg3)
-      , m_arg4(arg4)
-    {
-    }
-
-    //*********************************************************************
-    /// Invoke the stored delegate with the bound arguments.
-    /// \return The result of the delegate invocation.
-    //*********************************************************************
-    TReturn operator()() const 
-    {
-      return m_f(m_arg0, m_arg1, m_arg2, m_arg3, m_arg4);
-    }
-
-  private:
-
-    delegate_type m_f; ///< The delegate to invoke.
-    TArg0 m_arg0;
-    TArg1 m_arg1;
-    TArg2 m_arg2;
-    TArg3 m_arg3;
-    TArg4 m_arg4;
-  };
+private:
+  delegate_type m_f; ///< The delegate to invoke.
+  TArg0 m_arg0;
+  TArg1 m_arg1;
+  TArg2 m_arg2;
+  TArg3 m_arg3;
+  TArg4 m_arg4;
+};
 #endif
-}
+} // namespace gdut
 
 #endif
