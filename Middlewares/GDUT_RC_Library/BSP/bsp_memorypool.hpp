@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cmsis_os2.h>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -19,11 +20,18 @@ namespace gdut {
  * 
  * Features:
  * - Fixed-size blocks (sizeof(Ty))
- * - Thread-safe allocation
+ * - Thread-safe allocation (once pool is created)
  * - Timeout support
  * - Move semantics supported
  * 
- * Thread Safety: All methods are thread-safe.
+ * Thread Safety: 
+ * - The pool is lazily initialized on first allocate() call.
+ * - If the same allocator instance is used from multiple threads,
+ *   the first call to allocate() must complete before any concurrent
+ *   calls to avoid race conditions during pool creation.
+ * - After the pool is created, all methods are thread-safe.
+ * - Recommended: Create the pool before sharing the allocator across threads
+ *   by calling allocate() once during initialization.
  * 
  * Important: The caller is responsible for:
  * - Calling constructors after allocate()
@@ -63,21 +71,33 @@ public:
     if (m_pool_id == nullptr) {
       m_pool_id = osMemoryPoolNew(MaxSize, sizeof(value_type), nullptr);
     }
-    return static_cast<std::add_pointer_t<value_type>>(osMemoryPoolAlloc(
-        m_pool_id,
-        timeout != std::chrono::duration<Rep, Period>::max()
-            ? std::chrono::duration_cast<std::chrono::seconds>(timeout)
-                      .count() *
-                  osKernelGetTickFreq()
-            : osWaitForever));
+    
+    uint32_t ticks;
+    if (timeout == std::chrono::duration<Rep, Period>::max()) {
+      ticks = osWaitForever;
+    } else {
+      // Convert to milliseconds to avoid truncation
+      auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count();
+      // Convert milliseconds to ticks (tickFreq is in Hz)
+      // ticks = (ms * tickFreq) / 1000
+      uint32_t tick_freq = osKernelGetTickFreq();
+      // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for osWaitForever)
+      if (ms >= (UINT32_MAX - 1) * 1000ULL / tick_freq) {
+        ticks = UINT32_MAX - 1;
+      } else {
+        ticks = static_cast<uint32_t>((ms * tick_freq) / 1000);
+      }
+    }
+    
+    return static_cast<std::add_pointer_t<value_type>>(
+        osMemoryPoolAlloc(m_pool_id, ticks));
   }
 
   bool deallocate(std::add_pointer_t<value_type> ptr) {
     if (m_pool_id == nullptr || ptr == nullptr) {
       return false;
     }
-    osMemoryPoolFree(m_pool_id, ptr);
-    return true;
+    return osMemoryPoolFree(m_pool_id, ptr) == osOK;
   }
 
   osMemoryPoolId_t release() { return std::exchange(m_pool_id, nullptr); }

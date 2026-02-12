@@ -17,6 +17,11 @@ namespace gdut {
  * - Move semantics supported
  * 
  * Thread Safety: All methods are thread-safe.
+ * 
+ * Important: The mutex creation can fail if system resources are exhausted.
+ * Use the valid() method or bool operator to check if the mutex was
+ * successfully created before use. If the mutex is invalid, lock operations
+ * will fail silently (lock() will block forever, try_lock() returns false).
  */
 class mutex {
 public:
@@ -52,6 +57,9 @@ public:
   bool try_lock() { return osMutexAcquire(m_mutex_id, 0) == osOK; }
 
   void unlock() { osMutexRelease(m_mutex_id); }
+
+  bool valid() const noexcept { return m_mutex_id != nullptr; }
+  explicit operator bool() const noexcept { return valid(); }
 
 private:
   osMutexId_t m_mutex_id;

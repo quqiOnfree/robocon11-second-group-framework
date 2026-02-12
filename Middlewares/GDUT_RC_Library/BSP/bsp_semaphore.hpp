@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cmsis_os2.h>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <utility>
@@ -26,7 +27,7 @@ namespace gdut {
 template <std::size_t LeastMaxValue> class counting_semaphore {
 public:
   static constexpr std::size_t max() noexcept {
-    return std::numeric_limits<std::size_t>::max();
+    return LeastMaxValue;
   }
 
   constexpr explicit counting_semaphore(std::size_t desired) {
@@ -67,13 +68,25 @@ public:
     if (m_semaphore_id == nullptr) {
       return osError;
     }
-    return osSemaphoreAcquire(
-        m_semaphore_id,
-        timeout != std::chrono::duration<Rep, Period>::max()
-            ? std::chrono::duration_cast<std::chrono::seconds>(timeout)
-                      .count() *
-                  osKernelGetTickFreq()
-            : osWaitForever);
+    
+    uint32_t ticks;
+    if (timeout == std::chrono::duration<Rep, Period>::max()) {
+      ticks = osWaitForever;
+    } else {
+      // Convert to milliseconds to avoid truncation
+      auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count();
+      // Convert milliseconds to ticks (tickFreq is in Hz)
+      // ticks = (ms * tickFreq) / 1000
+      uint32_t tick_freq = osKernelGetTickFreq();
+      // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for osWaitForever)
+      if (ms >= (UINT32_MAX - 1) * 1000ULL / tick_freq) {
+        ticks = UINT32_MAX - 1;
+      } else {
+        ticks = static_cast<uint32_t>((ms * tick_freq) / 1000);
+      }
+    }
+    
+    return osSemaphoreAcquire(m_semaphore_id, ticks);
   }
 
   bool try_acquire() noexcept {
