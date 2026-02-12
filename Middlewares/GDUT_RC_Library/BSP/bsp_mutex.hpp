@@ -9,15 +9,15 @@ namespace gdut {
 
 /**
  * @brief RAII wrapper for CMSIS-RTOS2 mutex
- * 
+ *
  * This class provides a C++-style mutex wrapper around CMSIS-RTOS2 osMutex.
  * Features:
  * - Recursive mutex with priority inheritance
  * - Robust mutex (ownership tracking)
  * - Move semantics supported
- * 
+ *
  * Thread Safety: All methods are thread-safe.
- * 
+ *
  * Important: The mutex creation can fail if system resources are exhausted.
  * Use the valid() method or bool operator to check if the mutex was
  * successfully created before use. If the mutex is invalid, lock operations
@@ -63,13 +63,13 @@ public:
    * @return true if the mutex is valid and can be used
    */
   bool valid() const noexcept { return m_mutex_id != nullptr; }
-  
+
   /**
    * @brief Boolean conversion operator for checking validity
-   * 
+   *
    * Allows usage in conditional statements like:
    *   if (mutex_obj) { ... }
-   * 
+   *
    * @return true if the mutex is valid
    */
   explicit operator bool() const noexcept { return valid(); }
@@ -96,16 +96,16 @@ inline constexpr adopt_lock_t adopt_lock{};
 
 /**
  * @brief RAII lock guard for automatic mutex locking/unlocking
- * 
+ *
  * Similar to std::lock_guard. Locks the mutex in constructor,
  * unlocks in destructor. Non-copyable and non-movable.
- * 
+ *
  * Usage:
  *   {
  *     gdut::lock_guard lock(my_mutex);
  *     // Critical section protected by mutex
  *   } // Automatically unlocks
- * 
+ *
  * @tparam Mutex The mutex type to lock
  */
 template <typename Mutex> class lock_guard {
@@ -130,32 +130,38 @@ private:
 
 /**
  * @brief Movable RAII lock with deferred and try-lock support
- * 
+ *
  * Similar to std::unique_lock. Provides more flexibility than lock_guard:
  * - Can be unlocked before destructor
  * - Supports deferred locking
  * - Supports try-lock
  * - Move semantics supported
- * 
+ *
  * Usage:
  *   gdut::unique_lock lock(my_mutex);  // Locks immediately
  *   // or
  *   gdut::unique_lock lock(my_mutex, gdut::defer_lock);
  *   lock.lock();  // Lock later
- * 
+ *
  * @tparam Mutex The mutex type to lock
  */
 template <typename Mutex> class unique_lock {
 public:
   unique_lock() noexcept = default;
 
-  explicit unique_lock(Mutex &m) : m_mtx(std::addressof(m)), m_owns(true) { m_mtx->lock(); }
+  explicit unique_lock(Mutex &m) : m_mtx(std::addressof(m)), m_owns(true) {
+    m_mtx->lock();
+  }
 
-  unique_lock(Mutex &m, defer_lock_t) noexcept : m_mtx(std::addressof(m)), m_owns(false) {}
+  unique_lock(Mutex &m, defer_lock_t) noexcept
+      : m_mtx(std::addressof(m)), m_owns(false) {}
 
-  unique_lock(Mutex &m, try_to_lock_t) : m_mtx(std::addressof(m)) { m_owns = m_mtx->try_lock(); }
+  unique_lock(Mutex &m, try_to_lock_t) : m_mtx(std::addressof(m)) {
+    m_owns = m_mtx->try_lock();
+  }
 
-  unique_lock(Mutex &m, adopt_lock_t) noexcept : m_mtx(std::addressof(m)), m_owns(true) {}
+  unique_lock(Mutex &m, adopt_lock_t) noexcept
+      : m_mtx(std::addressof(m)), m_owns(true) {}
 
   unique_lock(unique_lock &&other) noexcept
       : m_mtx(std::exchange(other.m_mtx, nullptr)),

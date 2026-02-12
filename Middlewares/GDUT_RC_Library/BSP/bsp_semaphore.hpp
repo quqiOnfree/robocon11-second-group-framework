@@ -5,7 +5,6 @@
 #include <cmsis_os2.h>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <memory>
 #include <utility>
 
@@ -13,22 +12,20 @@ namespace gdut {
 
 /**
  * @brief Counting semaphore based on CMSIS-RTOS2
- * 
+ *
  * This class provides a C++-style counting semaphore wrapper.
  * Features:
  * - Standard semaphore operations (acquire, release, try_acquire)
  * - Timeout support with std::chrono
  * - Move semantics supported
- * 
+ *
  * Thread Safety: All methods are thread-safe.
- * 
+ *
  * @tparam LeastMaxValue Maximum value the semaphore can reach
  */
 template <std::size_t LeastMaxValue> class counting_semaphore {
 public:
-  static constexpr std::size_t max() noexcept {
-    return LeastMaxValue;
-  }
+  static constexpr std::size_t max() noexcept { return LeastMaxValue; }
 
   constexpr explicit counting_semaphore(std::size_t desired) {
     m_semaphore_id = osSemaphoreNew(LeastMaxValue, desired, nullptr);
@@ -64,12 +61,14 @@ public:
 
   /**
    * @brief Acquire the semaphore
-   * 
+   *
    * @param timeout Maximum time to wait for the semaphore.
-   *                - Use std::chrono::duration<Rep, Period>::max() for infinite wait
+   *                - Use std::chrono::duration<Rep, Period>::max() for infinite
+   * wait
    *                - Use std::chrono::seconds::zero() for no wait (try once)
-   *                - Precision: milliseconds (sub-millisecond durations are truncated)
-   * 
+   *                - Precision: milliseconds (sub-millisecond durations are
+   * truncated)
+   *
    * @return osOK if successful
    *         osErrorParameter if timeout is negative
    *         osErrorTimeout if timeout expired
@@ -81,18 +80,19 @@ public:
     if (m_semaphore_id == nullptr) {
       return osError;
     }
-    
+
     uint32_t ticks;
     if (timeout == std::chrono::duration<Rep, Period>::max()) {
       ticks = osWaitForever;
     } else {
       // Convert to milliseconds (sub-millisecond precision is truncated)
-      auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count();
+      auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeout)
+                    .count();
       // Handle negative durations (invalid state)
       if (ms < 0) {
         return osErrorParameter;
       }
-      
+
       // Handle zero or positive durations
       if (ms == 0) {
         ticks = 0;
@@ -100,17 +100,20 @@ public:
         // Convert milliseconds to ticks (tickFreq is in Hz)
         // ticks = (ms * tickFreq) / 1000
         uint32_t tick_freq = osKernelGetTickFreq();
-        // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for osWaitForever)
-        // Calculate max_ms to avoid overflow: max_ms = (UINT32_MAX - 1) * 1000 / tick_freq
-        uint64_t max_ms = static_cast<uint64_t>(UINT32_MAX - 1) * 1000ULL / tick_freq;
+        // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for
+        // osWaitForever) Calculate max_ms to avoid overflow: max_ms =
+        // (UINT32_MAX - 1) * 1000 / tick_freq
+        uint64_t max_ms =
+            static_cast<uint64_t>(UINT32_MAX - 1) * 1000ULL / tick_freq;
         if (static_cast<uint64_t>(ms) >= max_ms) {
           ticks = UINT32_MAX - 1;
         } else {
-          ticks = static_cast<uint32_t>((static_cast<uint64_t>(ms) * tick_freq) / 1000);
+          ticks = static_cast<uint32_t>(
+              (static_cast<uint64_t>(ms) * tick_freq) / 1000);
         }
       }
     }
-    
+
     return osSemaphoreAcquire(m_semaphore_id, ticks);
   }
 

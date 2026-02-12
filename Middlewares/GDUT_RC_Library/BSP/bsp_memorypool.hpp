@@ -13,18 +13,18 @@ namespace gdut {
 
 /**
  * @brief Memory pool allocator based on CMSIS-RTOS2
- * 
+ *
  * This class provides a fixed-size memory pool allocator.
  * Note: This is NOT a standard C++ allocator. It provides
  * raw memory allocation without calling constructors/destructors.
- * 
+ *
  * Features:
  * - Fixed-size blocks (sizeof(Ty))
  * - Thread-safe allocation (once pool is created)
  * - Timeout support
  * - Move semantics supported
- * 
- * Thread Safety: 
+ *
+ * Thread Safety:
  * - The pool is lazily initialized on first allocate() call.
  * - If the same allocator instance is used from multiple threads,
  *   the first call to allocate() must complete before any concurrent
@@ -32,11 +32,11 @@ namespace gdut {
  * - After the pool is created, all methods are thread-safe.
  * - Recommended: Create the pool before sharing the allocator across threads
  *   by calling allocate() once during initialization.
- * 
+ *
  * Important: The caller is responsible for:
  * - Calling constructors after allocate()
  * - Calling destructors before deallocate()
- * 
+ *
  * @tparam Ty The type of objects to allocate
  * @tparam MaxSize Maximum number of objects in the pool
  */
@@ -66,12 +66,14 @@ public:
 
   /**
    * @brief Allocate a block from the memory pool
-   * 
+   *
    * @param timeout Maximum time to wait for a free block.
-   *                - Use std::chrono::duration<Rep, Period>::max() for infinite wait
+   *                - Use std::chrono::duration<Rep, Period>::max() for infinite
+   * wait
    *                - Use std::chrono::seconds::zero() for no wait (try once)
-   *                - Precision: milliseconds (sub-millisecond durations are truncated)
-   * 
+   *                - Precision: milliseconds (sub-millisecond durations are
+   * truncated)
+   *
    * @return Pointer to allocated block, or nullptr if:
    *         - timeout is negative (invalid parameter)
    *         - timeout expired
@@ -85,18 +87,19 @@ public:
     if (m_pool_id == nullptr) {
       m_pool_id = osMemoryPoolNew(MaxSize, sizeof(value_type), nullptr);
     }
-    
+
     uint32_t ticks;
     if (timeout == std::chrono::duration<Rep, Period>::max()) {
       ticks = osWaitForever;
     } else {
       // Convert to milliseconds (sub-millisecond precision is truncated)
-      auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count();
+      auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeout)
+                    .count();
       // Handle negative durations (invalid state)
       if (ms < 0) {
         return nullptr;
       }
-      
+
       // Handle zero or positive durations
       if (ms == 0) {
         ticks = 0;
@@ -104,17 +107,20 @@ public:
         // Convert milliseconds to ticks (tickFreq is in Hz)
         // ticks = (ms * tickFreq) / 1000
         uint32_t tick_freq = osKernelGetTickFreq();
-        // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for osWaitForever)
-        // Calculate max_ms to avoid overflow: max_ms = (UINT32_MAX - 1) * 1000 / tick_freq
-        uint64_t max_ms = static_cast<uint64_t>(UINT32_MAX - 1) * 1000ULL / tick_freq;
+        // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for
+        // osWaitForever) Calculate max_ms to avoid overflow: max_ms =
+        // (UINT32_MAX - 1) * 1000 / tick_freq
+        uint64_t max_ms =
+            static_cast<uint64_t>(UINT32_MAX - 1) * 1000ULL / tick_freq;
         if (static_cast<uint64_t>(ms) >= max_ms) {
           ticks = UINT32_MAX - 1;
         } else {
-          ticks = static_cast<uint32_t>((static_cast<uint64_t>(ms) * tick_freq) / 1000);
+          ticks = static_cast<uint32_t>(
+              (static_cast<uint64_t>(ms) * tick_freq) / 1000);
         }
       }
     }
-    
+
     return static_cast<std::add_pointer_t<value_type>>(
         osMemoryPoolAlloc(m_pool_id, ticks));
   }

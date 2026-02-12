@@ -20,22 +20,22 @@ template <gpio_port Port, GPIO_InitTypeDef InitStruct> struct gpio_pin_tag {
 
 /**
  * @brief RAII wrapper for HAL GPIO pin
- * 
+ *
  * This class provides compile-time configured GPIO pin management.
  * The pin is initialized in constructor and de-initialized in destructor.
- * 
+ *
  * Features:
  * - Compile-time configuration via template parameters
  * - RAII resource management
  * - Type-safe port and pin selection
  * - Non-copyable (hardware resource)
- * 
+ *
  * Usage:
- *   gdut::gpio_pin<gdut::gpio_port::A, 
+ *   gdut::gpio_pin<gdut::gpio_port::A,
  *                  GPIO_InitTypeDef{.Pin = GPIO_PIN_5,
  *                                   .Mode = GPIO_MODE_OUTPUT_PP}> led;
  *   led.write(true);  // Turn on
- * 
+ *
  * @tparam Port The GPIO port (A-I)
  * @tparam InitStruct The HAL GPIO initialization structure
  */
