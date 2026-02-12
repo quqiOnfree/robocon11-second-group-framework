@@ -75,8 +75,13 @@ public:
     } else {
       // Convert to milliseconds to avoid truncation
       auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count();
-      // Handle negative or zero durations
-      if (ms <= 0) {
+      // Handle negative durations (invalid state)
+      if (ms < 0) {
+        return osErrorParameter;
+      }
+      
+      // Handle zero or positive durations
+      if (ms == 0) {
         ticks = 0;
       } else {
         // Convert milliseconds to ticks (tickFreq is in Hz)
