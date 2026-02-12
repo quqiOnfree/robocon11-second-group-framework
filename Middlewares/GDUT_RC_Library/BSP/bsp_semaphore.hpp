@@ -62,6 +62,19 @@ public:
     return osSemaphoreRelease(m_semaphore_id);
   }
 
+  /**
+   * @brief Acquire the semaphore
+   * 
+   * @param timeout Maximum time to wait for the semaphore.
+   *                - Use std::chrono::duration<Rep, Period>::max() for infinite wait
+   *                - Use std::chrono::seconds::zero() for no wait (try once)
+   *                - Precision: milliseconds (sub-millisecond durations are truncated)
+   * 
+   * @return osOK if successful
+   *         osErrorParameter if timeout is negative
+   *         osErrorTimeout if timeout expired
+   *         osError if semaphore is invalid or other error
+   */
   template <typename Rep, typename Period>
   osStatus_t acquire(const std::chrono::duration<Rep, Period> &timeout =
                          std::chrono::duration<Rep, Period>::max()) {

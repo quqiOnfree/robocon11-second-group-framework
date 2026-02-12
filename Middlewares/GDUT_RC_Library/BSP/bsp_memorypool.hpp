@@ -64,6 +64,20 @@ public:
     return *this;
   }
 
+  /**
+   * @brief Allocate a block from the memory pool
+   * 
+   * @param timeout Maximum time to wait for a free block.
+   *                - Use std::chrono::duration<Rep, Period>::max() for infinite wait
+   *                - Use std::chrono::seconds::zero() for no wait (try once)
+   *                - Precision: milliseconds (sub-millisecond durations are truncated)
+   * 
+   * @return Pointer to allocated block, or nullptr if:
+   *         - timeout is negative (invalid parameter)
+   *         - timeout expired
+   *         - pool creation failed
+   *         - no blocks available
+   */
   template <typename Rep, typename Period>
   std::add_pointer_t<value_type>
   allocate(const std::chrono::duration<Rep, Period> &timeout =
