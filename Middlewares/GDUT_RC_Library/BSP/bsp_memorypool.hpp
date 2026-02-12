@@ -48,7 +48,9 @@ public:
   static constexpr std::size_t capacity = MaxSize;
   static constexpr std::size_t block_size = sizeof(value_type);
 
-  allocator() = default;
+  allocator() {
+    m_pool_id = osMemoryPoolNew(MaxSize, sizeof(value_type), nullptr);
+  }
   allocator(const allocator &) = delete;
   allocator &operator=(const allocator &) = delete;
 
@@ -84,10 +86,6 @@ public:
   std::add_pointer_t<value_type>
   allocate(const std::chrono::duration<Rep, Period> &timeout =
                std::chrono::duration<Rep, Period>::max()) {
-    if (m_pool_id == nullptr) {
-      m_pool_id = osMemoryPoolNew(MaxSize, sizeof(value_type), nullptr);
-    }
-
     uint32_t ticks;
     if (timeout == std::chrono::duration<Rep, Period>::max()) {
       ticks = osWaitForever;
