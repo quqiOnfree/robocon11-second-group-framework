@@ -52,11 +52,26 @@ public:
     }
   }
 
-  osStatus_t lock() { return osMutexAcquire(m_mutex_id, osWaitForever); }
+  osStatus_t lock() {
+    if (m_mutex_id == nullptr) {
+      return osError;
+    }
+    return osMutexAcquire(m_mutex_id, osWaitForever);
+  }
 
-  bool try_lock() { return osMutexAcquire(m_mutex_id, 0) == osOK; }
+  bool try_lock() {
+    if (m_mutex_id == nullptr) {
+      return false;
+    }
+    return osMutexAcquire(m_mutex_id, 0) == osOK;
+  }
 
-  osStatus_t unlock() { return osMutexRelease(m_mutex_id); }
+  osStatus_t unlock() {
+    if (m_mutex_id == nullptr) {
+      return osError;
+    }
+    return osMutexRelease(m_mutex_id);
+  }
 
   /**
    * @brief Check if the mutex was successfully created

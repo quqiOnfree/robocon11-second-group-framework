@@ -86,6 +86,9 @@ public:
   std::add_pointer_t<value_type>
   allocate(const std::chrono::duration<Rep, Period> &timeout =
                std::chrono::duration<Rep, Period>::max()) {
+    if (m_pool_id == nullptr) {
+      m_pool_id = osMemoryPoolNew(MaxSize, sizeof(value_type), nullptr);
+    }
     uint32_t ticks;
     if (timeout == std::chrono::duration<Rep, Period>::max()) {
       ticks = osWaitForever;
