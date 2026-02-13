@@ -72,7 +72,8 @@ public:
   template <typename U, typename Deleter>
     requires std::is_convertible_v<std::add_pointer_t<U>,
                                    std::add_pointer_t<Ty>>
-  explicit shared_ptr(std::unique_ptr<U, Deleter> &&other) noexcept {
+  explicit shared_ptr(std::unique_ptr<U, Deleter> &&other) noexcept
+      : m_ptr(nullptr), m_deleter(nullptr), m_ref_count(nullptr) {
     auto deleter = other.get_deleter();
     m_ptr = other.release();
 
@@ -80,10 +81,22 @@ public:
       m_deleter =
           pmr::polymorphic_allocator<>{}
               .new_object<deleter_wrapper_impl<Deleter>>(std::move(deleter));
-      m_ref_count =
-          pmr::polymorphic_allocator<>{}.new_object<atomic<std::size_t>>();
-      if (m_ref_count) {
-        m_ref_count->store(1, memory_order_relaxed);
+      if (m_deleter) {
+        m_ref_count =
+            pmr::polymorphic_allocator<>{}.new_object<atomic<std::size_t>>();
+        if (m_ref_count) {
+          m_ref_count->store(1, memory_order_relaxed);
+        } else {
+          // Cleanup: call deleter on ptr and delete deleter wrapper
+          (*m_deleter)(m_ptr);
+          pmr::polymorphic_allocator<>{}.delete_object(m_deleter);
+          m_ptr = nullptr;
+          m_deleter = nullptr;
+        }
+      } else {
+        // Cleanup: call deleter on ptr since we can't manage it
+        deleter(m_ptr);
+        m_ptr = nullptr;
       }
     }
   }
@@ -167,10 +180,15 @@ private:
           (*m_deleter)(m_ptr);
         }
         if (m_deleter) {
+          // Need to use proper polymorphic deletion since we don't know the
+          // concrete type Delete through the base pointer with proper size and
+          // alignment
           std::size_t deleter_size = m_deleter->size();
+          std::size_t deleter_alignment = m_deleter->alignment();
           m_deleter->~deleter_wrapper();
           pmr::polymorphic_allocator<char>{}.deallocate(
-              reinterpret_cast<char *>(m_deleter), deleter_size);
+              reinterpret_cast<char *>(m_deleter), deleter_size,
+              deleter_alignment);
         }
         pmr::polymorphic_allocator<>{}.delete_object<atomic<std::size_t>>(
             m_ref_count);

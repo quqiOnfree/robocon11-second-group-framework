@@ -31,7 +31,7 @@ public:
   message_queue(message_queue &&other) noexcept
       : m_id(std::exchange(other.m_id, nullptr)) {}
   message_queue &operator=(message_queue &&other) noexcept {
-    if (this != &other) {
+    if (this != std::addressof(other)) {
       if (m_id != nullptr) {
         osMessageQueueDelete(m_id);
       }
@@ -67,6 +67,9 @@ public:
   uint32_t count() const { return osMessageQueueGetCount(m_id); }
   uint32_t space() const { return osMessageQueueGetSpace(m_id); }
   uint32_t capacity() const { return osMessageQueueGetCapacity(m_id); }
+
+  bool valid() const noexcept { return m_id != nullptr; }
+  explicit operator bool() const noexcept { return valid(); }
 
 protected:
 private:

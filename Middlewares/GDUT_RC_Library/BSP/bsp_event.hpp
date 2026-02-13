@@ -25,7 +25,7 @@ public:
   event_flags(event_flags &&other) noexcept
       : m_id(std::exchange(other.m_id, nullptr)) {}
   event_flags &operator=(event_flags &&other) noexcept {
-    if (this != &other) {
+    if (this != std::addressof(other)) {
       if (m_id != nullptr) {
         osEventFlagsDelete(m_id);
       }
@@ -53,6 +53,9 @@ public:
       options |= osFlagsNoClear;
     return osEventFlagsWait(m_id, flags, options, time_to_ticks(timeout));
   }
+
+  bool valid() const noexcept { return m_id != nullptr; }
+  explicit operator bool() const noexcept { return valid(); }
 
 private:
   osEventFlagsId_t m_id{nullptr};
