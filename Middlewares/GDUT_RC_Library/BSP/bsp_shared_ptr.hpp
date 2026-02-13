@@ -140,6 +140,25 @@ public:
     // 换言之，调用方必须保证在调用本构造前已经正确递增了 shared_count。
   }
 
+  template <typename U>
+    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
+  shared_ptr(const shared_ptr<U> &other) noexcept
+      : m_ptr(other.m_ptr), m_control_block(other.m_control_block) {
+    if (m_control_block) {
+      m_control_block->shared_count.fetch_add(1, memory_order_relaxed);
+    }
+  }
+
+  template <typename U>
+    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
+  shared_ptr &operator=(const shared_ptr<U> &other) noexcept {
+    if (this != std::addressof(other)) {
+      shared_ptr<T> temp(other);
+      swap(temp);
+    }
+    return *this;
+  }
+
   shared_ptr(const shared_ptr &other) noexcept
       : m_ptr(other.m_ptr), m_control_block(other.m_control_block) {
     if (m_control_block) {
@@ -150,14 +169,6 @@ public:
     }
   }
 
-  template <typename U>
-    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
-  shared_ptr(const shared_ptr<U> &other) noexcept
-      : m_ptr(other.m_ptr), m_control_block(other.m_control_block) {
-    if (m_control_block) {
-      m_control_block->shared_count.fetch_add(1, memory_order_relaxed);
-    }
-  }
   shared_ptr &operator=(const shared_ptr &other) noexcept {
     if (this != std::addressof(other)) {
       shared_ptr<T> temp(other);
