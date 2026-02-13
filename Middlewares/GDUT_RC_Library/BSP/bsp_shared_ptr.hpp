@@ -4,6 +4,7 @@
 #include "bsp_atomic.hpp"
 #include "bsp_memorypool.hpp"
 #include <cstddef>
+#include <memory>
 #include <type_traits>
 #include <utility>
 
@@ -98,13 +99,13 @@ public:
                                        ptr, std::forward<Deleter>(deleter));
       if (cb) {
         m_control_block = cb;
+        enable_shared_from_this_helper(
+            ptr, this); // 处理 enable_shared_from_this 的支持
       } else {
         // 分配控制块失败，调用删除器释放对象
         deleter(ptr);
         m_ptr = nullptr;
       }
-      enable_shared_from_this_helper(
-          ptr, this); // 处理 enable_shared_from_this 的支持
     }
   }
 
@@ -121,13 +122,13 @@ public:
                                        ptr, std::forward<Deleter>(deleter));
       if (cb) {
         m_control_block = cb;
+        enable_shared_from_this_helper(
+            ptr, this); // 处理 enable_shared_from_this 的支持
       } else {
         // 分配控制块失败，调用删除器释放对象
         deleter(ptr);
         m_ptr = nullptr;
       }
-      enable_shared_from_this_helper(
-          ptr, this); // 处理 enable_shared_from_this 的支持
     }
   }
 
@@ -136,50 +137,34 @@ public:
     // 直接构造，不增加计数（用于 weak_ptr 的 lock）
   }
 
-  shared_ptr(const weak_ptr<T> &wp) noexcept
-      : m_ptr(wp.m_ptr), m_control_block(wp.m_control_block) {
-    if (m_control_block) {
-      // 增加共享引用计数
-      m_control_block->shared_count.fetch_add(1, memory_order_relaxed);
-    }
-  }
-
   shared_ptr(const shared_ptr &other) noexcept
-      : m_ptr(other.m_ptr), m_control_block(other.m_control_block) {
-    if (m_control_block) {
-      m_control_block->shared_count.fetch_add(1, memory_order_relaxed);
-    }
+      : m_ptr(nullptr), m_control_block(nullptr) {
+    shared_ptr<T> temp(other);
+    swap(temp);
   }
 
   shared_ptr &operator=(const shared_ptr &other) noexcept {
-    if (this != &other) {
-      // 增加新对象的引用计数
-      if (other.m_control_block) {
-        other.m_control_block->shared_count.fetch_add(1, memory_order_relaxed);
-      }
-      // 释放当前对象
-      release();
-      // 复制指针和控制块
-      m_ptr = other.m_ptr;
-      m_control_block = other.m_control_block;
+    if (this != std::addressof(other)) {
+      shared_ptr<T> temp(other);
+      swap(temp);
     }
     return *this;
   }
 
-  shared_ptr(shared_ptr &&other) noexcept
-      : m_ptr(std::exchange(other.m_ptr, nullptr)),
-        m_control_block(std::exchange(other.m_control_block, nullptr)) {
-    // 不改变计数，因为只是移动
+  template <typename U = T>
+    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
+  shared_ptr(shared_ptr<U> &&other) noexcept
+      : m_ptr(nullptr), m_control_block(nullptr) {
+    shared_ptr<T> temp(std::move(other));
+    swap(temp);
   }
 
-  shared_ptr &operator=(shared_ptr &&other) noexcept {
-    if (this != &other) {
-      // 释放当前对象
-      release();
-      // 移动指针和控制块
-      m_ptr = std::exchange(other.m_ptr, nullptr);
-      m_control_block = std::exchange(other.m_control_block, nullptr);
-      // 不改变计数
+  template <typename U = T>
+    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
+  shared_ptr &operator=(shared_ptr<U> &&other) noexcept {
+    if (this != std::addressof(other)) {
+      shared_ptr<T> temp(std::move(other));
+      swap(temp);
     }
     return *this;
   }
@@ -194,7 +179,27 @@ public:
                ? m_control_block->shared_count.load(memory_order_relaxed)
                : 0;
   }
+
+  template <typename U = T>
+    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
+  void reset(U *ptr = nullptr) noexcept {
+    // 创建一个新的 shared_ptr 来管理新对象
+    shared_ptr temp(ptr);
+    swap(temp); // 交换当前对象与新对象，旧对象会在 temp 的析构时释放
+  }
+
+  template <typename U = T>
+    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
+  void swap(shared_ptr &other) noexcept {
+    std::swap(m_ptr, other.m_ptr);
+    std::swap(m_control_block, other.m_control_block);
+  }
+
   explicit operator bool() const noexcept { return m_ptr != nullptr; }
+
+  template <typename U>
+  friend class shared_ptr; // 友元声明，以便不同类型的 shared_ptr
+                           // 可以访问私有成员
 
 private:
   void release() noexcept {
@@ -205,9 +210,8 @@ private:
         // 使用 acquire 内存序确保对象销毁前的所有写入对其他线程可见
         __atomic_thread_fence(memory_order_acquire);
         m_control_block->dispose(); // 销毁托管对象
-        // 减少弱引用计数，如果 weak_count 已经为 0，则释放控制块
-        if (m_control_block->weak_count.fetch_sub(1, memory_order_acq_rel) ==
-            0) {
+        // 检测弱引用计数，如果 weak_count 已经为 0，则释放控制块
+        if (m_control_block->weak_count.load(memory_order_acq_rel) == 0) {
           m_control_block->deallocate();
         }
       }
@@ -276,7 +280,7 @@ public:
 
   // 拷贝赋值
   weak_ptr &operator=(const weak_ptr &other) noexcept {
-    if (this != &other) {
+    if (this != std::addressof(other)) {
       decrement_weak(); // 释放当前引用
       m_ptr = other.m_ptr;
       m_control_block = other.m_control_block;
@@ -287,7 +291,7 @@ public:
 
   // 移动赋值
   weak_ptr &operator=(weak_ptr &&other) noexcept {
-    if (this != &other) {
+    if (this != std::addressof(other)) {
       decrement_weak(); // 释放当前引用
       m_ptr = std::exchange(other.m_ptr, nullptr);
       m_control_block = std::exchange(other.m_control_block, nullptr);
@@ -348,9 +352,19 @@ public:
 
   // 重置
   void reset() noexcept {
-    decrement_weak();
+    control_block_base *old_control_block = m_control_block;
     m_ptr = nullptr;
     m_control_block = nullptr;
+
+    if (old_control_block != nullptr) {
+      long old_weak = old_control_block->weak_count.fetch_sub(
+          1, gdut::memory_order_acq_rel);
+      if (old_weak == 1 && old_control_block->shared_count.load(
+                               gdut::memory_order_acquire) == 0) {
+        // 最后一个弱引用，且 shared_count 应该已经为 0
+        old_control_block->deallocate();
+      }
+    }
   }
 
   // 交换
@@ -382,12 +396,10 @@ protected:
 
 public:
   shared_ptr<T> shared_from_this() {
-    return shared_ptr<T>(weak_this); // 从 weak_ptr 提升
+    return weak_this.lock(); // 从 weak_ptr 锁定获取 shared_ptr
   }
 
-  shared_ptr<const T> shared_from_this() const {
-    return shared_ptr<const T>(weak_this);
-  }
+  shared_ptr<const T> shared_from_this() const { return weak_this.lock(); }
 
   // 供 shared_ptr 构造函数调用的内部初始化函数
   void internal_accept_owner_(shared_ptr<T> *ptr) const {
