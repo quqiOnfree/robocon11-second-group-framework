@@ -180,8 +180,8 @@ private:
           (*m_deleter)(m_ptr);
         }
         if (m_deleter) {
-          // Need to use proper polymorphic deletion since we don't know the
-          // concrete type Delete through the base pointer with proper size
+          // Use polymorphic deletion with proper size since the concrete
+          // deleter type is unknown
           std::size_t deleter_size = m_deleter->size();
           m_deleter->~deleter_wrapper();
           pmr::polymorphic_allocator<char>{}.deallocate(

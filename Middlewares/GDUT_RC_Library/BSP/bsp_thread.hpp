@@ -68,6 +68,7 @@ public:
           (*data)();
           allocator.template destroy<bound_type>(data);
           allocator.deallocate(data, 1);
+          osThreadExit();
         },
         static_cast<void *>(data), &attributes);
     if (m_handle == nullptr) {
@@ -96,8 +97,7 @@ public:
       return;
     }
     osSemaphoreAcquire(m_semaphore, osWaitForever);
-    // Thread has completed, now we need to clean up the thread handle
-    osThreadTerminate(m_handle);
+    // Thread has properly exited via osThreadExit(), handle is already cleaned up
     m_handle = nullptr;
     osSemaphoreDelete(m_semaphore);
     m_semaphore = nullptr;
