@@ -239,7 +239,7 @@ public:
     swap(temp); // 交换当前对象与新对象，旧对象会在 temp 的析构时释放
   }
 
-  template <typename U = T, typename Deleter>
+  template <typename U, typename Deleter>
     requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
   void reset(U *ptr, Deleter &&deleter) noexcept {
     shared_ptr temp;
