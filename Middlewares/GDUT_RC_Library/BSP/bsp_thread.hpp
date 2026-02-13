@@ -4,6 +4,7 @@
 #include <cmsis_os2.h>
 #include <cstddef>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 #include "bsp_memorypool.hpp"
@@ -43,6 +44,10 @@ public:
 
   template <typename Func, typename... Args>
   thread(Func &&func, Args &&...args) {
+    static_assert(
+        std::is_invocable_v<Func, Args...>,
+        "gdut::thread constructor requires a callable that can be invoked "
+        "with the provided argument types");
     m_semaphore = osSemaphoreNew(1, 0, nullptr);
     if (m_semaphore == nullptr) {
       return;
@@ -97,7 +102,8 @@ public:
       return;
     }
     osSemaphoreAcquire(m_semaphore, osWaitForever);
-    // Thread has properly exited via osThreadExit(), handle is already cleaned up
+    // Thread has properly exited via osThreadExit(), handle is already cleaned
+    // up
     m_handle = nullptr;
     osSemaphoreDelete(m_semaphore);
     m_semaphore = nullptr;
