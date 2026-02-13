@@ -2,9 +2,15 @@
 #define BSP_TYPE_TRAITS_HPP
 
 #include "stm32f407xx.h"
+#include <chrono>
+#include <cmsis_os2.h>
+#include <cstdint>
 
 namespace gdut {
 
+/**
+ * @brief Type-safe GPIO port enumeration
+ */
 enum class gpio_port : uint8_t { A = 1, B, C, D, E, F, G, H, I };
 
 [[nodiscard]] constexpr GPIO_TypeDef *get_gpio_port_ptr(uint32_t port) {
@@ -89,6 +95,43 @@ enum class timer_id : uint8_t {
   default:
     return nullptr; // Invalid timer ID
   }
+}
+
+template <typename Rep, typename Period>
+uint32_t time_to_ticks(const std::chrono::duration<Rep, Period> &timeout) {
+  uint32_t ticks;
+  if (timeout == std::chrono::duration<Rep, Period>::max()) {
+    ticks = osWaitForever;
+  } else {
+    // Convert to milliseconds (sub-millisecond precision is truncated)
+    auto ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count();
+    // Handle negative durations (invalid state)
+    if (ms < 0) {
+      return 0;
+    }
+
+    // Handle zero or positive durations
+    if (ms == 0) {
+      ticks = 0;
+    } else {
+      // Convert milliseconds to ticks (tickFreq is in Hz)
+      // ticks = (ms * tickFreq) / 1000
+      uint32_t tick_freq = osKernelGetTickFreq();
+      // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for
+      // osWaitForever) Calculate max_ms to avoid overflow: max_ms =
+      // (UINT32_MAX - 1) * 1000 / tick_freq
+      uint64_t max_ms =
+          static_cast<uint64_t>(UINT32_MAX - 1) * 1000ULL / tick_freq;
+      if (static_cast<uint64_t>(ms) >= max_ms) {
+        ticks = UINT32_MAX - 1;
+      } else {
+        ticks = static_cast<uint32_t>((static_cast<uint64_t>(ms) * tick_freq) /
+                                      1000);
+      }
+    }
+  }
+  return ticks;
 }
 
 } // namespace gdut
