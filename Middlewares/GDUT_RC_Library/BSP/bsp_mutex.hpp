@@ -25,7 +25,7 @@ namespace gdut {
  */
 class mutex {
 public:
-  mutex() : m_mutex_id(NULL) {
+  mutex() : m_mutex_id(nullptr) {
     osMutexAttr_t attr = {
         "GDUT", osMutexRecursive | osMutexPrioInherit | osMutexRobust, 0, 0};
     m_mutex_id = osMutexNew(&attr);
@@ -193,7 +193,7 @@ public:
   }
 
   ~unique_lock() noexcept {
-    if (m_owns) {
+    if (m_owns && m_mtx != nullptr) {
       m_mtx->unlock();
     }
   }
