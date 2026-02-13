@@ -33,12 +33,15 @@ struct system_clock {
   using period = duration::period;
   using time_point = std::chrono::time_point<system_clock>;
 
-  static constexpr bool is_steady = true;
+  static constexpr bool is_steady = false;
 
   static time_point now() noexcept {
-    return time_point(duration(
-        basic_kernel_clock::get_tick_count() /
-        (basic_kernel_clock::get_tick_freq() / duration::period::den)));
+    // Use integer arithmetic to avoid precision loss
+    // Convert ticks to milliseconds: (ticks * 1000) / tick_freq
+    uint32_t ticks = basic_kernel_clock::get_tick_count();
+    uint32_t freq = basic_kernel_clock::get_tick_freq();
+    uint64_t ms = (static_cast<uint64_t>(ticks) * duration::period::den) / freq;
+    return time_point(duration(static_cast<rep>(ms)));
   }
 };
 
@@ -51,9 +54,12 @@ struct steady_clock {
   static constexpr bool is_steady = true;
 
   static time_point now() noexcept {
-    return time_point(duration(
-        basic_kernel_clock::get_sys_timer_count() /
-        (basic_kernel_clock::get_sys_timer_freq() / duration::period::den)));
+    // Use integer arithmetic to avoid precision loss
+    // Convert sys timer counts to microseconds
+    uint32_t counts = basic_kernel_clock::get_sys_timer_count();
+    uint32_t freq = basic_kernel_clock::get_sys_timer_freq();
+    uint64_t us = (static_cast<uint64_t>(counts) * duration::period::den) / freq;
+    return time_point(duration(static_cast<rep>(us)));
   }
 };
 

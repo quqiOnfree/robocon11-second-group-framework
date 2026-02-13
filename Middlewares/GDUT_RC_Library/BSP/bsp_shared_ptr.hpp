@@ -15,13 +15,28 @@ public:
 
   template <typename Deleter>
   shared_ptr(Ty *ptr, Deleter &&deleter) noexcept
-      : m_ptr(ptr), m_deleter(pmr::polymorphic_allocator<>{}
-                                  .new_object<deleter_wrapper_impl<Deleter>>(
-                                      std::forward<Deleter>(deleter))),
-        m_ref_count(
-            pmr::polymorphic_allocator<>{}.new_object<atomic<std::size_t>>()) {
-    if (m_ref_count) {
-      m_ref_count->store(1, memory_order_relaxed);
+      : m_ptr(nullptr), m_deleter(nullptr), m_ref_count(nullptr) {
+    if (ptr) {
+      m_deleter = pmr::polymorphic_allocator<>{}
+                      .new_object<deleter_wrapper_impl<Deleter>>(
+                          std::forward<Deleter>(deleter));
+      if (m_deleter) {
+        m_ref_count =
+            pmr::polymorphic_allocator<>{}.new_object<atomic<std::size_t>>();
+        if (m_ref_count) {
+          m_ref_count->store(1, memory_order_relaxed);
+          m_ptr = ptr;
+        } else {
+          // Cleanup: delete the deleter wrapper
+          pmr::polymorphic_allocator<>{}.delete_object(m_deleter);
+          m_deleter = nullptr;
+          // Call the deleter on the ptr since we can't manage it
+          deleter(ptr);
+        }
+      } else {
+        // Cleanup: call deleter on ptr since we can't manage it
+        deleter(ptr);
+      }
     }
   }
 
@@ -29,13 +44,28 @@ public:
     requires std::is_convertible_v<std::add_pointer_t<U>,
                                    std::add_pointer_t<Ty>>
   shared_ptr(U *ptr, Deleter &&deleter) noexcept
-      : m_ptr(ptr), m_deleter(pmr::polymorphic_allocator<>{}
-                                  .new_object<deleter_wrapper_impl<Deleter>>(
-                                      std::forward<Deleter>(deleter))),
-        m_ref_count(
-            pmr::polymorphic_allocator<>{}.new_object<atomic<std::size_t>>()) {
-    if (m_ref_count) {
-      m_ref_count->store(1, memory_order_relaxed);
+      : m_ptr(nullptr), m_deleter(nullptr), m_ref_count(nullptr) {
+    if (ptr) {
+      m_deleter = pmr::polymorphic_allocator<>{}
+                      .new_object<deleter_wrapper_impl<Deleter>>(
+                          std::forward<Deleter>(deleter));
+      if (m_deleter) {
+        m_ref_count =
+            pmr::polymorphic_allocator<>{}.new_object<atomic<std::size_t>>();
+        if (m_ref_count) {
+          m_ref_count->store(1, memory_order_relaxed);
+          m_ptr = ptr;
+        } else {
+          // Cleanup: delete the deleter wrapper
+          pmr::polymorphic_allocator<>{}.delete_object(m_deleter);
+          m_deleter = nullptr;
+          // Call the deleter on the ptr since we can't manage it
+          deleter(ptr);
+        }
+      } else {
+        // Cleanup: call deleter on ptr since we can't manage it
+        deleter(ptr);
+      }
     }
   }
 
@@ -66,15 +96,37 @@ public:
     }
   }
 
+  shared_ptr(shared_ptr &&other) noexcept
+      : m_ptr(other.m_ptr), m_deleter(other.m_deleter),
+        m_ref_count(other.m_ref_count) {
+    other.m_ptr = nullptr;
+    other.m_deleter = nullptr;
+    other.m_ref_count = nullptr;
+  }
+
   shared_ptr &operator=(const shared_ptr &other) noexcept {
+    if (this != &other) {
+      // Increment other's ref count first to handle self-assignment through aliasing
+      if (other.m_ref_count) {
+        other.m_ref_count->fetch_add(1, memory_order_relaxed);
+      }
+      release();
+      m_ptr = other.m_ptr;
+      m_deleter = other.m_deleter;
+      m_ref_count = other.m_ref_count;
+    }
+    return *this;
+  }
+
+  shared_ptr &operator=(shared_ptr &&other) noexcept {
     if (this != &other) {
       release();
       m_ptr = other.m_ptr;
       m_deleter = other.m_deleter;
       m_ref_count = other.m_ref_count;
-      if (m_ref_count) {
-        m_ref_count->fetch_add(1, memory_order_relaxed);
-      }
+      other.m_ptr = nullptr;
+      other.m_deleter = nullptr;
+      other.m_ref_count = nullptr;
     }
     return *this;
   }
@@ -92,6 +144,7 @@ public:
 private:
   struct deleter_wrapper {
     virtual std::size_t size() const noexcept = 0;
+    virtual std::size_t alignment() const noexcept = 0;
     virtual void operator()(Ty *ptr) = 0;
     virtual ~deleter_wrapper() = default;
   };
@@ -103,17 +156,25 @@ private:
     virtual std::size_t size() const noexcept override {
       return sizeof(deleter_wrapper_impl<Deleter>);
     }
+    virtual std::size_t alignment() const noexcept {
+      return alignof(deleter_wrapper_impl<Deleter>);
+    }
     virtual void operator()(Ty *ptr) override { deleter(ptr); }
   };
 
   void release() noexcept {
     if (m_ref_count) {
       if (m_ref_count->fetch_sub(1, memory_order_relaxed) == 1) {
-        (*m_deleter)(m_ptr);
-        std::size_t deleter_size = m_deleter->size();
-        m_deleter->~deleter_wrapper();
-        pmr::polymorphic_allocator<char>{}.deallocate(
-            reinterpret_cast<char *>(m_deleter), deleter_size);
+        if (m_deleter && m_ptr) {
+          (*m_deleter)(m_ptr);
+        }
+        if (m_deleter) {
+          std::size_t deleter_size = m_deleter->size();
+          std::size_t deleter_align = m_deleter->alignment();
+          m_deleter->~deleter_wrapper();
+          pmr::polymorphic_allocator<char>{}.deallocate(
+              reinterpret_cast<char *>(m_deleter), deleter_size, deleter_align);
+        }
         pmr::polymorphic_allocator<>{}.delete_object<atomic<std::size_t>>(
             m_ref_count);
       }
