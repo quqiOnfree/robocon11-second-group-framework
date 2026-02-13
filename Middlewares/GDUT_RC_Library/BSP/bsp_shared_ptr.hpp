@@ -105,30 +105,21 @@ public:
   }
 
   shared_ptr &operator=(const shared_ptr &other) noexcept {
-    if (this != &other) {
-      // Increment other's ref count first to handle self-assignment through aliasing
-      if (other.m_ref_count) {
-        other.m_ref_count->fetch_add(1, memory_order_relaxed);
-      }
-      release();
-      m_ptr = other.m_ptr;
-      m_deleter = other.m_deleter;
-      m_ref_count = other.m_ref_count;
-    }
+    // Use copy-and-swap idiom for strong exception safety and avoid races
+    shared_ptr(other).swap(*this);
     return *this;
   }
 
   shared_ptr &operator=(shared_ptr &&other) noexcept {
-    if (this != &other) {
-      release();
-      m_ptr = other.m_ptr;
-      m_deleter = other.m_deleter;
-      m_ref_count = other.m_ref_count;
-      other.m_ptr = nullptr;
-      other.m_deleter = nullptr;
-      other.m_ref_count = nullptr;
-    }
+    // Use move-and-swap
+    shared_ptr(std::move(other)).swap(*this);
     return *this;
+  }
+
+  void swap(shared_ptr &other) noexcept {
+    std::swap(m_ptr, other.m_ptr);
+    std::swap(m_deleter, other.m_deleter);
+    std::swap(m_ref_count, other.m_ref_count);
   }
 
   ~shared_ptr() noexcept { release(); }

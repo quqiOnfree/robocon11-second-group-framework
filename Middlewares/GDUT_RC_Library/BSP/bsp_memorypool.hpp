@@ -355,6 +355,8 @@ public:
 
   template <typename U, typename... Args>
   std::add_pointer_t<U> new_object(Args &&...args) {
+    // Note: This function can throw if U's constructor throws
+    // Memory is deallocated automatically on exception
     auto ptr = m_resource->allocate(sizeof(U), alignof(U));
     if (ptr == nullptr) {
       return nullptr;
