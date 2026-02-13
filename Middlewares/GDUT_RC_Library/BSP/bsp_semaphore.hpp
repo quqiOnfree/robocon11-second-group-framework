@@ -27,7 +27,7 @@ template <std::size_t LeastMaxValue> class counting_semaphore {
 public:
   static constexpr std::size_t max() noexcept { return LeastMaxValue; }
 
-  constexpr explicit counting_semaphore(std::size_t desired) {
+  explicit counting_semaphore(std::size_t desired) {
     m_semaphore_id = osSemaphoreNew(LeastMaxValue, desired, nullptr);
   }
 
@@ -132,8 +132,11 @@ public:
     return acquire(rel_time) == osOK;
   }
 
+  bool valid() const noexcept { return m_semaphore_id != nullptr; }
+  explicit operator bool() const noexcept { return valid(); }
+
 private:
-  osSemaphoreId_t m_semaphore_id;
+  osSemaphoreId_t m_semaphore_id{nullptr};
 };
 
 using binary_semaphore = counting_semaphore<1>;

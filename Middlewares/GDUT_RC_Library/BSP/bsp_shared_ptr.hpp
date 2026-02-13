@@ -72,7 +72,7 @@ public:
   template <typename U, typename Deleter>
     requires std::is_convertible_v<std::add_pointer_t<U>,
                                    std::add_pointer_t<Ty>>
-  explicit shared_ptr(const std::unique_ptr<U, Deleter> &other) noexcept {
+  explicit shared_ptr(std::unique_ptr<U, Deleter> &&other) noexcept {
     auto deleter = other.get_deleter();
     m_ptr = other.release();
 
@@ -156,21 +156,21 @@ private:
 
   void release() noexcept {
     if (m_ref_count) {
-      // Use release memory order for the decrement to synchronize with other threads
-      // This ensures all writes to the managed object are visible before deletion
+      // Use release memory order for the decrement to synchronize with other
+      // threads This ensures all writes to the managed object are visible
+      // before deletion
       if (m_ref_count->fetch_sub(1, memory_order_release) == 1) {
         // Use acquire fence to synchronize with all releases from other threads
         __atomic_thread_fence(memory_order_acquire);
-        
+
         if (m_deleter && m_ptr) {
           (*m_deleter)(m_ptr);
         }
         if (m_deleter) {
           std::size_t deleter_size = m_deleter->size();
-          std::size_t deleter_align = m_deleter->alignment();
           m_deleter->~deleter_wrapper();
           pmr::polymorphic_allocator<char>{}.deallocate(
-              reinterpret_cast<char *>(m_deleter), deleter_size, deleter_align);
+              reinterpret_cast<char *>(m_deleter), deleter_size);
         }
         pmr::polymorphic_allocator<>{}.delete_object<atomic<std::size_t>>(
             m_ref_count);

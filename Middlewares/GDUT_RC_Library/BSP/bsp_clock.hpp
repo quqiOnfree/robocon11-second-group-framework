@@ -59,7 +59,8 @@ struct steady_clock {
     // Convert sys timer counts to microseconds
     uint32_t counts = basic_kernel_clock::get_sys_timer_count();
     uint32_t freq = basic_kernel_clock::get_sys_timer_freq();
-    uint64_t us = (static_cast<uint64_t>(counts) * duration::period::den) / freq;
+    uint64_t us =
+        (static_cast<uint64_t>(counts) * duration::period::den) / freq;
     return time_point(duration(static_cast<rep>(us)));
   }
 };

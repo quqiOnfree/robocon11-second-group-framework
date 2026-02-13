@@ -89,7 +89,7 @@ public:
   std::add_pointer_t<value_type>
   allocate(const std::chrono::duration<Rep, Period> &timeout) {
     if (m_pool_id == nullptr) {
-      m_pool_id = osMemoryPoolNew(MaxSize, sizeof(value_type), nullptr);
+      return nullptr;
     }
     uint32_t ticks;
     if (timeout == std::chrono::duration<Rep, Period>::max()) {
@@ -132,11 +132,11 @@ public:
     return allocate(std::chrono::milliseconds::max());
   }
 
-  void deallocate(std::add_pointer_t<value_type> ptr) {
+  osStatus_t deallocate(std::add_pointer_t<value_type> ptr) {
     if (m_pool_id == nullptr || ptr == nullptr) {
-      return;
+      return osErrorParameter;
     }
-    osMemoryPoolFree(m_pool_id, ptr);
+    return osMemoryPoolFree(m_pool_id, ptr);
   }
 
   template <typename... Args>
@@ -213,9 +213,9 @@ public:
     return allocator_type::allocate(std::chrono::milliseconds::max());
   }
 
-  void deallocate(std::add_pointer_t<value_type> ptr) {
+  osStatus_t deallocate(std::add_pointer_t<value_type> ptr) {
     lock_guard lock(m_mutex);
-    allocator_type::deallocate(ptr);
+    return allocator_type::deallocate(ptr);
   }
 
   using allocator_type::construct;
@@ -227,7 +227,7 @@ public:
   }
 
 private:
-  mutex m_mutex;
+  mutable mutex m_mutex;
 };
 
 namespace pmr {
@@ -359,7 +359,8 @@ public:
     if (ptr == nullptr) {
       return nullptr;
     }
-    construct(static_cast<std::add_pointer_t<U>>(ptr), std::forward<Args>(args)...);
+    construct(static_cast<std::add_pointer_t<U>>(ptr),
+              std::forward<Args>(args)...);
     return static_cast<std::add_pointer_t<U>>(ptr);
   }
 

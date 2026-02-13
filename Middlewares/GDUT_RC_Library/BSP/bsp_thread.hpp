@@ -54,26 +54,27 @@ public:
       osSemaphoreRelease(this->m_semaphore);
     };
     using bound_type = decltype(bound);
-    static mutexd_allocator<bound_type, 12> allocator;
-    bound_type *data = allocator.allocate();
+    static pmr::polymorphic_allocator<bound_type> allocator;
+    bound_type *data = allocator.allocate(1);
     if (data == nullptr) {
       osSemaphoreDelete(m_semaphore);
       m_semaphore = nullptr;
       return;
     }
-    allocator.construct(data, std::move(bound));
+    allocator.template construct<bound_type>(data, std::move(bound));
     m_handle = osThreadNew(
         [](void *ptr) {
           bound_type *data = static_cast<bound_type *>(ptr);
           (*data)();
-          allocator.destroy(data);
-          allocator.deallocate(data);
+          allocator.template destroy<bound_type>(data);
+          allocator.deallocate(data, 1);
         },
         static_cast<void *>(data), &attributes);
     if (m_handle == nullptr) {
-      allocator.destroy(data);
-      allocator.deallocate(data);
+      allocator.template destroy<bound_type>(data);
+      allocator.deallocate(data, 1);
       osSemaphoreDelete(m_semaphore);
+      m_semaphore = nullptr;
     }
   }
 
@@ -121,9 +122,6 @@ public:
   thread &operator=(thread &&other) noexcept {
     if (this != std::addressof(other)) {
       terminate();
-      if (m_semaphore != nullptr) {
-        osSemaphoreDelete(m_semaphore);
-      }
       m_handle = std::exchange(other.m_handle, nullptr);
       m_semaphore = std::exchange(other.m_semaphore, nullptr);
     }
