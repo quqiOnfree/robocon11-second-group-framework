@@ -182,11 +182,11 @@ public:
     return *this;
   }
 
-  shared_ptr(shared_ptr&& other) noexcept
+  shared_ptr(shared_ptr &&other) noexcept
       : m_ptr(std::exchange(other.m_ptr, nullptr)),
         m_control_block(std::exchange(other.m_control_block, nullptr)) {}
 
-  shared_ptr &operator=(shared_ptr&& other) noexcept {
+  shared_ptr &operator=(shared_ptr &&other) noexcept {
     if (this != std::addressof(other)) {
       shared_ptr<T> temp(std::move(other));
       swap(temp);
@@ -248,10 +248,9 @@ public:
       using control_block_type =
           control_block_separate<U, std::decay_t<Deleter>>;
 
-      control_block_type *cb =
-          pmr::polymorphic_allocator<control_block_type>{}
-              .template new_object<control_block_type>(
-                  ptr, std::forward<Deleter>(deleter));
+      control_block_type *cb = pmr::polymorphic_allocator<control_block_type>{}
+                                   .template new_object<control_block_type>(
+                                       ptr, std::forward<Deleter>(deleter));
 
       if (cb != nullptr) {
         temp.m_ptr = ptr;
@@ -316,7 +315,8 @@ shared_ptr<T> make_shared(Args &&...args) {
 }
 
 // 非成员 swap
-template <typename T> void swap(shared_ptr<T> &lhs, shared_ptr<T> &rhs) noexcept {
+template <typename T>
+void swap(shared_ptr<T> &lhs, shared_ptr<T> &rhs) noexcept {
   lhs.swap(rhs);
 }
 
@@ -546,7 +546,8 @@ public:
   void internal_accept_owner_(shared_ptr<T> *ptr) const {
     // 如果 weak_this 还没有被初始化，则从 ptr 复制一份 weak_ptr
     if (weak_this.expired()) {
-      weak_this = *ptr; // weak_ptr 支持从 shared_ptr 赋值（由 weak_ptr::operator=(const shared_ptr<T>&) 保证）
+      weak_this = *ptr; // weak_ptr 支持从 shared_ptr 赋值（由
+                        // weak_ptr::operator=(const shared_ptr<T>&) 保证）
     }
   }
 };
