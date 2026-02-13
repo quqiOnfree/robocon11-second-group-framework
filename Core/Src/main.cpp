@@ -43,7 +43,8 @@ int main(void) {
                  GPIO_InitTypeDef{.Pin = GPIO_PIN_5,
                                   .Mode = GPIO_MODE_OUTPUT_PP,
                                   .Pull = GPIO_NOPULL,
-                                  .Speed = GPIO_SPEED_FREQ_LOW}>
+                                  .Speed = GPIO_SPEED_FREQ_LOW,
+                                  .Alternate = 0}>
       led;
 
   gdut::thread<4 * 128> main_thread([&led]() {

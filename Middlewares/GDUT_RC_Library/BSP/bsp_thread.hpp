@@ -4,8 +4,9 @@
 #include <cmsis_os2.h>
 #include <cstddef>
 #include <memory>
-#include <stdlib.h>
 #include <utility>
+
+#include "bsp_memorypool.hpp"
 
 namespace gdut {
 
@@ -42,35 +43,44 @@ public:
 
   template <typename Func, typename... Args>
   thread(Func &&func, Args &&...args) {
-    m_sem = osSemaphoreNew(1, 0, nullptr);
-    if (m_sem == nullptr) {
+    m_semaphore = osSemaphoreNew(1, 0, nullptr);
+    if (m_semaphore == nullptr) {
       return;
     }
 
     auto bound = [this, func = std::forward<Func>(func),
                   ... args = std::forward<Args>(args)]() mutable {
       func(args...);
-      osSemaphoreRelease(this->m_sem);
+      osSemaphoreRelease(this->m_semaphore);
     };
-    using Bound = decltype(bound);
-    Bound *data = new Bound{std::move(bound)};
+    using bound_type = decltype(bound);
+    static mutexd_allocator<bound_type, 12> allocator;
+    bound_type *data = allocator.allocate();
+    if (data == nullptr) {
+      osSemaphoreDelete(m_semaphore);
+      m_semaphore = nullptr;
+      return;
+    }
+    allocator.construct(data, std::move(bound));
     m_handle = osThreadNew(
         [](void *ptr) {
-          Bound *data = static_cast<Bound *>(ptr);
+          bound_type *data = static_cast<bound_type *>(ptr);
           (*data)();
-          delete data;
+          allocator.destroy(data);
+          allocator.deallocate(data);
         },
         static_cast<void *>(data), &attributes);
     if (m_handle == nullptr) {
-      delete data;
-      osSemaphoreDelete(m_sem);
+      allocator.destroy(data);
+      allocator.deallocate(data);
+      osSemaphoreDelete(m_semaphore);
     }
   }
 
   ~thread() noexcept {
     terminate();
-    if (m_sem != nullptr) {
-      osSemaphoreDelete(m_sem);
+    if (m_semaphore != nullptr) {
+      osSemaphoreDelete(m_semaphore);
     }
   }
 
@@ -80,14 +90,14 @@ public:
   }
 
   void join() {
-    if (m_handle == nullptr || m_sem == nullptr ||
+    if (m_handle == nullptr || m_semaphore == nullptr ||
         osThreadGetState(m_handle) == osThreadTerminated) {
       return;
     }
-    osSemaphoreAcquire(m_sem, osWaitForever);
-    osSemaphoreDelete(m_sem);
+    osSemaphoreAcquire(m_semaphore, osWaitForever);
+    osSemaphoreDelete(m_semaphore);
     m_handle = nullptr;
-    m_sem = nullptr;
+    m_semaphore = nullptr;
   }
 
   void terminate() {
@@ -95,9 +105,9 @@ public:
       osThreadTerminate(m_handle);
       m_handle = nullptr;
     }
-    if (m_sem != nullptr) {
-      osSemaphoreDelete(m_sem);
-      m_sem = nullptr;
+    if (m_semaphore != nullptr) {
+      osSemaphoreDelete(m_semaphore);
+      m_semaphore = nullptr;
     }
   }
 
@@ -106,22 +116,23 @@ public:
 
   thread(thread &&other) noexcept
       : m_handle(std::exchange(other.m_handle, nullptr)),
-        m_sem(std::exchange(other.m_sem, nullptr)) {}
+        m_semaphore(std::exchange(other.m_semaphore, nullptr)) {}
 
   thread &operator=(thread &&other) noexcept {
     if (this != std::addressof(other)) {
       terminate();
-      if (m_sem)
-        osSemaphoreDelete(m_sem);
+      if (m_semaphore != nullptr) {
+        osSemaphoreDelete(m_semaphore);
+      }
       m_handle = std::exchange(other.m_handle, nullptr);
-      m_sem = std::exchange(other.m_sem, nullptr);
+      m_semaphore = std::exchange(other.m_semaphore, nullptr);
     }
     return *this;
   }
 
 private:
   osThreadId_t m_handle{nullptr};
-  osSemaphoreId_t m_sem{nullptr};
+  osSemaphoreId_t m_semaphore{nullptr};
 };
 
 } // namespace gdut

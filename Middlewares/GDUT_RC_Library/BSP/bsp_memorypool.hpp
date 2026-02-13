@@ -1,16 +1,19 @@
 #ifndef BSP_MEMORYPOOL_HPP
 #define BSP_MEMORYPOOL_HPP
 
+#include "FreeRTOS.h"
+#include "bsp_mutex.hpp"
+#include "portable.h"
 #include <chrono>
 #include <cmsis_os2.h>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <new>
 #include <type_traits>
 #include <utility>
 
 namespace gdut {
-
 /**
  * @brief Memory pool allocator based on CMSIS-RTOS2
  *
@@ -84,8 +87,7 @@ public:
    */
   template <typename Rep, typename Period>
   std::add_pointer_t<value_type>
-  allocate(const std::chrono::duration<Rep, Period> &timeout =
-               std::chrono::duration<Rep, Period>::max()) {
+  allocate(const std::chrono::duration<Rep, Period> &timeout) {
     if (m_pool_id == nullptr) {
       m_pool_id = osMemoryPoolNew(MaxSize, sizeof(value_type), nullptr);
     }
@@ -126,11 +128,26 @@ public:
         osMemoryPoolAlloc(m_pool_id, ticks));
   }
 
-  bool deallocate(std::add_pointer_t<value_type> ptr) {
+  std::add_pointer_t<value_type> allocate() {
+    return allocate(std::chrono::milliseconds::max());
+  }
+
+  void deallocate(std::add_pointer_t<value_type> ptr) {
     if (m_pool_id == nullptr || ptr == nullptr) {
-      return false;
+      return;
     }
-    return osMemoryPoolFree(m_pool_id, ptr) == osOK;
+    osMemoryPoolFree(m_pool_id, ptr);
+  }
+
+  template <typename... Args>
+  static void construct(std::add_pointer_t<value_type> ptr, Args &&...args) {
+    new (ptr) value_type(std::forward<Args>(args)...);
+  }
+
+  static void destroy(std::add_pointer_t<value_type> ptr) {
+    if (ptr != nullptr) {
+      ptr->~value_type();
+    }
   }
 
   osMemoryPoolId_t release() { return std::exchange(m_pool_id, nullptr); }
@@ -163,6 +180,194 @@ private:
 };
 
 template <std::size_t MaxSize> class [[deprecated]] allocator<void, MaxSize> {};
+template <> class [[deprecated]] allocator<void, 0> {};
+
+template <typename Ty, std::size_t MaxSize>
+class mutexd_allocator : private allocator<Ty, MaxSize> {
+public:
+  using value_type = Ty;
+  using size_type = std::size_t;
+  using difference_type = std::ptrdiff_t;
+  using allocator_type = allocator<Ty, MaxSize>;
+  static constexpr std::size_t capacity = MaxSize;
+  static constexpr std::size_t block_size = sizeof(value_type);
+
+  mutexd_allocator() = default;
+  ~mutexd_allocator() noexcept = default;
+
+  mutexd_allocator(const mutexd_allocator &) = delete;
+  mutexd_allocator &operator=(const mutexd_allocator &) = delete;
+
+  mutexd_allocator(mutexd_allocator &&other) = delete;
+  mutexd_allocator &operator=(mutexd_allocator &&other) = delete;
+
+  template <typename Rep, typename Period>
+  std::add_pointer_t<value_type>
+  allocate(const std::chrono::duration<Rep, Period> &timeout) {
+    lock_guard lock(m_mutex);
+    return allocator_type::allocate(timeout);
+  }
+
+  std::add_pointer_t<value_type> allocate() {
+    lock_guard lock(m_mutex);
+    return allocator_type::allocate(std::chrono::milliseconds::max());
+  }
+
+  void deallocate(std::add_pointer_t<value_type> ptr) {
+    lock_guard lock(m_mutex);
+    allocator_type::deallocate(ptr);
+  }
+
+  using allocator_type::construct;
+  using allocator_type::destroy;
+
+  explicit operator bool() const {
+    lock_guard lock(m_mutex);
+    return allocator_type::operator bool();
+  }
+
+private:
+  mutex m_mutex;
+};
+
+namespace pmr {
+
+class memory_resource {
+  static constexpr size_t max_align = alignof(max_align_t);
+
+public:
+  memory_resource() = default;
+  memory_resource(const memory_resource &) = default;
+  virtual ~memory_resource() = default;
+
+  memory_resource &operator=(const memory_resource &) = default;
+
+  void *allocate(size_t bytes, size_t alignment = max_align) {
+    return do_allocate(bytes, alignment);
+  }
+  void deallocate(void *p, size_t bytes, size_t alignment = max_align) {
+    do_deallocate(p, bytes, alignment);
+  }
+
+  bool is_equal(const memory_resource &other) const noexcept {
+    return do_is_equal(other);
+  }
+
+private:
+  virtual void *do_allocate(size_t bytes, size_t alignment) = 0;
+  virtual void do_deallocate(void *p, size_t bytes, size_t alignment) = 0;
+
+  virtual bool do_is_equal(const memory_resource &other) const noexcept = 0;
+};
+
+class new_delete_resource : public memory_resource {
+public:
+  static memory_resource *get_instance() {
+    static new_delete_resource instance;
+    return &instance;
+  }
+
+private:
+  void *do_allocate(size_t bytes, size_t alignment) override {
+    (void)alignment; // alignment is ignored in this simple implementation
+    return ::operator new(bytes);
+  }
+  void do_deallocate(void *p, size_t bytes, size_t alignment) override {
+    (void)bytes;     // bytes is ignored in this simple implementation
+    (void)alignment; // alignment is ignored in this simple implementation
+    ::operator delete(p);
+  }
+  bool do_is_equal(const memory_resource &other) const noexcept override {
+    return this == std::addressof(other);
+  }
+};
+
+class default_memory_resource : public memory_resource {
+public:
+  static memory_resource *get_instance() {
+    static default_memory_resource instance;
+    return &instance;
+  }
+
+private:
+  void *do_allocate(size_t bytes, size_t alignment) override {
+    (void)alignment; // alignment is ignored in this simple implementation
+    return pvPortMalloc(bytes);
+  }
+  void do_deallocate(void *p, size_t bytes, size_t alignment) override {
+    (void)bytes;     // bytes is ignored in this simple implementation
+    (void)alignment; // alignment is ignored in this simple implementation
+    vPortFree(p);
+  }
+  bool do_is_equal(const memory_resource &other) const noexcept override {
+    return this == std::addressof(other);
+  }
+};
+
+template <class Ty = std::byte> class polymorphic_allocator {
+public:
+  using value_type = Ty;
+  using size_type = std::size_t;
+  using difference_type = std::ptrdiff_t;
+
+  explicit polymorphic_allocator(
+      memory_resource *r = default_memory_resource::get_instance()) noexcept
+      : m_resource(r) {}
+
+  template <class U>
+  polymorphic_allocator(const polymorphic_allocator<U> &other) noexcept
+      : m_resource(other.resource()) {}
+
+  memory_resource *resource() const noexcept { return m_resource; }
+
+  Ty *allocate(std::size_t n) {
+    if (n > std::size_t(-1) / sizeof(Ty)) {
+      return nullptr;
+    }
+    void *p = m_resource->allocate(n * sizeof(Ty), alignof(Ty));
+    if (!p) {
+      return nullptr;
+    }
+    return static_cast<Ty *>(p);
+  }
+
+  void deallocate(Ty *p, std::size_t n) {
+    m_resource->deallocate(p, n * sizeof(Ty), alignof(Ty));
+  }
+
+  template <typename U, typename... Args>
+  static void construct(std::add_pointer_t<U> ptr, Args &&...args) {
+    new (ptr) U(std::forward<Args>(args)...);
+  }
+
+  template <typename U> static void destroy(std::add_pointer_t<U> ptr) {
+    if (ptr != nullptr) {
+      ptr->~U();
+    }
+  }
+
+  template <typename U, typename... Args>
+  std::add_pointer_t<U> new_object(Args &&...args) {
+    auto ptr = m_resource->allocate(sizeof(U), alignof(U));
+    if (ptr == nullptr) {
+      return nullptr;
+    }
+    construct(ptr, std::forward<Args>(args)...);
+    return ptr;
+  }
+
+  template <typename U> void delete_object(std::add_pointer_t<U> ptr) {
+    if (ptr != nullptr) {
+      destroy(ptr);
+      m_resource->deallocate(ptr, sizeof(U));
+    }
+  }
+
+private:
+  memory_resource *m_resource;
+};
+
+} // namespace pmr
 
 } // namespace gdut
 

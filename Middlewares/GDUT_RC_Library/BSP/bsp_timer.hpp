@@ -1,5 +1,5 @@
-#ifndef BSP_TIMER_HPP
-#define BSP_TIMER_HPP
+#ifndef BSP_GPIO_TIMER_HPP
+#define BSP_GPIO_TIMER_HPP
 
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_tim.h"
@@ -16,4 +16,4 @@ template <gpio_port Port, TIM_Base_InitTypeDef TimInitStruct> struct timer_tag {
 
 } // namespace gdut
 
-#endif // BSP_TIMER_HPP
+#endif // BSP_GPIO_TIMER_HPP
