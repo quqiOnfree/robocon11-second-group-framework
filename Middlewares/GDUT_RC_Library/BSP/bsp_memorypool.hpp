@@ -362,9 +362,8 @@ public:
       return nullptr;
     }
     try {
-      auto typed_ptr = static_cast<std::add_pointer_t<U>>(ptr);
-      construct(typed_ptr, std::forward<Args>(args)...);
-      return typed_ptr;
+      construct(static_cast<std::add_pointer_t<U>>(ptr), std::forward<Args>(args)...);
+      return static_cast<std::add_pointer_t<U>>(ptr);
     } catch (...) {
       m_resource->deallocate(ptr, sizeof(U), alignof(U));
       throw;

@@ -92,6 +92,7 @@ public:
       : m_ptr(other.m_ptr), m_deleter(other.m_deleter),
         m_ref_count(other.m_ref_count) {
     if (m_ref_count) {
+      // Relaxed is safe for increment - no synchronization needed
       m_ref_count->fetch_add(1, memory_order_relaxed);
     }
   }
@@ -155,7 +156,12 @@ private:
 
   void release() noexcept {
     if (m_ref_count) {
-      if (m_ref_count->fetch_sub(1, memory_order_relaxed) == 1) {
+      // Use release memory order for the decrement to synchronize with other threads
+      // This ensures all writes to the managed object are visible before deletion
+      if (m_ref_count->fetch_sub(1, memory_order_release) == 1) {
+        // Use acquire fence to synchronize with all releases from other threads
+        __atomic_thread_fence(memory_order_acquire);
+        
         if (m_deleter && m_ptr) {
           (*m_deleter)(m_ptr);
         }

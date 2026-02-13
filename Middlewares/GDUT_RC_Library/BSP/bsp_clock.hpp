@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cmsis_os2.h>
 #include <cstdint>
+#include <limits>
 
 namespace gdut {
 
@@ -42,6 +43,10 @@ struct system_clock {
     uint32_t ticks = basic_kernel_clock::get_tick_count();
     uint32_t freq = basic_kernel_clock::get_tick_freq();
     uint64_t ms = (static_cast<uint64_t>(ticks) * duration::period::den) / freq;
+    // Saturate to max value if overflow would occur
+    if (ms > static_cast<uint64_t>(std::numeric_limits<rep>::max())) {
+      return time_point(duration(std::numeric_limits<rep>::max()));
+    }
     return time_point(duration(static_cast<rep>(ms)));
   }
 };
@@ -60,6 +65,10 @@ struct steady_clock {
     uint32_t counts = basic_kernel_clock::get_sys_timer_count();
     uint32_t freq = basic_kernel_clock::get_sys_timer_freq();
     uint64_t us = (static_cast<uint64_t>(counts) * duration::period::den) / freq;
+    // Saturate to max value if overflow would occur
+    if (us > static_cast<uint64_t>(std::numeric_limits<rep>::max())) {
+      return time_point(duration(std::numeric_limits<rep>::max()));
+    }
     return time_point(duration(static_cast<rep>(us)));
   }
 };
