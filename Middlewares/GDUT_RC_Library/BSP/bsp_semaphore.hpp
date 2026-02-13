@@ -75,8 +75,7 @@ public:
    *         osError if semaphore is invalid or other error
    */
   template <typename Rep, typename Period>
-  osStatus_t acquire(const std::chrono::duration<Rep, Period> &timeout =
-                         std::chrono::duration<Rep, Period>::max()) {
+  osStatus_t acquire(const std::chrono::duration<Rep, Period> &timeout) {
     if (m_semaphore_id == nullptr) {
       return osError;
     }
@@ -116,6 +115,8 @@ public:
 
     return osSemaphoreAcquire(m_semaphore_id, ticks);
   }
+
+  osStatus_t acquire() { return acquire(std::chrono::milliseconds::max()); }
 
   bool try_acquire() noexcept {
     if (m_semaphore_id == nullptr) {

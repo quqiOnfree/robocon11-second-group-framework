@@ -317,13 +317,37 @@ public:
   using size_type = std::size_t;
   using difference_type = std::ptrdiff_t;
 
-  explicit polymorphic_allocator(
+  polymorphic_allocator(
       memory_resource *r = default_memory_resource::get_instance()) noexcept
       : m_resource(r) {}
 
   template <class U>
   polymorphic_allocator(const polymorphic_allocator<U> &other) noexcept
       : m_resource(other.resource()) {}
+
+  template <class U>
+  polymorphic_allocator &
+  operator=(const polymorphic_allocator<U> &other) noexcept {
+    m_resource = other.resource();
+    return *this;
+  }
+
+  polymorphic_allocator(const polymorphic_allocator &other) noexcept = default;
+  polymorphic_allocator &
+  operator=(const polymorphic_allocator &other) noexcept = default;
+
+  template <typename U>
+  polymorphic_allocator(polymorphic_allocator<U> &&other) noexcept
+      : m_resource(other.resource()) {}
+  template <typename U>
+  polymorphic_allocator &operator=(polymorphic_allocator<U> &&other) noexcept {
+    m_resource = other.resource();
+    return *this;
+  }
+
+  polymorphic_allocator(polymorphic_allocator &&other) noexcept = default;
+  polymorphic_allocator &
+  operator=(polymorphic_allocator &&other) noexcept = default;
 
   memory_resource *resource() const noexcept { return m_resource; }
 
@@ -343,11 +367,11 @@ public:
   }
 
   template <typename U, typename... Args>
-  static void construct(std::add_pointer_t<U> ptr, Args &&...args) {
+  static void construct(U *ptr, Args &&...args) {
     new (ptr) U(std::forward<Args>(args)...);
   }
 
-  template <typename U> static void destroy(std::add_pointer_t<U> ptr) {
+  template <typename U> static void destroy(U *ptr) {
     if (ptr != nullptr) {
       ptr->~U();
     }
@@ -364,7 +388,7 @@ public:
     return static_cast<std::add_pointer_t<U>>(ptr);
   }
 
-  template <typename U> void delete_object(std::add_pointer_t<U> ptr) {
+  template <typename U> void delete_object(U *ptr) {
     if (ptr != nullptr) {
       destroy(ptr);
       m_resource->deallocate(ptr, sizeof(U), alignof(U));
@@ -374,6 +398,18 @@ public:
 private:
   memory_resource *m_resource;
 };
+
+template <class T, class U>
+inline bool operator==(const polymorphic_allocator<T> &a,
+                       const polymorphic_allocator<U> &b) {
+  return a.resource() == b.resource();
+}
+
+template <class T, class U>
+inline bool operator!=(const polymorphic_allocator<T> &a,
+                       const polymorphic_allocator<U> &b) {
+  return a.resource() != b.resource();
+}
 
 } // namespace pmr
 
