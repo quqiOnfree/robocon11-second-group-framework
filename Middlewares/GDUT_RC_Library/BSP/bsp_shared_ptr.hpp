@@ -156,7 +156,7 @@ private:
     virtual std::size_t size() const noexcept override {
       return sizeof(deleter_wrapper_impl<Deleter>);
     }
-    virtual std::size_t alignment() const noexcept {
+    virtual std::size_t alignment() const noexcept override {
       return alignof(deleter_wrapper_impl<Deleter>);
     }
     virtual void operator()(Ty *ptr) override { deleter(ptr); }

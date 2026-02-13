@@ -33,6 +33,7 @@ struct system_clock {
   using period = duration::period;
   using time_point = std::chrono::time_point<system_clock>;
 
+  // system_clock may be adjusted by the OS, therefore not monotonic/steady
   static constexpr bool is_steady = false;
 
   static time_point now() noexcept {
