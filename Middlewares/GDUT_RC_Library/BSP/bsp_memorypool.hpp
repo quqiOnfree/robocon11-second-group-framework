@@ -355,19 +355,12 @@ public:
 
   template <typename U, typename... Args>
   std::add_pointer_t<U> new_object(Args &&...args) {
-    // Note: This function can throw if U's constructor throws
-    // Memory is deallocated automatically on exception
     auto ptr = m_resource->allocate(sizeof(U), alignof(U));
     if (ptr == nullptr) {
       return nullptr;
     }
-    try {
-      construct(static_cast<std::add_pointer_t<U>>(ptr), std::forward<Args>(args)...);
-      return static_cast<std::add_pointer_t<U>>(ptr);
-    } catch (...) {
-      m_resource->deallocate(ptr, sizeof(U), alignof(U));
-      throw;
-    }
+    construct(static_cast<std::add_pointer_t<U>>(ptr), std::forward<Args>(args)...);
+    return static_cast<std::add_pointer_t<U>>(ptr);
   }
 
   template <typename U> void delete_object(std::add_pointer_t<U> ptr) {
