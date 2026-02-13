@@ -69,6 +69,14 @@ public:
   }
 };
 
+// 合并分配模式的工厂函数，类似 std::make_shared
+template <typename T, typename... Args>
+shared_ptr<T> make_shared(Args &&...args) {
+  using control_block_t = control_block_combined<T>;
+  pmr::polymorphic_allocator<control_block_t> alloc{};
+  auto *control = alloc.new_object(std::forward<Args>(args)...);
+  return shared_ptr<T>(control->get(), control);
+}
 template <typename T> struct default_deleter {
   void operator()(T *ptr) const noexcept {
     pmr::polymorphic_allocator<T>{}.delete_object(ptr);
@@ -134,16 +142,30 @@ public:
 
   shared_ptr(T *ptr, control_block_base *cb) noexcept
       : m_ptr(ptr), m_control_block(cb) {
-    // 直接构造，不增加计数（用于 weak_ptr 的 lock）
+    // 直接构造，不修改引用计数。
+    // 典型用途：weak_ptr::lock() 在通过 CAS 成功递增 shared_count 之后，
+    // 使用该构造函数创建 shared_ptr，因此此处不能再次递增 shared_count。
+    // 换言之，调用方必须保证在调用本构造前已经正确递增了 shared_count。
   }
 
   shared_ptr(const shared_ptr &other) noexcept
       : m_ptr(other.m_ptr), m_control_block(other.m_control_block) {
     if (m_control_block) {
+      // Incrementing the shared count does not establish a happens-before
+      // relationship, so relaxed ordering is sufficient here. Synchronization
+      // for object lifetime is provided on decrement (e.g. acquire/release).
       m_control_block->shared_count.fetch_add(1, memory_order_relaxed);
     }
   }
 
+  template <typename U>
+    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
+  shared_ptr(const shared_ptr<U> &other) noexcept
+      : m_ptr(other.m_ptr), m_control_block(other.m_control_block) {
+    if (m_control_block) {
+      m_control_block->shared_count.fetch_add(1, memory_order_relaxed);
+    }
+  }
   shared_ptr &operator=(const shared_ptr &other) noexcept {
     if (this != std::addressof(other)) {
       shared_ptr<T> temp(other);
@@ -174,7 +196,7 @@ public:
                  std::is_invocable_v<Deleter, std::add_pointer_t<U>>
   shared_ptr(std::unique_ptr<U, Deleter> &&other) noexcept
       : m_ptr(nullptr), m_control_block(nullptr) {
-    auto deleter = other.get_deleter();
+    auto deleter = std::move(other.get_deleter());
     m_ptr = other.release();
 
     if (m_ptr) {
@@ -213,6 +235,31 @@ public:
     swap(temp); // 交换当前对象与新对象，旧对象会在 temp 的析构时释放
   }
 
+  template <typename U = T, typename Deleter>
+    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
+  void reset(U *ptr, Deleter &&deleter) noexcept {
+    shared_ptr temp;
+
+    if (ptr != nullptr) {
+      using control_block_type =
+          control_block_separate<U, std::decay_t<Deleter>>;
+
+      control_block_type *cb =
+          pmr::polymorphic_allocator<control_block_type>{}
+              .template new_object<control_block_type>(
+                  ptr, std::forward<Deleter>(deleter));
+
+      if (cb != nullptr) {
+        temp.m_ptr = ptr;
+        temp.m_control_block = cb;
+        enable_shared_from_this_helper(ptr, &temp);
+      } else {
+        std::forward<Deleter>(deleter)(ptr);
+      }
+    }
+
+    swap(temp);
+  }
   template <typename U = T>
     requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
   void swap(shared_ptr &other) noexcept {
@@ -255,6 +302,57 @@ private:
   }
 };
 
+// 比较运算符：与 std::shared_ptr 保持一致
+template <typename T, typename U>
+bool operator==(const shared_ptr<T> &lhs, const shared_ptr<U> &rhs) noexcept {
+  return lhs.get() == rhs.get();
+}
+
+template <typename T, typename U>
+bool operator!=(const shared_ptr<T> &lhs, const shared_ptr<U> &rhs) noexcept {
+  return !(lhs == rhs);
+}
+
+template <typename T, typename U>
+bool operator<(const shared_ptr<T> &lhs, const shared_ptr<U> &rhs) noexcept {
+  return lhs.get() < rhs.get();
+}
+
+template <typename T, typename U>
+bool operator<=(const shared_ptr<T> &lhs, const shared_ptr<U> &rhs) noexcept {
+  return !(rhs < lhs);
+}
+
+template <typename T, typename U>
+bool operator>(const shared_ptr<T> &lhs, const shared_ptr<U> &rhs) noexcept {
+  return rhs < lhs;
+}
+
+template <typename T, typename U>
+bool operator>=(const shared_ptr<T> &lhs, const shared_ptr<U> &rhs) noexcept {
+  return !(lhs < rhs);
+}
+
+// 与 nullptr 比较
+template <typename T>
+bool operator==(const shared_ptr<T> &ptr, std::nullptr_t) noexcept {
+  return ptr.get() == nullptr;
+}
+
+template <typename T>
+bool operator==(std::nullptr_t, const shared_ptr<T> &ptr) noexcept {
+  return ptr.get() == nullptr;
+}
+
+template <typename T>
+bool operator!=(const shared_ptr<T> &ptr, std::nullptr_t) noexcept {
+  return !(ptr == nullptr);
+}
+
+template <typename T>
+bool operator!=(std::nullptr_t, const shared_ptr<T> &ptr) noexcept {
+  return !(ptr == nullptr);
+}
 template <typename T> class weak_ptr {
 private:
   T *m_ptr;                            // 存储指针（与 shared_ptr 保持一致）
@@ -385,9 +483,8 @@ public:
     if (old_control_block != nullptr) {
       long old_weak = old_control_block->weak_count.fetch_sub(
           1, gdut::memory_order_acq_rel);
-      if (old_weak == 1 && old_control_block->shared_count.load(
-                               gdut::memory_order_acquire) == 0) {
-        // 最后一个弱引用，且 shared_count 应该已经为 0
+      if (old_weak == 1) {
+        // 最后一个弱引用，此时 shared_count 必须已经为 0
         old_control_block->deallocate();
       }
     }
@@ -415,8 +512,8 @@ protected:
   enable_shared_from_this() = default;
 
   // 禁止拷贝，保持语义正确
-  enable_shared_from_this(const enable_shared_from_this &) {}
-  enable_shared_from_this &operator=(const enable_shared_from_this &) {
+  enable_shared_from_this(const enable_shared_from_this &) noexcept {}
+  enable_shared_from_this &operator=(const enable_shared_from_this &) noexcept {
     return *this;
   }
 
@@ -431,7 +528,7 @@ public:
   void internal_accept_owner_(shared_ptr<T> *ptr) const {
     // 如果 weak_this 还没有被初始化，则从 ptr 复制一份 weak_ptr
     if (weak_this.expired()) {
-      weak_this = *ptr; // 假设 weak_ptr 可以从 shared_ptr 赋值
+      weak_this = *ptr; // weak_ptr 支持从 shared_ptr 赋值（由 weak_ptr::operator=(const shared_ptr<T>&) 保证）
     }
   }
 };
