@@ -69,14 +69,6 @@ public:
   }
 };
 
-// 合并分配模式的工厂函数，类似 std::make_shared
-template <typename T, typename... Args>
-shared_ptr<T> make_shared(Args &&...args) {
-  using control_block_t = control_block_combined<T>;
-  pmr::polymorphic_allocator<control_block_t> alloc{};
-  auto *control = alloc.new_object(std::forward<Args>(args)...);
-  return shared_ptr<T>(control->get(), control);
-}
 template <typename T> struct default_deleter {
   void operator()(T *ptr) const noexcept {
     pmr::polymorphic_allocator<T>{}.delete_object(ptr);
@@ -314,9 +306,13 @@ private:
   }
 };
 
-// 非成员 swap
-template <typename T> void swap(shared_ptr<T> &lhs, shared_ptr<T> &rhs) noexcept {
-  lhs.swap(rhs);
+// 合并分配模式的工厂函数，类似 std::make_shared
+template <typename T, typename... Args>
+shared_ptr<T> make_shared(Args &&...args) {
+  using control_block_t = control_block_combined<T>;
+  pmr::polymorphic_allocator<control_block_t> alloc{};
+  auto *control = alloc.new_object(std::forward<Args>(args)...);
+  return shared_ptr<T>(control->get(), control);
 }
 
 // 非成员 swap
