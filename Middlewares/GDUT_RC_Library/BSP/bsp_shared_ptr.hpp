@@ -152,15 +152,27 @@ public:
     return *this;
   }
 
-  template <typename U = T>
+  template <typename U>
     requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
   shared_ptr(shared_ptr<U> &&other) noexcept
       : m_ptr(std::exchange(other.m_ptr, nullptr)),
         m_control_block(std::exchange(other.m_control_block, nullptr)) {}
 
-  template <typename U = T>
+  template <typename U>
     requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
   shared_ptr &operator=(shared_ptr<U> &&other) noexcept {
+    if (this != std::addressof(other)) {
+      shared_ptr<T> temp(std::move(other));
+      swap(temp);
+    }
+    return *this;
+  }
+
+  shared_ptr(shared_ptr&& other) noexcept
+      : m_ptr(std::exchange(other.m_ptr, nullptr)),
+        m_control_block(std::exchange(other.m_control_block, nullptr)) {}
+
+  shared_ptr &operator=(shared_ptr&& other) noexcept {
     if (this != std::addressof(other)) {
       shared_ptr<T> temp(std::move(other));
       swap(temp);
@@ -205,7 +217,7 @@ public:
                : 0;
   }
 
-  template <typename U = T>
+  template <typename U>
     requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
   void reset(U *ptr = nullptr) noexcept {
     // 创建一个新的 shared_ptr 来管理新对象
@@ -213,7 +225,7 @@ public:
     swap(temp); // 交换当前对象与新对象，旧对象会在 temp 的析构时释放
   }
 
-  template <typename U = T>
+  template <typename U>
     requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
   void swap(shared_ptr &other) noexcept {
     std::swap(m_ptr, other.m_ptr);
@@ -254,6 +266,11 @@ private:
     }
   }
 };
+
+// 非成员 swap
+template <typename T> void swap(shared_ptr<T> &lhs, shared_ptr<T> &rhs) noexcept {
+  lhs.swap(rhs);
+}
 
 template <typename T> class weak_ptr {
 private:
