@@ -96,8 +96,10 @@ public:
       return;
     }
     osSemaphoreAcquire(m_semaphore, osWaitForever);
-    osSemaphoreDelete(m_semaphore);
+    // Thread has completed, now we need to clean up the thread handle
+    osThreadTerminate(m_handle);
     m_handle = nullptr;
+    osSemaphoreDelete(m_semaphore);
     m_semaphore = nullptr;
   }
 
