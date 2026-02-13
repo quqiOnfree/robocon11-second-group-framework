@@ -193,7 +193,7 @@ public:
   }
 
   ~unique_lock() noexcept {
-    if (m_owns) {
+    if (m_owns && m_mtx != nullptr) {
       m_mtx->unlock();
     }
   }

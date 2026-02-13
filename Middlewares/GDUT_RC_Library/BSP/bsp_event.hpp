@@ -34,17 +34,31 @@ public:
     return *this;
   }
 
-  uint32_t set(uint32_t flags) { return osEventFlagsSet(m_id, flags); }
+  uint32_t set(uint32_t flags) {
+    if (m_id == nullptr)
+      return osFlagsErrorParameter;
+    return osEventFlagsSet(m_id, flags);
+  }
 
-  uint32_t clear(uint32_t flags) { return osEventFlagsClear(m_id, flags); }
+  uint32_t clear(uint32_t flags) {
+    if (m_id == nullptr)
+      return osFlagsErrorParameter;
+    return osEventFlagsClear(m_id, flags);
+  }
 
-  uint32_t get() const { return osEventFlagsGet(m_id); }
+  uint32_t get() const {
+    if (m_id == nullptr)
+      return 0;
+    return osEventFlagsGet(m_id);
+  }
 
   template <typename Rep = int64_t, typename Period = std::milli>
   uint32_t wait(uint32_t flags,
                 const std::chrono::duration<Rep, Period> &timeout =
                     std::chrono::milliseconds::max(),
                 bool wait_all = false, bool no_clear = false) {
+    if (m_id == nullptr)
+      return osFlagsErrorParameter;
 
     uint32_t options = 0;
     if (wait_all)
