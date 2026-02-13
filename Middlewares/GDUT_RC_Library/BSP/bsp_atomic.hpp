@@ -147,11 +147,11 @@ public:
 
   // Conversion operator
   operator T() const {
-    return __atomic_fetch_add(&value, 0, gdut::memory_order_seq_cst);
+    return __atomic_load_n(&value, gdut::memory_order_seq_cst);
   }
 
   operator T() volatile const {
-    return __atomic_fetch_add(&value, 0, gdut::memory_order_seq_cst);
+    return __atomic_load_n(&value, gdut::memory_order_seq_cst);
   }
 
   // Is lock free?

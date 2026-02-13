@@ -269,13 +269,20 @@ public:
 
 private:
   void *do_allocate(size_t bytes, size_t alignment) override {
-    (void)alignment; // alignment is ignored in this simple implementation
+    // Use aligned allocation if alignment exceeds default
+    if (alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+      return ::operator new(bytes, std::align_val_t(alignment));
+    }
     return ::operator new(bytes);
   }
   void do_deallocate(void *p, size_t bytes, size_t alignment) override {
-    (void)bytes;     // bytes is ignored in this simple implementation
-    (void)alignment; // alignment is ignored in this simple implementation
-    ::operator delete(p);
+    (void)bytes; // bytes is ignored in standard delete
+    // Use aligned deallocation if alignment exceeds default
+    if (alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+      ::operator delete(p, std::align_val_t(alignment));
+    } else {
+      ::operator delete(p);
+    }
   }
   bool do_is_equal(const memory_resource &other) const noexcept override {
     return this == std::addressof(other);
@@ -352,14 +359,14 @@ public:
     if (ptr == nullptr) {
       return nullptr;
     }
-    construct(ptr, std::forward<Args>(args)...);
-    return ptr;
+    construct(static_cast<std::add_pointer_t<U>>(ptr), std::forward<Args>(args)...);
+    return static_cast<std::add_pointer_t<U>>(ptr);
   }
 
   template <typename U> void delete_object(std::add_pointer_t<U> ptr) {
     if (ptr != nullptr) {
       destroy(ptr);
-      m_resource->deallocate(ptr, sizeof(U));
+      m_resource->deallocate(ptr, sizeof(U), alignof(U));
     }
   }
 
