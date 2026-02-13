@@ -3,6 +3,7 @@
 
 #include "FreeRTOS.h"
 #include "bsp_mutex.hpp"
+#include "bsp_type_traits.hpp"
 #include "portable.h"
 #include <chrono>
 #include <cmsis_os2.h>
@@ -85,51 +86,15 @@ public:
    *         - pool creation failed
    *         - no blocks available
    */
-  template <typename Rep, typename Period>
+  template <typename Rep = int64_t, typename Period = std::milli>
   std::add_pointer_t<value_type>
-  allocate(const std::chrono::duration<Rep, Period> &timeout) {
+  allocate(const std::chrono::duration<Rep, Period> &timeout =
+               std::chrono::milliseconds::max()) {
     if (m_pool_id == nullptr) {
       return nullptr;
     }
-    uint32_t ticks;
-    if (timeout == std::chrono::duration<Rep, Period>::max()) {
-      ticks = osWaitForever;
-    } else {
-      // Convert to milliseconds (sub-millisecond precision is truncated)
-      auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeout)
-                    .count();
-      // Handle negative durations (invalid state)
-      if (ms < 0) {
-        return nullptr;
-      }
-
-      // Handle zero or positive durations
-      if (ms == 0) {
-        ticks = 0;
-      } else {
-        // Convert milliseconds to ticks (tickFreq is in Hz)
-        // ticks = (ms * tickFreq) / 1000
-        uint32_t tick_freq = osKernelGetTickFreq();
-        // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for
-        // osWaitForever) Calculate max_ms to avoid overflow: max_ms =
-        // (UINT32_MAX - 1) * 1000 / tick_freq
-        uint64_t max_ms =
-            static_cast<uint64_t>(UINT32_MAX - 1) * 1000ULL / tick_freq;
-        if (static_cast<uint64_t>(ms) >= max_ms) {
-          ticks = UINT32_MAX - 1;
-        } else {
-          ticks = static_cast<uint32_t>(
-              (static_cast<uint64_t>(ms) * tick_freq) / 1000);
-        }
-      }
-    }
-
     return static_cast<std::add_pointer_t<value_type>>(
-        osMemoryPoolAlloc(m_pool_id, ticks));
-  }
-
-  std::add_pointer_t<value_type> allocate() {
-    return allocate(std::chrono::milliseconds::max());
+        osMemoryPoolAlloc(m_pool_id, time_to_ticks(timeout)));
   }
 
   osStatus_t deallocate(std::add_pointer_t<value_type> ptr) {
@@ -201,16 +166,12 @@ public:
   mutexd_allocator(mutexd_allocator &&other) = delete;
   mutexd_allocator &operator=(mutexd_allocator &&other) = delete;
 
-  template <typename Rep, typename Period>
+  template <typename Rep = int64_t, typename Period = std::milli>
   std::add_pointer_t<value_type>
-  allocate(const std::chrono::duration<Rep, Period> &timeout) {
+  allocate(const std::chrono::duration<Rep, Period> &timeout =
+               std::chrono::milliseconds::max()) {
     lock_guard lock(m_mutex);
     return allocator_type::allocate(timeout);
-  }
-
-  std::add_pointer_t<value_type> allocate() {
-    lock_guard lock(m_mutex);
-    return allocator_type::allocate(std::chrono::milliseconds::max());
   }
 
   osStatus_t deallocate(std::add_pointer_t<value_type> ptr) {

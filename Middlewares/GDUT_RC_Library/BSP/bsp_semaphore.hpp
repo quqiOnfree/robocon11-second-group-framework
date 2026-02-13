@@ -1,6 +1,7 @@
 #ifndef BSP_SEMAPHORE_HPP
 #define BSP_SEMAPHORE_HPP
 
+#include "bsp_type_traits.hpp"
 #include <chrono>
 #include <cmsis_os2.h>
 #include <cstddef>
@@ -74,62 +75,22 @@ public:
    *         osErrorTimeout if timeout expired
    *         osError if semaphore is invalid or other error
    */
-  template <typename Rep, typename Period>
-  osStatus_t acquire(const std::chrono::duration<Rep, Period> &timeout) {
+  template <typename Rep = int64_t, typename Period = std::milli>
+  osStatus_t acquire(const std::chrono::duration<Rep, Period> &timeout =
+                         std::chrono::milliseconds::max()) {
     if (m_semaphore_id == nullptr) {
       return osError;
     }
 
-    uint32_t ticks;
-    if (timeout == std::chrono::duration<Rep, Period>::max()) {
-      ticks = osWaitForever;
-    } else {
-      // Convert to milliseconds (sub-millisecond precision is truncated)
-      auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeout)
-                    .count();
-      // Handle negative durations (invalid state)
-      if (ms < 0) {
-        return osErrorParameter;
-      }
-
-      // Handle zero or positive durations
-      if (ms == 0) {
-        ticks = 0;
-      } else {
-        // Convert milliseconds to ticks (tickFreq is in Hz)
-        // ticks = (ms * tickFreq) / 1000
-        uint32_t tick_freq = osKernelGetTickFreq();
-        // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for
-        // osWaitForever) Calculate max_ms to avoid overflow: max_ms =
-        // (UINT32_MAX - 1) * 1000 / tick_freq
-        uint64_t max_ms =
-            static_cast<uint64_t>(UINT32_MAX - 1) * 1000ULL / tick_freq;
-        if (static_cast<uint64_t>(ms) >= max_ms) {
-          ticks = UINT32_MAX - 1;
-        } else {
-          ticks = static_cast<uint32_t>(
-              (static_cast<uint64_t>(ms) * tick_freq) / 1000);
-        }
-      }
-    }
-
-    return osSemaphoreAcquire(m_semaphore_id, ticks);
+    return osSemaphoreAcquire(m_semaphore_id, time_to_ticks(timeout));
   }
 
-  osStatus_t acquire() { return acquire(std::chrono::milliseconds::max()); }
-
   bool try_acquire() noexcept {
-    if (m_semaphore_id == nullptr) {
-      return false;
-    }
     return acquire(std::chrono::seconds::zero()) == osOK;
   }
 
   template <class Rep, class Period>
   bool try_acquire_for(const std::chrono::duration<Rep, Period> &rel_time) {
-    if (m_semaphore_id == nullptr) {
-      return false;
-    }
     return acquire(rel_time) == osOK;
   }
 
