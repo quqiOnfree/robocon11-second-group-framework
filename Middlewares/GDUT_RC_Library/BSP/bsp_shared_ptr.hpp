@@ -181,14 +181,11 @@ private:
         }
         if (m_deleter) {
           // Need to use proper polymorphic deletion since we don't know the
-          // concrete type Delete through the base pointer with proper size and
-          // alignment
+          // concrete type Delete through the base pointer with proper size
           std::size_t deleter_size = m_deleter->size();
-          std::size_t deleter_alignment = m_deleter->alignment();
           m_deleter->~deleter_wrapper();
           pmr::polymorphic_allocator<char>{}.deallocate(
-              reinterpret_cast<char *>(m_deleter), deleter_size,
-              deleter_alignment);
+              reinterpret_cast<char *>(m_deleter), deleter_size);
         }
         pmr::polymorphic_allocator<>{}.delete_object<atomic<std::size_t>>(
             m_ref_count);
