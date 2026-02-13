@@ -41,7 +41,8 @@ public:
 
   thread() = default;
 
-  template <typename Func, typename... Args>
+  template <typename Func, typename... Args,
+            typename = std::enable_if_t<std::is_invocable_v<Func, Args...>>>
   thread(Func &&func, Args &&...args) {
     m_semaphore = osSemaphoreNew(1, 0, nullptr);
     if (m_semaphore == nullptr) {
@@ -97,7 +98,8 @@ public:
       return;
     }
     osSemaphoreAcquire(m_semaphore, osWaitForever);
-    // Thread has properly exited via osThreadExit(), handle is already cleaned up
+    // Thread has properly exited via osThreadExit(), handle is already cleaned
+    // up
     m_handle = nullptr;
     osSemaphoreDelete(m_semaphore);
     m_semaphore = nullptr;
