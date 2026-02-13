@@ -42,9 +42,12 @@ public:
 
   thread() = default;
 
-  template <typename Func, typename... Args,
-            typename = std::enable_if_t<std::is_invocable_v<Func, Args...>>>
+  template <typename Func, typename... Args>
   thread(Func &&func, Args &&...args) {
+    static_assert(
+        std::is_invocable_v<Func, Args...>,
+        "gdut::thread constructor requires a callable that can be invoked "
+        "with the provided argument types");
     m_semaphore = osSemaphoreNew(1, 0, nullptr);
     if (m_semaphore == nullptr) {
       return;
