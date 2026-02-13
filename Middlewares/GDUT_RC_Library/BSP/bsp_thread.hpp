@@ -4,6 +4,7 @@
 #include <cmsis_os2.h>
 #include <cstddef>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 #include "bsp_memorypool.hpp"
