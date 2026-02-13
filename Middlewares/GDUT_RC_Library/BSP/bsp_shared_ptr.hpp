@@ -56,11 +56,11 @@ public:
           m_ref_count->store(1, memory_order_relaxed);
           m_ptr = ptr;
         } else {
+          // Call the deleter on the ptr since we can't manage it
+          (*m_deleter)(ptr);
           // Cleanup: delete the deleter wrapper
           pmr::polymorphic_allocator<>{}.delete_object(m_deleter);
           m_deleter = nullptr;
-          // Call the deleter on the ptr since we can't manage it
-          deleter(ptr);
         }
       } else {
         // Cleanup: call deleter on ptr since we can't manage it

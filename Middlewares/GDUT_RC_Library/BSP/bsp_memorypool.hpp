@@ -271,9 +271,9 @@ private:
   void *do_allocate(size_t bytes, size_t alignment) override {
     // Use aligned allocation if alignment exceeds default
     if (alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
-      return ::operator new(bytes, std::align_val_t(alignment));
+      return ::operator new(bytes, std::align_val_t(alignment), std::nothrow);
     }
-    return ::operator new(bytes);
+    return ::operator new(bytes, std::nothrow);
   }
   void do_deallocate(void *p, size_t bytes, size_t alignment) override {
     (void)bytes; // bytes is ignored in standard delete
