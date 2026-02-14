@@ -49,11 +49,15 @@ public:
 };
 
 // 合并分配的控制块（对象嵌入控制块，一次分配）
-template <typename T> class control_block_combined : public control_block_base {
+template <typename T, typename Deleter>
+class control_block_combined : public control_block_base {
+  Deleter m_deleter;
   alignas(T) unsigned char storage[sizeof(T)];
 
 public:
-  template <typename... Args> control_block_combined(Args &&...args) {
+  template <typename... Args>
+  control_block_combined(const Deleter &deleter, Args &&...args)
+      : m_deleter(deleter) {
     new (storage) T(std::forward<Args>(args)...);
     // shared_count 已初始为 1
   }
@@ -65,7 +69,8 @@ public:
   }
 
   void deallocate() override {
-    pmr::polymorphic_allocator<>{}.delete_object(this); // 释放控制块
+    Deleter local_deleter(std::move(m_deleter));
+    local_deleter(this); // 由删除器负责释放控制块自身
   }
 };
 
@@ -335,26 +340,61 @@ private:
   }
 };
 
+template <typename T> struct make_shared_deleter {
+  using control_block_t =
+      control_block_combined<T, make_shared_deleter<T>>;
+
+  void operator()(control_block_t *ptr) const noexcept {
+    // 这里可以添加自定义的删除逻辑，例如日志记录等
+    using Alloc = pmr::polymorphic_allocator<T>;
+    using cb_alloc =
+        typename std::allocator_traits<Alloc>::template rebind_alloc<control_block_t>;
+    cb_alloc alloc(Alloc{});
+    std::allocator_traits<cb_alloc>::destroy(alloc, ptr);
+    std::allocator_traits<cb_alloc>::deallocate(alloc, ptr, 1);
+  }
+};
+
 // 合并分配模式的工厂函数，类似 std::make_shared
 template <typename T, typename... Args>
 shared_ptr<T> make_shared(Args &&...args) {
-  using control_block_t = control_block_combined<T>;
+  using control_block_t = control_block_combined<T, make_shared_deleter<T>>;
   pmr::polymorphic_allocator<control_block_t> alloc{};
-  auto *control = alloc.new_object(std::forward<Args>(args)...);
+  auto *control = alloc.new_object(make_shared_deleter<T>{}, std::forward<Args>(args)...);
   return shared_ptr<T>(control->get(), control);
 }
 
+template <typename T, typename Alloc> struct allocate_shared_deleter {
+  Alloc m_alloc;
+
+  using control_block_t =
+      control_block_combined<T, allocate_shared_deleter<T, Alloc>>;
+
+  allocate_shared_deleter(const Alloc &alloc) : m_alloc(alloc) {}
+
+  void operator()(control_block_t *ptr) const noexcept {
+    // 这里可以添加自定义的删除逻辑，例如日志记录等
+    using cb_alloc =
+        typename std::allocator_traits<Alloc>::template rebind_alloc<control_block_t>;
+    cb_alloc alloc(m_alloc);
+    std::allocator_traits<cb_alloc>::destroy(alloc, ptr);
+    std::allocator_traits<cb_alloc>::deallocate(alloc, ptr, 1);
+  }
+};
+
 template <typename T, typename Alloc, typename... Args>
 shared_ptr<T> allocate_shared(const Alloc &alloc, Args &&...args) {
-  using control_block_t = control_block_combined<T>;
+  using control_block_t =
+      control_block_combined<T, allocate_shared_deleter<T, Alloc>>;
   using cb_alloc = typename std::allocator_traits<Alloc>::template rebind_alloc<
       control_block_t>;
   cb_alloc cb_alloc_traits(alloc);
   auto *control =
       cb_alloc_traits.allocate(1); // 分配一个 control_block_t 的空间
   if (control) {
-    std::allocator_traits<cb_alloc>::construct(cb_alloc_traits, control,
-                                               std::forward<Args>(args)...);
+    std::allocator_traits<cb_alloc>::construct(
+        cb_alloc_traits, control, allocate_shared_deleter<T, Alloc>{alloc},
+        std::forward<Args>(args)...);
   } else {
     return shared_ptr<T>(); // 分配失败，返回空 shared_ptr
   }
