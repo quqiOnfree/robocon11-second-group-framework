@@ -69,7 +69,8 @@ public:
   }
 
   void deallocate() override {
-    m_deleter(this); // 由删除器负责释放控制块自身
+    Deleter local_deleter(std::move(m_deleter));
+    local_deleter(this); // 由删除器负责释放控制块自身
   }
 };
 
