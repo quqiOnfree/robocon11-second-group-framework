@@ -1,10 +1,11 @@
 #ifndef BSP_MEMORY_RESOURCE_HPP
 #define BSP_MEMORY_RESOURCE_HPP
 
-#include <cmsis_os2.h>
 #include "FreeRTOS.h"
-#include "tlsf.h"
 #include "bsp_mutex.hpp"
+#include "tlsf.h"
+#include <cmsis_os2.h>
+#include <cstddef>
 #include <memory_resource>
 
 namespace gdut::pmr {
@@ -67,7 +68,8 @@ public:
         return;
       }
     }
-    // Allocate enough space for the node header, TLSF control structure, and pool
+    // Allocate enough space for the node header, TLSF control structure, and
+    // pool
     const size_t tlsf_overhead = tlsf_size();
     void *mem = m_upstream_resource->allocate(
         sizeof(alloc_node) + tlsf_overhead + m_default_pool_block_size,
@@ -76,9 +78,9 @@ public:
       m_free_list_head = static_cast<alloc_node *>(mem);
       m_free_list_head->next = nullptr; // 初始化空闲链表
       // tlsf_create_with_pool expects: tlsf_size() + pool_bytes
-      m_pool_memory = tlsf_create_with_pool(
-          static_cast<char *>(mem) + sizeof(alloc_node),
-          tlsf_overhead + m_default_pool_block_size);
+      m_pool_memory =
+          tlsf_create_with_pool(static_cast<char *>(mem) + sizeof(alloc_node),
+                                tlsf_overhead + m_default_pool_block_size);
     } else {
       m_pool_memory = nullptr;
     }
@@ -97,10 +99,10 @@ public:
     while (m_free_list_head != nullptr) {
       alloc_node *current = m_free_list_head;
       m_free_list_head = m_free_list_head->next;
-      m_upstream_resource->deallocate(
-          current,
-          sizeof(alloc_node) + tlsf_overhead + m_default_pool_block_size,
-          alignof(std::max_align_t));
+      m_upstream_resource->deallocate(current,
+                                      sizeof(alloc_node) + tlsf_overhead +
+                                          m_default_pool_block_size,
+                                      alignof(std::max_align_t));
     }
   }
 
@@ -120,9 +122,9 @@ private:
       return mem;
     }
     // Add a new pool (no tlsf_size() overhead needed for tlsf_add_pool)
-    void *new_mem = m_upstream_resource->allocate(
-        sizeof(alloc_node) + m_default_pool_block_size,
-        alignof(std::max_align_t));
+    void *new_mem = m_upstream_resource->allocate(sizeof(alloc_node) +
+                                                      m_default_pool_block_size,
+                                                  alignof(std::max_align_t));
     if (new_mem == nullptr) {
       return nullptr;
     }

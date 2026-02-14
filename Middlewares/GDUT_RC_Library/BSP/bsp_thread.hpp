@@ -1,13 +1,13 @@
 #ifndef BSP_THREAD_HPP
 #define BSP_THREAD_HPP
 
+#include "bsp_memory_resource.hpp"
 #include <cmsis_os2.h>
 #include <cstddef>
 #include <memory>
+#include <memory_resource>
 #include <type_traits>
 #include <utility>
-#include <memory_resource>
-#include "bsp_memory_resource.hpp"
 
 namespace gdut {
 
