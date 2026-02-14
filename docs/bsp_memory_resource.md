@@ -50,9 +50,8 @@ struct node {
 };
 
 void example_allocator() {
-    gdut::pmr::portable_resource *upstream =
-        static_cast<gdut::pmr::portable_resource *>(
-            gdut::pmr::portable_resource::get_instance());
+    std::pmr::memory_resource *upstream =
+        gdut::pmr::portable_resource::get_instance();
 
     std::pmr::polymorphic_allocator<node> alloc(upstream);
     node *p = alloc.allocate(1);
