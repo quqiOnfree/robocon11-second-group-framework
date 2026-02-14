@@ -89,9 +89,10 @@ public:
   shared_ptr() noexcept : m_ptr(nullptr), m_control_block(nullptr) {}
 
   template <typename Deleter = default_deleter<T>>
-    requires std::is_invocable_v<Deleter, T *>
   shared_ptr(T *ptr, Deleter &&deleter = {}) noexcept
       : m_ptr(ptr), m_control_block(nullptr) {
+    static_assert(std::is_invocable_v<Deleter, std::add_pointer_t<T>>,
+                  "Deleter must be invocable with a pointer to T");
     if (ptr) {
       using control_block_type = control_block_separate<T, Deleter>;
       control_block_type *cb = pmr::polymorphic_allocator<control_block_type>{}
@@ -110,11 +111,13 @@ public:
   }
 
   template <typename U, typename Deleter = default_deleter<U>>
-    requires std::is_convertible_v<std::add_pointer_t<U>,
-                                   std::add_pointer_t<T>> &&
-                 std::is_invocable_v<Deleter, U *>
   shared_ptr(U *ptr, Deleter &&deleter = {}) noexcept
       : m_ptr(ptr), m_control_block(nullptr) {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>> &&
+            std::is_invocable_v<Deleter, std::add_pointer_t<U>>,
+        "U* must be convertible to T* and Deleter must be invocable with a "
+        "pointer to U");
     if (ptr) {
       using control_block_type = control_block_separate<U, Deleter>;
       control_block_type *cb = pmr::polymorphic_allocator<control_block_type>{}
@@ -141,17 +144,21 @@ public:
   }
 
   template <typename U>
-    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
   shared_ptr(const shared_ptr<U> &other) noexcept
       : m_ptr(other.m_ptr), m_control_block(other.m_control_block) {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>,
+        "U* must be convertible to T*");
     if (m_control_block) {
       m_control_block->shared_count.fetch_add(1, memory_order_relaxed);
     }
   }
 
   template <typename U>
-    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
   shared_ptr &operator=(const shared_ptr<U> &other) noexcept {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>,
+        "U* must be convertible to T*");
     if (this != std::addressof(other)) {
       shared_ptr<T> temp(other);
       swap(temp);
@@ -178,14 +185,18 @@ public:
   }
 
   template <typename U>
-    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
   shared_ptr(shared_ptr<U> &&other) noexcept
       : m_ptr(std::exchange(other.m_ptr, nullptr)),
-        m_control_block(std::exchange(other.m_control_block, nullptr)) {}
+        m_control_block(std::exchange(other.m_control_block, nullptr)) {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>,
+        "U* must be convertible to T*");
+  }
 
-  template <typename U>
-    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
-  shared_ptr &operator=(shared_ptr<U> &&other) noexcept {
+  template <typename U> shared_ptr &operator=(shared_ptr<U> &&other) noexcept {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>,
+        "U* must be convertible to T*");
     if (this != std::addressof(other)) {
       shared_ptr<T> temp(std::move(other));
       swap(temp);
@@ -206,11 +217,13 @@ public:
   }
 
   template <typename U, typename Deleter>
-    requires std::is_convertible_v<std::add_pointer_t<U>,
-                                   std::add_pointer_t<T>> &&
-                 std::is_invocable_v<Deleter, std::add_pointer_t<U>>
   shared_ptr(std::unique_ptr<U, Deleter> &&other) noexcept
       : m_ptr(nullptr), m_control_block(nullptr) {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>> &&
+            std::is_invocable_v<Deleter, std::add_pointer_t<U>>,
+        "U* must be convertible to T* and Deleter must be invocable with a "
+        "pointer to U");
     auto deleter = std::move(other.get_deleter());
     m_ptr = other.release();
 
@@ -242,17 +255,22 @@ public:
                : 0;
   }
 
-  template <typename U>
-    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
-  void reset(U *ptr = nullptr) noexcept {
+  template <typename U> void reset(U *ptr = nullptr) noexcept {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>,
+        "U* must be convertible to T*");
     // 创建一个新的 shared_ptr 来管理新对象
     shared_ptr temp(ptr);
     swap(temp); // 交换当前对象与新对象，旧对象会在 temp 的析构时释放
   }
 
   template <typename U, typename Deleter>
-    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
   void reset(U *ptr, Deleter &&deleter) noexcept {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>> &&
+            std::is_invocable_v<Deleter, std::add_pointer_t<U>>,
+        "U* must be convertible to T* and Deleter must be invocable with a "
+        "pointer to U");
     shared_ptr temp;
 
     if (ptr != nullptr) {
@@ -274,9 +292,10 @@ public:
 
     swap(temp);
   }
-  template <typename U>
-    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
-  void swap(shared_ptr &other) noexcept {
+  template <typename U> void swap(shared_ptr &other) noexcept {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>,
+        "U* must be convertible to T*");
     std::swap(m_ptr, other.m_ptr);
     std::swap(m_control_block, other.m_control_block);
   }
