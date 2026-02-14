@@ -1,4 +1,4 @@
-﻿# BSP 内存池模块（bsp_memorypool.hpp）
+# BSP 内存池模块（bsp_memorypool.hpp）
 
 ## 原理
 该模块实现了 PMR（Polymorphic Memory Resource）标准接口，提供多种内存资源后端（FreeRTOS 堆、TLSF 池、OS 内存池等），支持可预测的嵌入式内存管理。
@@ -6,13 +6,11 @@
 ## 实现思想
 - **虚基类接口**：memory_resource 提供统一的 allocate/deallocate 虚接口，支持对齐与大小参数。
 - **多种资源实现**：
-  - 
-ew_delete_resource：使用 pvPortMalloc/vPortFree（FreeRTOS 堆）。
+  - new_delete_resource：使用 pvPortMalloc/vPortFree（FreeRTOS 堆）。
   - unsynchronized_pool_resource：基于 TLSF 的非线程安全内存池。
   - synchronized_pool_resource：TLSF 池加互斥锁保护。
   - os_memory_pool_resource：CMSIS-RTOS2 内存池接口。
-- **类型化分配器**：polymorphic_allocator<T> 在虚接口上实现 C++ 分配器，支持 allocate/deallocate 与便捷的 
-ew_object/delete_object。
+- **类型化分配器**：polymorphic_allocator<T> 在虚接口上实现 C++ 分配器，支持 allocate/deallocate 与便捷的 new_object/delete_object。
 - **与 shared_ptr 集成**：shared_ptr 通过 polymorphic_allocator 分配控制块，实现与内存来源的解耦。
 
 ## 核心类
@@ -42,8 +40,7 @@ ew_object/delete_object。
 ### polymorphic_allocator\<T\>
 - 模板分配器，在 memory_resource 基础上实现类型化接口。
 - allocate(n) / deallocate(p, n)：返回 T*。
-- 
-ew_object(...args) / delete_object(ptr)：自动调用构造/析构。
+- new_object(...args) / delete_object(ptr)：自动调用构造/析构。
 - 支持转换构造（rebind 语义）。
 
 ## 如何使用
@@ -282,14 +279,12 @@ void example_allocation_failure() {
 ## 注意事项/坑点
 
 ### 内存管理
-- **分配失败检查**：allocate 和 
-ew_object 失败返回 
-ullptr，必须检查。
+- **分配失败检查**：allocate 和 new_object 失败返回 nullptr，必须检查。
 - **块大小限制**：unsynchronized_pool_resource 和 synchronized_pool_resource 超过初始块大小的请求会自动扩展池，但仍受总内存限制。
 - **TLSF 开销**：TLSF 每个分配都有元数据开销，不适合超小块分配（< 16 字节）。
 
 ### 线程安全
-- **单线程优化**：unsynchronized_pool_resource 无锁开销，适合单线程环节。
+- **单线程优化**：unsynchronized_pool_resource 无锁开销，适合单线程环境。
 - **synchronized_pool_resource 锁**：使用 gdut::mutex，全局锁，高竞争时可能瓶颈。
 - **os_memory_pool_resource**：CMSIS-RTOS2 原生支持多线程，无额外锁。
 
@@ -299,16 +294,14 @@ ullptr，必须检查。
 - **显式指定对齐**：allocate(bytes, alignment) 可传入自定义对齐需求。
 
 ### 资源生命周期
-- **上游资源**：创建池时指定上游资源（如 
-ew_delete_resource），池销毁时自动释放所有块回上游。
-- **全局 get_instance()**：
-ew_delete_resource::get_instance() 返回全局单例，不需手动释放。
+- **上游资源**：创建池时指定上游资源（如 new_delete_resource），池销毁时自动释放所有块回上游。
+- **全局 get_instance()**：new_delete_resource::get_instance() 返回全局单例，不需手动释放。
 - **栈分配**：资源对象可栈分配，超出作用域自动清理。
 
 ### 与 shared_ptr 配合
 - **一致分配器**：allocate_shared<T>(alloc, args...) 会用 alloc 分配控制块和对象。
 - **控制块释放**：shared_ptr 析构时调用控制块的 deallocate()，必须与分配器一致。
-- **嵌入式优化**：合并分配模式一次分配，单从内存池释放，比分离模式高效。
+- **嵌入式优化**：合并分配模式一次分配，只从内存池释放，比分离模式高效。
 
 ## 与 std::pmr 的差异
 | 特性 | BSP pmr | std::pmr |
