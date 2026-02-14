@@ -13,11 +13,12 @@ target_link_libraries(GDUT_RC_Library INTERFACE
   STM32_Drivers
   ${TOOLCHAIN_LINK_LIBRARIES}
   FreeRTOS
+  tlsf
 )
 target_compile_definitions(GDUT_RC_Library INTERFACE
 )
 
-add_executable(test test/test.cpp)
-target_link_libraries(test PRIVATE
-  GDUT_RC_Library
-)
+# add_executable(test test/test.cpp)
+# target_link_libraries(test PRIVATE
+#   GDUT_RC_Library
+# )

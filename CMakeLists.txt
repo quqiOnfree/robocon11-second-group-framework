@@ -40,6 +40,9 @@ add_executable(${CMAKE_PROJECT_NAME})
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
 
+# Add tlsf library
+add_subdirectory(Middlewares/Third_Party/tlsf)
+
 # Add GDUT RC Library
 add_subdirectory(Middlewares/GDUT_RC_Library)
 

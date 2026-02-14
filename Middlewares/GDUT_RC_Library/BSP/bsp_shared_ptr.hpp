@@ -49,11 +49,15 @@ public:
 };
 
 // 合并分配的控制块（对象嵌入控制块，一次分配）
-template <typename T> class control_block_combined : public control_block_base {
+template <typename T, typename Deleter>
+class control_block_combined : public control_block_base {
   alignas(T) unsigned char storage[sizeof(T)];
+  Deleter m_deleter;
 
 public:
-  template <typename... Args> control_block_combined(Args &&...args) {
+  template <typename... Args>
+  control_block_combined(const Deleter &deleter, Args &&...args)
+      : m_deleter(deleter) {
     new (storage) T(std::forward<Args>(args)...);
     // shared_count 已初始为 1
   }
@@ -65,7 +69,7 @@ public:
   }
 
   void deallocate() override {
-    pmr::polymorphic_allocator<>{}.delete_object(this); // 释放控制块
+    m_deleter(this); // 由删除器负责释放控制块自身
   }
 };
 
@@ -89,9 +93,10 @@ public:
   shared_ptr() noexcept : m_ptr(nullptr), m_control_block(nullptr) {}
 
   template <typename Deleter = default_deleter<T>>
-    requires std::is_invocable_v<Deleter, T *>
   shared_ptr(T *ptr, Deleter &&deleter = {}) noexcept
       : m_ptr(ptr), m_control_block(nullptr) {
+    static_assert(std::is_invocable_v<Deleter, std::add_pointer_t<T>>,
+                  "Deleter must be invocable with a pointer to T");
     if (ptr) {
       using control_block_type = control_block_separate<T, Deleter>;
       control_block_type *cb = pmr::polymorphic_allocator<control_block_type>{}
@@ -110,11 +115,13 @@ public:
   }
 
   template <typename U, typename Deleter = default_deleter<U>>
-    requires std::is_convertible_v<std::add_pointer_t<U>,
-                                   std::add_pointer_t<T>> &&
-                 std::is_invocable_v<Deleter, U *>
   shared_ptr(U *ptr, Deleter &&deleter = {}) noexcept
       : m_ptr(ptr), m_control_block(nullptr) {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>> &&
+            std::is_invocable_v<Deleter, std::add_pointer_t<U>>,
+        "U* must be convertible to T* and Deleter must be invocable with a "
+        "pointer to U");
     if (ptr) {
       using control_block_type = control_block_separate<U, Deleter>;
       control_block_type *cb = pmr::polymorphic_allocator<control_block_type>{}
@@ -141,17 +148,21 @@ public:
   }
 
   template <typename U>
-    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
   shared_ptr(const shared_ptr<U> &other) noexcept
       : m_ptr(other.m_ptr), m_control_block(other.m_control_block) {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>,
+        "U* must be convertible to T*");
     if (m_control_block) {
       m_control_block->shared_count.fetch_add(1, memory_order_relaxed);
     }
   }
 
   template <typename U>
-    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
   shared_ptr &operator=(const shared_ptr<U> &other) noexcept {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>,
+        "U* must be convertible to T*");
     if (this != std::addressof(other)) {
       shared_ptr<T> temp(other);
       swap(temp);
@@ -178,14 +189,18 @@ public:
   }
 
   template <typename U>
-    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
   shared_ptr(shared_ptr<U> &&other) noexcept
       : m_ptr(std::exchange(other.m_ptr, nullptr)),
-        m_control_block(std::exchange(other.m_control_block, nullptr)) {}
+        m_control_block(std::exchange(other.m_control_block, nullptr)) {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>,
+        "U* must be convertible to T*");
+  }
 
-  template <typename U>
-    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
-  shared_ptr &operator=(shared_ptr<U> &&other) noexcept {
+  template <typename U> shared_ptr &operator=(shared_ptr<U> &&other) noexcept {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>,
+        "U* must be convertible to T*");
     if (this != std::addressof(other)) {
       shared_ptr<T> temp(std::move(other));
       swap(temp);
@@ -206,11 +221,13 @@ public:
   }
 
   template <typename U, typename Deleter>
-    requires std::is_convertible_v<std::add_pointer_t<U>,
-                                   std::add_pointer_t<T>> &&
-                 std::is_invocable_v<Deleter, std::add_pointer_t<U>>
   shared_ptr(std::unique_ptr<U, Deleter> &&other) noexcept
       : m_ptr(nullptr), m_control_block(nullptr) {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>> &&
+            std::is_invocable_v<Deleter, std::add_pointer_t<U>>,
+        "U* must be convertible to T* and Deleter must be invocable with a "
+        "pointer to U");
     auto deleter = std::move(other.get_deleter());
     m_ptr = other.release();
 
@@ -242,17 +259,22 @@ public:
                : 0;
   }
 
-  template <typename U>
-    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
-  void reset(U *ptr = nullptr) noexcept {
+  template <typename U> void reset(U *ptr = nullptr) noexcept {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>,
+        "U* must be convertible to T*");
     // 创建一个新的 shared_ptr 来管理新对象
     shared_ptr temp(ptr);
     swap(temp); // 交换当前对象与新对象，旧对象会在 temp 的析构时释放
   }
 
   template <typename U, typename Deleter>
-    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
   void reset(U *ptr, Deleter &&deleter) noexcept {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>> &&
+            std::is_invocable_v<Deleter, std::add_pointer_t<U>>,
+        "U* must be convertible to T* and Deleter must be invocable with a "
+        "pointer to U");
     shared_ptr temp;
 
     if (ptr != nullptr) {
@@ -274,9 +296,10 @@ public:
 
     swap(temp);
   }
-  template <typename U>
-    requires std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>
-  void swap(shared_ptr &other) noexcept {
+  template <typename U> void swap(shared_ptr &other) noexcept {
+    static_assert(
+        std::is_convertible_v<std::add_pointer_t<U>, std::add_pointer_t<T>>,
+        "U* must be convertible to T*");
     std::swap(m_ptr, other.m_ptr);
     std::swap(m_control_block, other.m_control_block);
   }
@@ -316,12 +339,55 @@ private:
   }
 };
 
+template <typename T> struct make_shared_deleter {
+  void operator()(T *ptr) const noexcept {
+    // 这里可以添加自定义的删除逻辑，例如日志记录等
+    pmr::polymorphic_allocator<T>{}.delete_object(ptr);
+  }
+};
+
 // 合并分配模式的工厂函数，类似 std::make_shared
 template <typename T, typename... Args>
 shared_ptr<T> make_shared(Args &&...args) {
-  using control_block_t = control_block_combined<T>;
+  using control_block_t = control_block_combined<T, make_shared_deleter<T>>;
   pmr::polymorphic_allocator<control_block_t> alloc{};
   auto *control = alloc.new_object(std::forward<Args>(args)...);
+  return shared_ptr<T>(control->get(), control);
+}
+
+template <typename T, typename Alloc> struct allocate_shared_deleter {
+  Alloc m_alloc;
+
+  allocate_shared_deleter(const Alloc &alloc) : m_alloc(alloc) {}
+
+  void operator()(T *ptr) const noexcept {
+    // 这里可以添加自定义的删除逻辑，例如日志记录等
+    using control_block_t =
+      control_block_combined<T, allocate_shared_deleter<T, Alloc>>;
+    using cb_alloc =
+        typename std::allocator_traits<Alloc>::template rebind_alloc<control_block_t>;
+    cb_alloc alloc(m_alloc);
+    std::allocator_traits<cb_alloc>::destroy(alloc, ptr);
+    std::allocator_traits<cb_alloc>::deallocate(alloc, ptr, 1);
+  }
+};
+
+template <typename T, typename Alloc, typename... Args>
+shared_ptr<T> allocate_shared(const Alloc &alloc, Args &&...args) {
+  using control_block_t =
+      control_block_combined<T, allocate_shared_deleter<T, Alloc>>;
+  using cb_alloc = typename std::allocator_traits<Alloc>::template rebind_alloc<
+      control_block_t>;
+  cb_alloc cb_alloc_traits(alloc);
+  auto *control =
+      cb_alloc_traits.allocate(1); // 分配一个 control_block_t 的空间
+  if (control) {
+    std::allocator_traits<cb_alloc>::construct(
+        cb_alloc_traits, control, allocate_shared_deleter<T, Alloc>{alloc},
+        std::forward<Args>(args)...);
+  } else {
+    return shared_ptr<T>(); // 分配失败，返回空 shared_ptr
+  }
   return shared_ptr<T>(control->get(), control);
 }
 
