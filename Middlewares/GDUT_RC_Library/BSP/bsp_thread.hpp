@@ -1,19 +1,19 @@
 #ifndef BSP_THREAD_HPP
 #define BSP_THREAD_HPP
 
+#include "bsp_memory_resource.hpp"
 #include <cmsis_os2.h>
 #include <cstddef>
 #include <memory>
+#include <memory_resource>
 #include <type_traits>
 #include <utility>
-
-#include "bsp_memorypool.hpp"
 
 namespace gdut {
 
 // 内部内存资源，用于线程函数对象的分配
 struct thread_memory_resource {
-  inline static pmr::synchronized_pool_resource pool_resource{};
+  inline static gdut::pmr::synchronized_tlsf_resource pool_resource{};
 };
 
 /**
@@ -64,7 +64,7 @@ public:
       osSemaphoreRelease(this->m_semaphore);
     };
     using bound_type = decltype(bound);
-    static pmr::polymorphic_allocator<bound_type> allocator{
+    static std::pmr::polymorphic_allocator<bound_type> allocator{
         &thread_memory_resource::pool_resource};
     bound_type *data = allocator.allocate(1);
     if (data == nullptr) {
