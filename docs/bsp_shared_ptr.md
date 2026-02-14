@@ -1,4 +1,4 @@
-﻿# BSP 共享指针模块（bsp_shared_ptr.hpp）
+# BSP 共享指针模块（bsp_shared_ptr.hpp）
 
 ## 原理
 该模块提供面向嵌入式环境的轻量级 shared_ptr、weak_ptr 和 enable_shared_from_this 实现，使用原子计数与自定义内存资源实现引用计数管理，避免依赖完整的标准库实现。
@@ -6,8 +6,7 @@
 ## 实现思想
 - **双计数控制块**：shared_count 管理共享引用（对象存活），weak_count 管理弱引用（控制块存活）。
 - **两种控制块**：
-  - control_block_separate<T, Deleter>：对象在堆外（如 
-ew），控制块在内存池。
+  - control_block_separate<T, Deleter>：对象在堆外（如 new），控制块在内存池。
   - control_block_combined<T, Deleter>：对象嵌入控制块，一次分配（合并模式）。
 - **删除器支持**：每个控制块包含删除器，支持任意删除策略（函数指针、仿函数、lambda）。
 - **原子操作**：使用 memory_order_release/acquire 确保对象销毁的可见性。
@@ -233,8 +232,7 @@ void example_polymorphism() {
 ```
 
 ## 与代码规范的对应
-- **避免裸指针**：使用 shared_ptr / make_shared 替代 
-ew/delete。
+- **避免裸指针**：使用 shared_ptr / make_shared 替代 new/delete。
 - **蛇形命名**：所有类、函数、成员使用 snake_case，私有成员使用 m_ 前缀。
 - **RAII 原则**：资源在构造时获取，析构时释放，无需手动 delete。
 - **多线程安全**：引用计数操作是原子的，但被管理对象本身需上层同步。
