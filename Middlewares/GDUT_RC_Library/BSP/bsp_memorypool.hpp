@@ -3,12 +3,9 @@
 
 #include "FreeRTOS.h"
 #include "bsp_mutex.hpp"
-#include "bsp_type_traits.hpp"
 #include "portable.h"
-#include <chrono>
 #include <cmsis_os2.h>
 #include <cstddef>
-#include <cstdint>
 #include <memory>
 #include <type_traits>
 #include <utility>

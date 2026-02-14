@@ -325,6 +325,23 @@ shared_ptr<T> make_shared(Args &&...args) {
   return shared_ptr<T>(control->get(), control);
 }
 
+template <typename T, typename Alloc, typename... Args>
+shared_ptr<T> allocate_shared(const Alloc &alloc, Args &&...args) {
+  using control_block_t = control_block_combined<T>;
+  using cb_alloc = typename std::allocator_traits<Alloc>::template rebind_alloc<
+      control_block_t>;
+  cb_alloc cb_alloc_traits(alloc);
+  auto *control =
+      cb_alloc_traits.allocate(1); // 分配一个 control_block_t 的空间
+  if (control) {
+    std::allocator_traits<cb_alloc>::construct(cb_alloc_traits, control,
+                                               std::forward<Args>(args)...);
+  } else {
+    return shared_ptr<T>(); // 分配失败，返回空 shared_ptr
+  }
+  return shared_ptr<T>(control->get(), control);
+}
+
 // 非成员 swap
 template <typename T>
 void swap(shared_ptr<T> &lhs, shared_ptr<T> &rhs) noexcept {
