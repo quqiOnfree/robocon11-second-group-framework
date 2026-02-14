@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(tlsf)
-
 add_library(tlsf STATIC
   tlsf.c
   tlsf.h

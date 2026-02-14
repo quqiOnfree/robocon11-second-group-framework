@@ -51,7 +51,15 @@ public:
 
 private:
   void *do_allocate(size_t bytes, size_t alignment) override {
-    (void)alignment; // alignment is ignored in this simple implementation
+    // FreeRTOS guarantees portBYTE_ALIGNMENT-byte alignment for pvPortMalloc.
+    // If a stronger alignment is requested, explicitly fail the allocation
+    // to avoid returning misaligned memory and causing undefined behavior.
+    const size_t requested_alignment =
+        alignment == 0 ? alignof(max_align_t) : alignment;
+
+    if (requested_alignment > static_cast<size_t>(portBYTE_ALIGNMENT)) {
+      return nullptr;
+    }
     return pvPortMalloc(bytes);
   }
   void do_deallocate(void *p, size_t bytes, size_t alignment) override {
@@ -73,8 +81,8 @@ class unsynchronized_pool_resource : public memory_resource {
 
   memory_resource *m_upstream_resource{nullptr};
   tlsf_t m_pool_memory{nullptr};
-  size_t default_pool_block_size{0};
-  alloc_node *free_list_head{nullptr}; // 空闲块链表头指针
+  size_t m_default_pool_block_size{0};
+  alloc_node *m_free_list_head{nullptr}; // 空闲块链表头指针
 
 public:
   static constexpr size_t default_block_size() {
@@ -85,7 +93,7 @@ public:
       memory_resource *upstream = new_delete_resource::get_instance(),
       std::size_t pool_block_size = default_block_size())
       : m_upstream_resource(upstream),
-        default_pool_block_size(pool_block_size) {
+        m_default_pool_block_size(pool_block_size) {
     if (upstream == nullptr) {
       m_upstream_resource = new_delete_resource::get_instance();
       if (m_upstream_resource == nullptr) {
@@ -93,15 +101,18 @@ public:
         return;
       }
     }
-    void *mem = m_upstream_resource->allocate(sizeof(alloc_node) +
-                                                  default_pool_block_size,
-                                              alignof(std::max_align_t));
+    // Allocate enough space for the node header, TLSF control structure, and pool
+    const size_t tlsf_overhead = tlsf_size();
+    void *mem = m_upstream_resource->allocate(
+        sizeof(alloc_node) + tlsf_overhead + m_default_pool_block_size,
+        alignof(std::max_align_t));
     if (mem) {
-      free_list_head = static_cast<alloc_node *>(mem);
-      free_list_head->next = nullptr; // 初始化空闲链表
-      m_pool_memory =
-          tlsf_create_with_pool(static_cast<char *>(mem) + sizeof(alloc_node),
-                                default_pool_block_size);
+      m_free_list_head = static_cast<alloc_node *>(mem);
+      m_free_list_head->next = nullptr; // 初始化空闲链表
+      // tlsf_create_with_pool expects: tlsf_size() + pool_bytes
+      m_pool_memory = tlsf_create_with_pool(
+          static_cast<char *>(mem) + sizeof(alloc_node),
+          tlsf_overhead + m_default_pool_block_size);
     } else {
       m_pool_memory = nullptr;
     }
@@ -116,11 +127,13 @@ public:
       return;
     }
     tlsf_destroy(m_pool_memory);
-    while (free_list_head != nullptr) {
-      alloc_node *current = free_list_head;
-      free_list_head = free_list_head->next;
+    const size_t tlsf_overhead = tlsf_size();
+    while (m_free_list_head != nullptr) {
+      alloc_node *current = m_free_list_head;
+      m_free_list_head = m_free_list_head->next;
       m_upstream_resource->deallocate(
-          current, sizeof(alloc_node) + default_pool_block_size,
+          current,
+          sizeof(alloc_node) + tlsf_overhead + m_default_pool_block_size,
           alignof(std::max_align_t));
     }
   }
@@ -129,34 +142,42 @@ public:
 
 private:
   void *do_allocate(size_t bytes, size_t alignment) override {
-    if (m_pool_memory == nullptr || bytes > default_pool_block_size) {
+    if (m_pool_memory == nullptr) {
       return nullptr;
+    }
+    // For oversized requests, fall back to upstream resource
+    if (bytes > m_default_pool_block_size) {
+      return m_upstream_resource->allocate(bytes, alignment);
     }
     if (void *mem = tlsf_memalign(m_pool_memory, alignment, bytes);
         mem != nullptr) {
       return mem;
     }
-    void *new_mem = m_upstream_resource->allocate(sizeof(alloc_node) +
-                                                      default_pool_block_size,
-                                                  alignof(std::max_align_t));
+    // Add a new pool (no tlsf_size() overhead needed for tlsf_add_pool)
+    void *new_mem = m_upstream_resource->allocate(
+        sizeof(alloc_node) + m_default_pool_block_size,
+        alignof(std::max_align_t));
     if (new_mem == nullptr) {
       return nullptr;
     }
     if (tlsf_add_pool(m_pool_memory,
                       static_cast<char *>(new_mem) + sizeof(alloc_node),
-                      default_pool_block_size) == 0) {
+                      m_default_pool_block_size) == 0) {
       m_upstream_resource->deallocate(
-          new_mem, sizeof(alloc_node) + default_pool_block_size,
+          new_mem, sizeof(alloc_node) + m_default_pool_block_size,
           alignof(std::max_align_t));
       return nullptr;
     }
     static_cast<alloc_node *>(new_mem)->next =
-        free_list_head; // 将新块加入空闲链表
-    free_list_head = static_cast<alloc_node *>(new_mem);
+        m_free_list_head; // 将新块加入空闲链表
+    m_free_list_head = static_cast<alloc_node *>(new_mem);
     return tlsf_memalign(m_pool_memory, alignment, bytes);
   }
   void do_deallocate(void *p, size_t bytes, size_t alignment) override {
-    if (m_pool_memory != nullptr) {
+    // If this was an oversized allocation, it came from upstream
+    if (bytes > m_default_pool_block_size) {
+      m_upstream_resource->deallocate(p, bytes, alignment);
+    } else if (m_pool_memory != nullptr) {
       tlsf_free(m_pool_memory, p);
     }
   }
@@ -203,9 +224,11 @@ private:
 
 class os_memory_pool_resource : public memory_resource {
   osMemoryPoolId_t m_pool_id{nullptr};
+  size_t m_block_size{0};
 
 public:
-  os_memory_pool_resource(size_t block_count, size_t block_size) {
+  os_memory_pool_resource(size_t block_count, size_t block_size)
+      : m_block_size(block_size) {
     m_pool_id = osMemoryPoolNew(block_count, block_size, nullptr);
   }
 
@@ -224,6 +247,10 @@ private:
   void *do_allocate(size_t bytes, size_t alignment) override {
     (void)alignment; // alignment is ignored in this implementation
     if (m_pool_id == nullptr || bytes == 0) {
+      return nullptr;
+    }
+    // Verify that the requested size fits the pool's block size
+    if (bytes > m_block_size) {
       return nullptr;
     }
     return osMemoryPoolAlloc(m_pool_id, osWaitForever);
