@@ -1,51 +1,18 @@
-#ifndef BSP_MEMORYPOOL_HPP
-#define BSP_MEMORYPOOL_HPP
+#ifndef BSP_MEMORY_RESOURCE_HPP
+#define BSP_MEMORY_RESOURCE_HPP
 
-#include "FreeRTOS.h"
-#include "bsp_mutex.hpp"
-#include "portable.h"
 #include <cmsis_os2.h>
-#include <cstddef>
-#include <memory>
-#include <type_traits>
-#include <utility>
-
+#include "FreeRTOS.h"
 #include "tlsf.h"
+#include "bsp_mutex.hpp"
+#include <memory_resource>
 
 namespace gdut::pmr {
 
-class memory_resource {
-  static constexpr size_t max_align = alignof(max_align_t);
-
-public:
-  memory_resource() = default;
-  memory_resource(const memory_resource &) = default;
-  virtual ~memory_resource() = default;
-
-  memory_resource &operator=(const memory_resource &) = default;
-
-  void *allocate(size_t bytes, size_t alignment = max_align) {
-    return do_allocate(bytes, alignment);
-  }
-  void deallocate(void *p, size_t bytes, size_t alignment = max_align) {
-    do_deallocate(p, bytes, alignment);
-  }
-
-  bool is_equal(const memory_resource &other) const noexcept {
-    return do_is_equal(other);
-  }
-
-private:
-  virtual void *do_allocate(size_t bytes, size_t alignment) = 0;
-  virtual void do_deallocate(void *p, size_t bytes, size_t alignment) = 0;
-
-  virtual bool do_is_equal(const memory_resource &other) const noexcept = 0;
-};
-
-class new_delete_resource : public memory_resource {
+class portable_resource : public std::pmr::memory_resource {
 public:
   static memory_resource *get_instance() {
-    static new_delete_resource instance;
+    static portable_resource instance;
     return &instance;
   }
 
@@ -68,15 +35,14 @@ private:
     vPortFree(p);
   }
   bool do_is_equal(const memory_resource &other) const noexcept override {
-    return true; // All instances of new_delete_resource are considered equal
+    return true; // All instances of portable_resource are considered equal
   }
 };
 
 // 非线程安全的内存池资源
-class unsynchronized_pool_resource : public memory_resource {
+class unsynchronized_tlsf_resource : public std::pmr::memory_resource {
   struct alloc_node {
     struct alloc_node *next;
-    // 可选的 size 信息
   };
 
   memory_resource *m_upstream_resource{nullptr};
@@ -89,13 +55,13 @@ public:
     return 512; // Default block size for the pool
   }
 
-  unsynchronized_pool_resource(
-      memory_resource *upstream = new_delete_resource::get_instance(),
+  unsynchronized_tlsf_resource(
+      memory_resource *upstream = portable_resource::get_instance(),
       std::size_t pool_block_size = default_block_size())
       : m_upstream_resource(upstream),
         m_default_pool_block_size(pool_block_size) {
     if (upstream == nullptr) {
-      m_upstream_resource = new_delete_resource::get_instance();
+      m_upstream_resource = portable_resource::get_instance();
       if (m_upstream_resource == nullptr) {
         m_pool_memory = nullptr;
         return;
@@ -118,11 +84,11 @@ public:
     }
   }
 
-  unsynchronized_pool_resource(const unsynchronized_pool_resource &) = delete;
-  unsynchronized_pool_resource &
-  operator=(const unsynchronized_pool_resource &) = delete;
+  unsynchronized_tlsf_resource(const unsynchronized_tlsf_resource &) = delete;
+  unsynchronized_tlsf_resource &
+  operator=(const unsynchronized_tlsf_resource &) = delete;
 
-  ~unsynchronized_pool_resource() override {
+  ~unsynchronized_tlsf_resource() override {
     if (m_pool_memory == nullptr) {
       return;
     }
@@ -186,20 +152,20 @@ private:
   }
 };
 
-class synchronized_pool_resource : public memory_resource {
-  unsynchronized_pool_resource m_pool;
+class synchronized_tlsf_resource : public std::pmr::memory_resource {
+  unsynchronized_tlsf_resource m_pool;
   mutable mutex m_mutex;
 
 public:
-  synchronized_pool_resource(
-      memory_resource *upstream = new_delete_resource::get_instance(),
+  synchronized_tlsf_resource(
+      memory_resource *upstream = portable_resource::get_instance(),
       std::size_t pool_block_size =
-          unsynchronized_pool_resource::default_block_size())
+          unsynchronized_tlsf_resource::default_block_size())
       : m_pool(upstream, pool_block_size) {}
 
-  synchronized_pool_resource(const synchronized_pool_resource &) = delete;
-  synchronized_pool_resource &
-  operator=(const synchronized_pool_resource &) = delete;
+  synchronized_tlsf_resource(const synchronized_tlsf_resource &) = delete;
+  synchronized_tlsf_resource &
+  operator=(const synchronized_tlsf_resource &) = delete;
 
   explicit operator bool() const {
     lock_guard<mutex> lock(m_mutex);
@@ -222,7 +188,7 @@ private:
   }
 };
 
-class os_memory_pool_resource : public memory_resource {
+class os_memory_pool_resource : public std::pmr::memory_resource {
   osMemoryPoolId_t m_pool_id{nullptr};
   size_t m_block_size{0};
 
@@ -269,106 +235,6 @@ private:
   }
 };
 
-template <class Ty = std::byte> class polymorphic_allocator {
-public:
-  using value_type = Ty;
-  using size_type = std::size_t;
-  using difference_type = std::ptrdiff_t;
-
-  polymorphic_allocator(
-      memory_resource *r = new_delete_resource::get_instance()) noexcept
-      : m_resource(r) {}
-
-  template <class U>
-  polymorphic_allocator(const polymorphic_allocator<U> &other) noexcept
-      : m_resource(other.resource()) {}
-
-  template <class U>
-  polymorphic_allocator &
-  operator=(const polymorphic_allocator<U> &other) noexcept {
-    m_resource = other.resource();
-    return *this;
-  }
-
-  polymorphic_allocator(const polymorphic_allocator &other) noexcept = default;
-  polymorphic_allocator &
-  operator=(const polymorphic_allocator &other) noexcept = default;
-
-  template <typename U>
-  polymorphic_allocator(polymorphic_allocator<U> &&other) noexcept
-      : m_resource(other.resource()) {}
-  template <typename U>
-  polymorphic_allocator &operator=(polymorphic_allocator<U> &&other) noexcept {
-    m_resource = other.resource();
-    return *this;
-  }
-
-  polymorphic_allocator(polymorphic_allocator &&other) noexcept = default;
-  polymorphic_allocator &
-  operator=(polymorphic_allocator &&other) noexcept = default;
-
-  memory_resource *resource() const noexcept { return m_resource; }
-
-  Ty *allocate(std::size_t n) {
-    if (n > std::size_t(-1) / sizeof(Ty)) {
-      return nullptr;
-    }
-    void *p = m_resource->allocate(n * sizeof(Ty), alignof(Ty));
-    if (!p) {
-      return nullptr;
-    }
-    return static_cast<Ty *>(p);
-  }
-
-  void deallocate(Ty *p, std::size_t n) {
-    m_resource->deallocate(p, n * sizeof(Ty), alignof(Ty));
-  }
-
-  template <typename U, typename... Args>
-  static void construct(U *ptr, Args &&...args) {
-    new (ptr) U(std::forward<Args>(args)...);
-  }
-
-  template <typename U> static void destroy(U *ptr) {
-    if (ptr != nullptr) {
-      ptr->~U();
-    }
-  }
-
-  template <typename U, typename... Args>
-  std::add_pointer_t<U> new_object(Args &&...args) {
-    auto ptr = m_resource->allocate(sizeof(U), alignof(U));
-    if (ptr == nullptr) {
-      return nullptr;
-    }
-    construct(static_cast<std::add_pointer_t<U>>(ptr),
-              std::forward<Args>(args)...);
-    return static_cast<std::add_pointer_t<U>>(ptr);
-  }
-
-  template <typename U> void delete_object(U *ptr) {
-    if (ptr != nullptr) {
-      destroy(ptr);
-      m_resource->deallocate(ptr, sizeof(U), alignof(U));
-    }
-  }
-
-private:
-  memory_resource *m_resource;
-};
-
-template <class T, class U>
-inline bool operator==(const polymorphic_allocator<T> &a,
-                       const polymorphic_allocator<U> &b) {
-  return a.resource() == b.resource();
-}
-
-template <class T, class U>
-inline bool operator!=(const polymorphic_allocator<T> &a,
-                       const polymorphic_allocator<U> &b) {
-  return a.resource() != b.resource();
-}
-
 } // namespace gdut::pmr
 
-#endif // BSP_MEMORYPOOL_HPP
+#endif // BSP_MEMORY_RESOURCE_HPP

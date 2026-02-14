@@ -6,14 +6,14 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
-
-#include "bsp_memorypool.hpp"
+#include <memory_resource>
+#include "bsp_memory_resource.hpp"
 
 namespace gdut {
 
 // 内部内存资源，用于线程函数对象的分配
 struct thread_memory_resource {
-  inline static pmr::synchronized_pool_resource pool_resource{};
+  inline static gdut::pmr::synchronized_tlsf_resource pool_resource{};
 };
 
 /**
@@ -64,7 +64,7 @@ public:
       osSemaphoreRelease(this->m_semaphore);
     };
     using bound_type = decltype(bound);
-    static pmr::polymorphic_allocator<bound_type> allocator{
+    static std::pmr::polymorphic_allocator<bound_type> allocator{
         &thread_memory_resource::pool_resource};
     bound_type *data = allocator.allocate(1);
     if (data == nullptr) {
