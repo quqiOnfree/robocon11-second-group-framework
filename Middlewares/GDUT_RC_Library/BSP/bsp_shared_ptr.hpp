@@ -342,7 +342,14 @@ private:
 template <typename T> struct make_shared_deleter {
   void operator()(T *ptr) const noexcept {
     // 这里可以添加自定义的删除逻辑，例如日志记录等
-    pmr::polymorphic_allocator<T>{}.delete_object(ptr);
+    using Alloc = pmr::polymorphic_allocator<T>;
+    using control_block_t =
+      control_block_combined<T, make_shared_deleter<T>>;
+    using cb_alloc =
+        typename std::allocator_traits<Alloc>::template rebind_alloc<control_block_t>;
+    cb_alloc alloc(Alloc{});
+    std::allocator_traits<cb_alloc>::destroy(alloc, ptr);
+    std::allocator_traits<cb_alloc>::deallocate(alloc, ptr, 1);
   }
 };
 
