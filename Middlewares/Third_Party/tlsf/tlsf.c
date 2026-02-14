@@ -9,7 +9,7 @@
 
 /* Configure TLSF logging for embedded systems */
 #ifndef TLSF_PRINTF
-  #if defined(__ARMCC_VERSION) || defined(__GNUC__) && defined(__arm__)
+  #if defined(__ARMCC_VERSION) || (defined(__GNUC__) && defined(__arm__))
     /* Embedded ARM build - disable printf by default to save code size */
     #define TLSF_PRINTF(...)  ((void)0)
   #else
