@@ -13,6 +13,7 @@ target_link_libraries(GDUT_RC_Library INTERFACE
   STM32_Drivers
   ${TOOLCHAIN_LINK_LIBRARIES}
   FreeRTOS
+  tlsf
 )
 target_compile_definitions(GDUT_RC_Library INTERFACE
 )

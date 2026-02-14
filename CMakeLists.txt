@@ -43,6 +43,9 @@ add_subdirectory(cmake/stm32cubemx)
 # Add GDUT RC Library
 add_subdirectory(Middlewares/GDUT_RC_Library)
 
+# Add TLSF memory allocator
+add_subdirectory(Middlewares/Third_Party/tlsf)
+
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
@@ -70,5 +73,6 @@ list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
     GDUT_RC_Library
+    tlsf
     # Add user defined libraries
 )
