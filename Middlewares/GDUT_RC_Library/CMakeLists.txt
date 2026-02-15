@@ -8,6 +8,7 @@ add_library(GDUT_RC_Library INTERFACE)
 target_include_directories(GDUT_RC_Library INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/BSP
   ${CMAKE_CURRENT_SOURCE_DIR}/CPP_Library
+  ${CMAKE_CURRENT_SOURCE_DIR}/Experimental
 )
 target_link_libraries(GDUT_RC_Library INTERFACE
   STM32_Drivers
