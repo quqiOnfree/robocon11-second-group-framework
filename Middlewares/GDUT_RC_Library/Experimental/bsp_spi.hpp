@@ -1,7 +1,6 @@
 #ifndef BSP_SPI_HPP
 #define BSP_SPI_HPP
 
-#include "../BSP/bsp_type_traits.hpp"
 #include "../BSP/bsp_uncopyable.hpp"
 #include "cmsis_os2.h"
 #include "stm32f4xx_hal.h"
@@ -17,6 +16,8 @@ namespace gdut {
 class spi_proxy : private uncopyable {
 public:
   spi_proxy(SPI_HandleTypeDef &hspi) : m_hspi(hspi) {}
+
+  ~spi_proxy() = default;
 
   // SPI 发送数据（阻塞模式）
   // 参数：begin - 发送数据指针，size - 字节数，timeout - 超时时间（默认最大值）
