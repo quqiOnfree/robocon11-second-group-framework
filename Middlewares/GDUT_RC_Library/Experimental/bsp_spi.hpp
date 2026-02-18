@@ -31,8 +31,9 @@ public:
         std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count();
     // HAL_SPI_Transmit 要求 uint8_t* 而非 const uint8_t*，需要 const_cast
     return HAL_SPI_Transmit(&m_hspi, const_cast<uint8_t *>(begin), size,
-                            timeout_ms >= osWaitForever ? osWaitForever
-                                                        : timeout_ms) == HAL_OK;
+                            timeout_ms >= osWaitForever
+                                ? osWaitForever
+                                : static_cast<uint32_t>(timeout_ms)) == HAL_OK;
   }
 
   // SPI 接收数据（阻塞模式）
@@ -47,8 +48,9 @@ public:
     auto timeout_ms =
         std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count();
     return HAL_SPI_Receive(&m_hspi, data, size,
-                           timeout_ms >= osWaitForever ? osWaitForever
-                                                       : timeout_ms) == HAL_OK;
+                           timeout_ms >= osWaitForever
+                               ? osWaitForever
+                               : static_cast<uint32_t>(timeout_ms)) == HAL_OK;
   }
 
   // SPI 全双工传输（同时发送和接收，阻塞模式）
@@ -67,8 +69,9 @@ public:
     // const_cast
     return HAL_SPI_TransmitReceive(
                &m_hspi, const_cast<uint8_t *>(tx_data), rx_data, size,
-               timeout_ms >= osWaitForever ? osWaitForever : timeout_ms) ==
-           HAL_OK;
+               timeout_ms >= osWaitForever
+                   ? osWaitForever
+                   : static_cast<uint32_t>(timeout_ms)) == HAL_OK;
   }
 
 private:
