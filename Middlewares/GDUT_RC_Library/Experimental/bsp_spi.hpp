@@ -26,8 +26,10 @@ public:
       return false; // 参数非法
     }
     // HAL_SPI_Transmit 要求 uint8_t* 而非 const uint8_t*，需要 const_cast
-    return HAL_SPI_Transmit(&m_hspi, const_cast<uint8_t *>(begin), size,
-                            time_to_ticks(timeout)) == HAL_OK;
+    return HAL_SPI_Transmit(
+               &m_hspi, const_cast<uint8_t *>(begin), size,
+               std::chrono::duration_cast<std::chrono::microseconds>(timeout)
+                   .count()) == HAL_OK;
   }
 
   // SPI 接收数据（阻塞模式）
@@ -39,8 +41,10 @@ public:
     if (data == nullptr || size == 0) {
       return false; // 参数非法
     }
-    return HAL_SPI_Receive(&m_hspi, data, size, time_to_ticks(timeout)) ==
-           HAL_OK;
+    return HAL_SPI_Receive(
+               &m_hspi, data, size,
+               std::chrono::duration_cast<std::chrono::microseconds>(timeout)
+                   .count()) == HAL_OK;
   }
 
   // SPI 全双工传输（同时发送和接收，阻塞模式）
@@ -57,7 +61,8 @@ public:
     // const_cast
     return HAL_SPI_TransmitReceive(&m_hspi, const_cast<uint8_t *>(tx_data),
                                    rx_data, size,
-                                   time_to_ticks(timeout)) == HAL_OK;
+                                   std::chrono::duration_cast<std::chrono::microseconds>(timeout)
+                                       .count()) == HAL_OK;
   }
 
 private:
