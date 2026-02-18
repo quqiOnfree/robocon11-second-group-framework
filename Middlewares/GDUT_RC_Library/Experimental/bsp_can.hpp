@@ -43,32 +43,35 @@ public:
   virtual ~base_can_proxy() noexcept = default;
 
   // 注销当前实例（从全局实例表中移除，避免悬空指针）
-  bool unregister_self(size_t bus_index) {
-    uint32_t can_id = get_can_id();
-    if (bus_index >= bus_count) {
-      return false; // 总线索引越界
-    }
-
+  // 为避免 bus_index 参数错误导致悬空注册，会搜索所有总线
+  bool unregister_self() {
     bool success = false;
 
     // 保护实例表的修改，避免与中断中的 dispatch 并发访问
+    // 保存并恢复 PRIMASK 以支持嵌套临界区
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
 
-    // 查找并移除当前实例
-    for (size_t i = 0; i < instances_count[bus_index]; ++i) {
-      if (instances[bus_index][i] == this) {
-        // 将后续元素前移覆盖当前位置
-        for (size_t j = i; j < instances_count[bus_index] - 1; ++j) {
-          instances[bus_index][j] = instances[bus_index][j + 1];
+    // 在所有总线上查找并移除当前实例
+    for (size_t bus = 0; bus < bus_count; ++bus) {
+      for (size_t i = 0; i < instances_count[bus]; ++i) {
+        if (instances[bus][i] == this) {
+          // 将后续元素前移覆盖当前位置
+          for (size_t j = i; j < instances_count[bus] - 1; ++j) {
+            instances[bus][j] = instances[bus][j + 1];
+          }
+          instances[bus][instances_count[bus] - 1] = nullptr;
+          instances_count[bus]--;
+          success = true;
+          break;
         }
-        instances[bus_index][instances_count[bus_index] - 1] = nullptr;
-        instances_count[bus_index]--;
-        success = true;
-        break;
+      }
+      if (success) {
+        break; // 找到并移除后退出
       }
     }
 
-    __enable_irq();
+    __set_PRIMASK(primask);
 
     return success;
   }
@@ -84,6 +87,8 @@ public:
     bool success = false;
 
     // 保护实例表的修改，避免与中断中的 dispatch 并发访问
+    // 保存并恢复 PRIMASK 以支持嵌套临界区
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
 
     // 在临界区内再次检查容量和重复 ID，以防并发注册导致状态改变
@@ -112,7 +117,7 @@ public:
       }
     }
 
-    __enable_irq();
+    __set_PRIMASK(primask);
 
     return success;
   }
@@ -212,47 +217,5 @@ private:
 };
 
 } // namespace gdut
-
-// CAN FIFO0 接收中断回调（HAL 库会在 FIFO0 有消息挂起时自动调用）
-extern "C" inline void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
-  CAN_RxHeaderTypeDef rxh;
-  uint8_t data[8];
-  // 从 FIFO0 读取一帧数据
-  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rxh, data) != HAL_OK) {
-    return; // 读取失败，跳过
-  }
-
-  // 根据 CAN 外设实例确定总线索引（CAN1=0, CAN2=1）
-  size_t bus_index = (hcan->Instance == CAN1)   ? 0
-                     : (hcan->Instance == CAN2) ? 1
-                                                : 2;
-  if (bus_index >= gdut::base_can_proxy::bus_count) {
-    return; // 未知总线，跳过
-  }
-
-  // 交给全局分发函数，二分查找并调用对应实例的 receive
-  gdut::base_can_proxy::dispatch(bus_index, &rxh, data);
-}
-
-// CAN FIFO1 接收中断回调（HAL 库会在 FIFO1 有消息挂起时自动调用）
-extern "C" inline void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) {
-  CAN_RxHeaderTypeDef rxh;
-  uint8_t data[8];
-  // 从 FIFO1 读取一帧数据
-  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &rxh, data) != HAL_OK) {
-    return; // 读取失败，跳过
-  }
-
-  // 根据 CAN 外设实例确定总线索引（CAN1=0, CAN2=1）
-  size_t bus_index = (hcan->Instance == CAN1)   ? 0
-                     : (hcan->Instance == CAN2) ? 1
-                                                : 2;
-  if (bus_index >= gdut::base_can_proxy::bus_count) {
-    return; // 未知总线，跳过
-  }
-
-  // 交给全局分发函数，二分查找并调用对应实例的 receive
-  gdut::base_can_proxy::dispatch(bus_index, &rxh, data);
-}
 
 #endif // BSP_CAN_HPP
