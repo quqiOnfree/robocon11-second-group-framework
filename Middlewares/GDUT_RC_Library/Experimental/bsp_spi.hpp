@@ -17,7 +17,7 @@ public:
   spi_proxy(SPI_HandleTypeDef &hspi) : m_hspi(hspi) {}
 
   // SPI 发送数据（阻塞模式）
-  // 参数：begin - 发送数据指针，size - 字节数，timeout - 超时时间（默认 1 秒）
+  // 参数：begin - 发送数据指针，size - 字节数，timeout - 超时时间（默认最大值）
   template <typename Rep = int64_t, typename Period = std::milli>
   bool transmit(const uint8_t *begin, uint16_t size,
                 const std::chrono::duration<Rep, Period> &timeout =
@@ -31,7 +31,7 @@ public:
   }
 
   // SPI 接收数据（阻塞模式）
-  // 参数：data - 接收缓冲区，size - 字节数，timeout - 超时时间（默认 1 秒）
+  // 参数：data - 接收缓冲区，size - 字节数，timeout - 超时时间（默认最大值）
   template <typename Rep = int64_t, typename Period = std::milli>
   bool receive(uint8_t *data, uint16_t size,
                const std::chrono::duration<Rep, Period> &timeout =
