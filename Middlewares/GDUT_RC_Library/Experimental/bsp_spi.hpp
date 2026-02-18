@@ -8,7 +8,6 @@
 #include <chrono>
 #include <cstdint>
 #include <ratio>
-#include <sys/_intsup.h>
 
 namespace gdut {
 
