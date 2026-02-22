@@ -2,10 +2,13 @@
 #define BSP_THREAD_HPP
 
 #include "bsp_memory_resource.hpp"
+#include "bsp_mutex.hpp"
+#include "bsp_type_traits.hpp"
 #include <cmsis_os2.h>
 #include <cstddef>
 #include <memory>
 #include <memory_resource>
+#include <mutex>
 #include <type_traits>
 #include <utility>
 
@@ -13,8 +16,15 @@ namespace gdut {
 
 // 内部内存资源，用于线程函数对象的分配
 struct thread_memory_resource {
-  inline static gdut::pmr::synchronized_tlsf_resource pool_resource{};
+  GDUT_CCMRAM inline static gdut::pmr::fixed_block_resource<256>
+      pool_resource{};
+  GDUT_CCMRAM inline static gdut::mutex pool_mutex{gdut::empty_mutex};
 };
+
+struct empty_thread_t {
+  explicit empty_thread_t() = default;
+};
+inline constexpr empty_thread_t empty_thread{};
 
 /**
  * @brief RAII wrapper for CMSIS-RTOS2 threads
@@ -40,12 +50,14 @@ struct thread_memory_resource {
 template <size_t StackSize, osPriority_t Priority = osPriorityNormal>
 class thread {
 public:
-  static constexpr size_t stack_size = StackSize;
-  static constexpr osPriority_t priority = Priority;
-  static constexpr osThreadAttr_t attributes = {
-      .name = "gdut_thread", .stack_size = StackSize, .priority = Priority};
+  static constexpr size_t stack_size_v = StackSize;
+  static constexpr osPriority_t priority_v = Priority;
 
-  thread() = default;
+  explicit thread(empty_thread_t) {}
+  thread() : thread(empty_thread) {}
+
+  thread(osThreadId_t handle, osSemaphoreId_t semaphore)
+      : m_handle(handle), m_semaphore(semaphore) {}
 
   template <typename Func, typename... Args>
   thread(Func &&func, Args &&...args) {
@@ -66,25 +78,41 @@ public:
     using bound_type = decltype(bound);
     static std::pmr::polymorphic_allocator<bound_type> allocator{
         &thread_memory_resource::pool_resource};
-    bound_type *data = allocator.allocate(1);
+    bound_type *data = nullptr;
+    {
+      std::lock_guard lock(thread_memory_resource::pool_mutex);
+      data = allocator.allocate(1);
+    }
     if (data == nullptr) {
       osSemaphoreDelete(m_semaphore);
       m_semaphore = nullptr;
       return;
     }
     allocator.template construct<bound_type>(data, std::move(bound));
+    osThreadAttr_t attributes = {.name = "gdut_thread",
+                                 .cb_mem = m_control_block,
+                                 .cb_size = sizeof(StaticTask_t),
+                                 .stack_mem = m_stack,
+                                 .stack_size = StackSize,
+                                 .priority = Priority};
     m_handle = osThreadNew(
         [](void *ptr) {
           bound_type *data = static_cast<bound_type *>(ptr);
           (*data)();
           allocator.template destroy<bound_type>(data);
-          allocator.deallocate(data, 1);
+          {
+            std::lock_guard lock(thread_memory_resource::pool_mutex);
+            allocator.deallocate(data, 1);
+          }
           osThreadExit();
         },
         static_cast<void *>(data), &attributes);
     if (m_handle == nullptr) {
       allocator.template destroy<bound_type>(data);
-      allocator.deallocate(data, 1);
+      {
+        std::lock_guard lock(thread_memory_resource::pool_mutex);
+        allocator.deallocate(data, 1);
+      }
       osSemaphoreDelete(m_semaphore);
       m_semaphore = nullptr;
     }
@@ -145,6 +173,8 @@ public:
 private:
   osThreadId_t m_handle{nullptr};
   osSemaphoreId_t m_semaphore{nullptr};
+  alignas(std::max_align_t) char m_control_block[sizeof(StaticTask_t)]{};
+  alignas(std::max_align_t) char m_stack[StackSize]{};
 };
 
 } // namespace gdut

@@ -39,6 +39,9 @@ int main(void) {
 
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
+  // 初始化全局内存资源和互斥量，确保在任何线程使用前都已准备就绪
+  gdut::thread_memory_resource::pool_mutex = gdut::mutex{};
+
   gdut::gpio_pin<gdut::gpio_port::A,
                  GPIO_InitTypeDef{.Pin = GPIO_PIN_5,
                                   .Mode = GPIO_MODE_OUTPUT_PP,
@@ -53,7 +56,7 @@ int main(void) {
 
     gdut::thread<4 * 128> thread1([&mutex, &counter]() {
       for (int i = 0; i < 1000; ++i) {
-        gdut::lock_guard lock(mutex);
+        std::lock_guard lock(mutex);
         ++counter;
         osDelay(10);
       }
@@ -61,7 +64,7 @@ int main(void) {
 
     gdut::thread<4 * 128> thread2([&mutex, &counter]() {
       for (int i = 0; i < 1000; ++i) {
-        gdut::lock_guard lock(mutex);
+        std::lock_guard lock(mutex);
         ++counter;
         osDelay(10);
       }

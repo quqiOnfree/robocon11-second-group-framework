@@ -6,6 +6,8 @@
 #include <cmsis_os2.h>
 #include <cstdint>
 
+#define GDUT_CCMRAM __attribute__((section(".ccmram")))
+
 namespace gdut {
 
 /**

@@ -4,7 +4,7 @@
 #include "stm32f407xx.h"
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_can.h"
-#include <algorithm>
+#include <cmsis_os2.h>
 #include <cstddef>
 #include <cstdint>
 #include <utility>
@@ -40,123 +40,45 @@ public:
       10;                                // 每个总线最多支持 10 个 CAN 代理实例
   static constexpr size_t bus_count = 2; // STM32F407 支持 CAN1/CAN2 两条总线
 
-  virtual ~base_can_proxy() noexcept = default;
+  base_can_proxy(CAN_HandleTypeDef &hcan, CAN_TxHeaderTypeDef tx_header,
+                 can_mailbox mail_box);
+
+  virtual ~base_can_proxy() noexcept;
 
   // 注销当前实例（从全局实例表中移除，避免悬空指针）
   // 为避免 bus_index 参数错误导致悬空注册，会搜索所有总线
-  bool unregister_self() {
-    bool success = false;
-
-    // 保护实例表的修改，避免与中断中的 dispatch 并发访问
-    // 保存并恢复 PRIMASK 以支持嵌套临界区
-    uint32_t primask = __get_PRIMASK();
-    __disable_irq();
-
-    // 在所有总线上查找并移除当前实例
-    for (size_t bus = 0; bus < bus_count; ++bus) {
-      for (size_t i = 0; i < instances_count[bus]; ++i) {
-        if (instances[bus][i] == this) {
-          // 将后续元素前移覆盖当前位置
-          for (size_t j = i; j < instances_count[bus] - 1; ++j) {
-            instances[bus][j] = instances[bus][j + 1];
-          }
-          instances[bus][instances_count[bus] - 1] = nullptr;
-          instances_count[bus]--;
-          success = true;
-          break;
-        }
-      }
-      if (success) {
-        break; // 找到并移除后退出
-      }
-    }
-
-    __set_PRIMASK(primask);
-
-    return success;
-  }
+  bool unregister_self();
 
   // 将当前实例注册到全局实例表，并按 CAN ID 排序以便二分查找
-  bool register_self(size_t bus_index) {
-    uint32_t can_id = get_can_id();
-    // 快速失败检查：不进入临界区
-    if (bus_index >= bus_count || instances_count[bus_index] >= can_max_count) {
-      return false; // 总线索引越界或实例表已满
-    }
-
-    bool success = false;
-
-    // 保护实例表的修改，避免与中断中的 dispatch 并发访问
-    // 保存并恢复 PRIMASK 以支持嵌套临界区
-    uint32_t primask = __get_PRIMASK();
-    __disable_irq();
-
-    // 在临界区内再次检查容量和重复 ID，以防并发注册导致状态改变
-    if (instances_count[bus_index] < can_max_count) {
-      // 检查是否已注册相同 ID（遍历已有实例）
-      bool id_conflict = false;
-      for (size_t i = 0; i < instances_count[bus_index]; ++i) {
-        if (instances[bus_index][i] != nullptr &&
-            instances[bus_index][i]->get_can_id() == can_id) {
-          id_conflict = true;
-          break;
-        }
-      }
-
-      if (!id_conflict) {
-        // 追加到末尾
-        instances[bus_index][instances_count[bus_index]] = this;
-        instances_count[bus_index]++;
-        // 按 CAN ID 升序排序（便于二分查找）
-        std::sort(instances[bus_index],
-                  instances[bus_index] + instances_count[bus_index],
-                  [](const base_can_proxy *a, const base_can_proxy *b) {
-                    return a->get_can_id() < b->get_can_id();
-                  });
-        success = true;
-      }
-    }
-
-    __set_PRIMASK(primask);
-
-    return success;
-  }
+  bool register_self(size_t bus_index);
 
   // 全局分发函数：从接收中断回调中调用，二分查找对应的实例并调用其 receive
   static void dispatch(size_t bus_index, CAN_RxHeaderTypeDef *rxh,
-                       uint8_t data[8]) {
-    if (bus_index >= bus_count) {
-      return; // 总线索引非法
-    }
-    // 从帧头提取 CAN ID（区分标准帧/扩展帧）
-    uint32_t can_id = (rxh->IDE == CAN_ID_STD) ? rxh->StdId : rxh->ExtId;
-    using iter_t = base_can_proxy **;
-    iter_t begin = instances[bus_index];
-    iter_t end = instances[bus_index] + instances_count[bus_index];
-    // 二分查找 CAN ID 对应的实例（实例数组已按 ID 升序排列）
-    iter_t it = std::lower_bound(begin, end, can_id,
-                                 [](const base_can_proxy *proxy, uint32_t id) {
-                                   return proxy->get_can_id() < id;
-                                 });
-    if (it != end && (*it)->get_can_id() == can_id) {
-      (*it)->receive(rxh, data); // 交给实例处理接收数据
-    }
-  }
+                       uint8_t data[8]);
+
+  bool start();
+
+  bool stop();
+
+  // 发送 CAN 数据帧（固定 8 字节）
+  bool transmit(const uint8_t data[8]);
 
 protected:
   // 获取当前实例的 CAN ID（子类必须实现）
   virtual uint32_t get_can_id() const = 0;
   // 接收回调（子类可选实现，用于处理接收到的 CAN 数据）
-  virtual bool receive(CAN_RxHeaderTypeDef *rxh, uint8_t data[8]) {
-    static_cast<void>(rxh);
-    static_cast<void>(data);
-    return true;
-  }
+  virtual bool receive(CAN_RxHeaderTypeDef *rxh, uint8_t data[8]);
 
 private:
-  inline static base_can_proxy *instances[bus_count][can_max_count] =
-      {};                                               // 全局实例表
-  inline static size_t instances_count[bus_count] = {}; // 各总线已注册实例数量
+  const CAN_TxHeaderTypeDef m_tx_header; // 发送帧头模板（由子类构造函数初始化）
+  const can_mailbox m_mail_box; // 允许使用的邮箱掩码（由子类构造函数初始化）
+  CAN_HandleTypeDef &m_hcan;    // CAN 外设句柄引用
+
+private:
+  // 全局实例表
+  static base_can_proxy *instances[bus_count][can_max_count];
+  // 各总线已注册实例数量
+  static size_t instances_count[bus_count];
 };
 
 template <can_type Type, uint32_t CanId,
@@ -176,44 +98,13 @@ public:
       .DLC = 8, // 固定发送 8 字节数据帧
       .TransmitGlobalTime = DISABLE};
 
-  can_proxy(CAN_HandleTypeDef &hcan) : m_hcan(hcan) {}
-  virtual ~can_proxy() noexcept = default;
-
-  bool start() { return HAL_CAN_Start(&m_hcan) == HAL_OK; }
-
-  bool stop() { return HAL_CAN_Stop(&m_hcan) == HAL_OK; }
-
-  // 发送 CAN 数据帧（固定 8 字节）
-  bool transmit(const uint8_t data[8]) {
-    if (data == nullptr) {
-      return false; // 参数非法
-    }
-    // 检查是否有空闲邮箱
-    if (HAL_CAN_GetTxMailboxesFreeLevel(&m_hcan) == 0U) {
-      return false; // 3 个邮箱都满，无法发送
-    }
-    // 复制模板帧头（DLC 固定为 8）
-    CAN_TxHeaderTypeDef header = tx_header_v;
-    uint32_t mailbox{0};
-    // 将帧加入发送队列，硬件会自动仲裁并发送
-    auto status = HAL_CAN_AddTxMessage(&m_hcan, &header, data, &mailbox);
-    if (status != HAL_OK) {
-      return false; // HAL 发送失败
-    }
-    // 检查是否使用了允许的邮箱（可选的邮箱掩码限制）
-    if (!mailbox_allowed(MailboxMask, static_cast<can_mailbox>(mailbox))) {
-      HAL_CAN_AbortTxRequest(&m_hcan, mailbox); // 终止不符合要求的邮箱
-      return false;
-    }
-    return true;
-  }
+  can_proxy(CAN_HandleTypeDef &hcan)
+      : base_can_proxy(hcan, tx_header_v, MailboxMask) {}
+  virtual ~can_proxy() noexcept override = default;
 
 protected:
   // 返回模板参数指定的 CAN ID
   virtual uint32_t get_can_id() const override { return CanId; }
-
-private:
-  CAN_HandleTypeDef &m_hcan; // CAN 外设句柄引用
 };
 
 } // namespace gdut

@@ -9,9 +9,18 @@
 
 namespace gdut {
 
+struct empty_event_flags_t {
+  explicit empty_event_flags_t() = default;
+};
+inline constexpr empty_event_flags_t empty_event_flags{};
+
 class event_flags {
 public:
-  explicit event_flags() { m_id = osEventFlagsNew(nullptr); }
+  event_flags() { m_id = osEventFlagsNew(nullptr); }
+
+  explicit event_flags(empty_event_flags_t) {}
+
+  explicit event_flags(osEventFlagsId_t id) : m_id(id) {}
 
   ~event_flags() {
     if (m_id != nullptr) {

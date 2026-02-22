@@ -11,6 +11,11 @@
 
 namespace gdut {
 
+struct empty_semaphore_t {
+  explicit empty_semaphore_t() = default;
+};
+inline constexpr empty_semaphore_t empty_semaphore{};
+
 /**
  * @brief Counting semaphore based on CMSIS-RTOS2
  *
@@ -31,6 +36,10 @@ public:
   explicit counting_semaphore(std::size_t desired) {
     m_semaphore_id = osSemaphoreNew(LeastMaxValue, desired, nullptr);
   }
+
+  explicit counting_semaphore(empty_semaphore_t) {}
+
+  explicit counting_semaphore(osSemaphoreId_t semaphore_id) : m_semaphore_id(semaphore_id) {}
 
   ~counting_semaphore() noexcept {
     if (m_semaphore_id != nullptr) {
