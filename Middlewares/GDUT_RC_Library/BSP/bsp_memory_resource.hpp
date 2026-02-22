@@ -317,7 +317,7 @@ private:
       return nullptr;
     }
     // Verify that the requested size fits the block size
-    if (bytes > BlockSize) {
+    if (bytes > BlockSize - tlsf_size()) {
       return nullptr;
     }
     return tlsf_memalign(m_pool_memory, alignment, bytes);
