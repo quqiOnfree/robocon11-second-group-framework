@@ -4,7 +4,7 @@
 #include "stm32f407xx.h"
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_can.h"
-#include <cmsis_os2.h>
+
 #include <cstddef>
 #include <cstdint>
 #include <utility>

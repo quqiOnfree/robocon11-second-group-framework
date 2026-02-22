@@ -6,6 +6,17 @@
 #include <cmsis_os2.h>
 #include <cstdint>
 
+/**
+ * @brief Attribute for placing objects into Core Coupled Memory (.ccmram).
+ *
+ * @note On STM32F407, CCM RAM is not accessible by any DMA controller.
+ *       Any object annotated with GDUT_CCMRAM must therefore NOT be:
+ *       - Used directly as a DMA source or destination buffer, or
+ *       - Indirectly referenced by DMA descriptors or handles.
+ *
+ *       In particular, thread function objects or other resources that may
+ *       participate in DMA operations must not be allocated in CCM RAM.
+ */
 #define GDUT_CCMRAM __attribute__((section(".ccmram")))
 
 namespace gdut {

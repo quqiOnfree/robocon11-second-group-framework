@@ -37,6 +37,15 @@ public:
   }
   explicit mutex(empty_mutex_t) : m_mutex_id(nullptr) {}
 
+  /**
+   * @brief Construct a mutex wrapper from an existing CMSIS-RTOS2 mutex ID.
+   *
+   * Passing a non-null @p mutex_id wraps an existing mutex created elsewhere.
+   * Passing @c nullptr is explicitly allowed and results in an invalid mutex
+   * object, equivalent to constructing with ::gdut::empty_mutex. In this case,
+   * valid() and operator bool() will return false and lock operations will
+   * fail with error codes without causing undefined behavior.
+   */
   explicit mutex(osMutexId_t mutex_id) : m_mutex_id(mutex_id) {}
 
   mutex(const mutex &) = delete;

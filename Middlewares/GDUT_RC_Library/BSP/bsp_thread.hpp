@@ -50,14 +50,19 @@ inline constexpr empty_thread_t empty_thread{};
 template <size_t StackSize, osPriority_t Priority = osPriorityNormal>
 class thread {
 public:
-  static constexpr size_t stack_size_v = StackSize;
-  static constexpr osPriority_t priority_v = Priority;
+  static constexpr size_t stack_size = StackSize;
+  static constexpr osPriority_t priority = Priority;
 
   explicit thread(empty_thread_t) {}
   thread() : thread(empty_thread) {}
 
   thread(osThreadId_t handle, osSemaphoreId_t semaphore)
-      : m_handle(handle), m_semaphore(semaphore) {}
+      : m_handle(nullptr), m_semaphore(nullptr) {
+    if (handle != nullptr && semaphore != nullptr) {
+      m_handle = handle;
+      m_semaphore = semaphore;
+    }
+  }
 
   template <typename Func, typename... Args>
   thread(Func &&func, Args &&...args) {

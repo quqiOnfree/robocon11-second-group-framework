@@ -39,7 +39,16 @@ public:
 
   explicit counting_semaphore(empty_semaphore_t) {}
 
-  explicit counting_semaphore(osSemaphoreId_t semaphore_id) : m_semaphore_id(semaphore_id) {}
+  /**
+   * @brief Construct from an existing CMSIS-RTOS2 semaphore handle.
+   *
+   * Passing nullptr is allowed and will create an invalid semaphore object.
+   * In that case, valid() and operator bool() will return false and member
+   * functions such as acquire() and release() will return osError without
+   * calling the underlying CMSIS-RTOS2 API.
+   */
+  explicit counting_semaphore(osSemaphoreId_t semaphore_id) noexcept
+      : m_semaphore_id(semaphore_id) {}
 
   ~counting_semaphore() noexcept {
     if (m_semaphore_id != nullptr) {

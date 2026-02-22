@@ -209,7 +209,8 @@ public:
   explicit os_memory_pool_resource(empty_os_memory_pool_resource_t) {}
 
   explicit os_memory_pool_resource(osMemoryPoolId_t pool_id)
-      : m_pool_id(pool_id), m_block_size(osMemoryPoolGetBlockSize(pool_id)) {}
+      : m_pool_id(pool_id),
+        m_block_size(pool_id != nullptr ? osMemoryPoolGetBlockSize(pool_id) : 0) {}
 
   os_memory_pool_resource(const os_memory_pool_resource &) = delete;
   os_memory_pool_resource &operator=(const os_memory_pool_resource &) = delete;
@@ -263,6 +264,29 @@ private:
   }
 };
 
+/**
+ * @brief Fixed-size, static memory resource backed by TLSF.
+ *
+ * This memory_resource implements a single, statically allocated memory pool
+ * of size @p BlockSize bytes using the TLSF (Two-Level Segregated Fit)
+ * allocator. All allocations are served from the internal @p m_block buffer;
+ * the pool cannot grow and no dynamic memory is requested from the system
+ * heap or FreeRTOS.
+ *
+ * Compared to other memory resources in this file, this class:
+ * - Uses a fixed-size static buffer instead of dynamically obtained memory.
+ * - Provides TLSF's O(1) allocation/free characteristics.
+ * - Is suitable for deterministic, embedded use where a bounded memory
+ *   footprint is required.
+ *
+ * Important limitations:
+ * - Any single allocation request larger than @p BlockSize will fail and
+ *   return nullptr.
+ * - The effective usable capacity is less than @p BlockSize because TLSF
+ *   stores internal metadata inside the buffer.
+ * - When the internal pool is exhausted or too fragmented to satisfy a
+ *   request, allocations will fail and return nullptr.
+ */
 template <std::size_t BlockSize>
 class fixed_block_resource : public std::pmr::memory_resource {
   static_assert(BlockSize > 0, "Block size must be greater than zero.");
