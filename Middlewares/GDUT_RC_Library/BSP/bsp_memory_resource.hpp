@@ -194,7 +194,8 @@ private:
 struct empty_os_memory_pool_resource_t {
   explicit empty_os_memory_pool_resource_t() = default;
 };
-inline constexpr empty_os_memory_pool_resource_t empty_os_memory_pool_resource{};
+inline constexpr empty_os_memory_pool_resource_t
+    empty_os_memory_pool_resource{};
 
 class os_memory_pool_resource : public std::pmr::memory_resource {
   osMemoryPoolId_t m_pool_id{nullptr};
@@ -210,7 +211,8 @@ public:
 
   explicit os_memory_pool_resource(osMemoryPoolId_t pool_id)
       : m_pool_id(pool_id),
-        m_block_size(pool_id != nullptr ? osMemoryPoolGetBlockSize(pool_id) : 0) {}
+        m_block_size(pool_id != nullptr ? osMemoryPoolGetBlockSize(pool_id)
+                                        : 0) {}
 
   os_memory_pool_resource(const os_memory_pool_resource &) = delete;
   os_memory_pool_resource &operator=(const os_memory_pool_resource &) = delete;

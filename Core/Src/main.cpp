@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "bsp_gpio_pin.hpp"
+#include "bsp_memory_resource.hpp"
 #include "bsp_mutex.hpp"
 #include "bsp_thread.hpp"
 #include "bsp_type_traits.hpp"

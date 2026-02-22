@@ -120,11 +120,11 @@ bool base_can_proxy::stop() { return HAL_CAN_Stop(&m_hcan) == HAL_OK; }
 
 bool base_can_proxy::transmit(const uint8_t data[8]) {
   if (data == nullptr) {
-     return false; // 参数非法
+    return false; // 参数非法
   }
   // 检查是否有空闲邮箱
   if (HAL_CAN_GetTxMailboxesFreeLevel(&m_hcan) == 0U) {
-     return false; // 3 个邮箱都满，无法发送
+    return false; // 3 个邮箱都满，无法发送
   }
   uint32_t mailbox{0};
   // 使用可变的本地副本以保持 const-correctness
@@ -132,12 +132,12 @@ bool base_can_proxy::transmit(const uint8_t data[8]) {
   // 将帧加入发送队列，硬件会自动仲裁并发送
   auto status = HAL_CAN_AddTxMessage(&m_hcan, &tx_header, data, &mailbox);
   if (status != HAL_OK) {
-     return false; // HAL 发送失败
+    return false; // HAL 发送失败
   }
   // 检查是否使用了允许的邮箱（可选的邮箱掩码限制）
   if (!mailbox_allowed(m_mail_box, static_cast<can_mailbox>(mailbox))) {
-     HAL_CAN_AbortTxRequest(&m_hcan, mailbox); // 终止不符合要求的邮箱
-     return false;
+    HAL_CAN_AbortTxRequest(&m_hcan, mailbox); // 终止不符合要求的邮箱
+    return false;
   }
   return true;
 }
