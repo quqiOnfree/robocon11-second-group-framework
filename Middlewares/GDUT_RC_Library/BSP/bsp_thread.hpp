@@ -81,10 +81,12 @@ public:
       return;
     }
 
-    auto bound = [this, func = std::forward<Func>(func),
+    // 捕获信号量句柄的值（而非 this），使线程对象在运行中安全移动
+    osSemaphoreId_t sem_handle = m_semaphore.get();
+    auto bound = [sem_handle, func = std::forward<Func>(func),
                   ... args = std::forward<Args>(args)]() mutable {
       func(args...);
-      osSemaphoreRelease(m_semaphore.get());
+      osSemaphoreRelease(sem_handle);
     };
     using bound_type = decltype(bound);
     static std::pmr::polymorphic_allocator<bound_type> allocator{
@@ -103,7 +105,14 @@ public:
           memory_deleter{StackSize, alignof(std::max_align_t)});
       data = allocator.allocate(1);
     }
-    if (data == nullptr || !m_control_block || !m_stack) {
+    // fixed_block_resource::do_allocate() 在内存不足时返回 nullptr（而非抛出异常），
+    // std::pmr::memory_resource::allocate() 会将该 nullptr 透传，
+    // 因此此处的空指针检查是必要的
+    if (!data || !m_control_block || !m_stack) {
+      if (data) {
+        std::lock_guard lock(thread_memory_resource::pool_mutex);
+        allocator.deallocate(data, 1);
+      }
       m_semaphore.reset();
       m_control_block.reset();
       m_stack.reset();
@@ -158,17 +167,17 @@ public:
       return;
     }
     osSemaphoreAcquire(m_semaphore.get(), osWaitForever);
-    // Thread has properly exited via osThreadExit(), handle is already cleaned
-    // up
-    m_handle = nullptr;
+    // 线程已通过 osThreadExit() 正常退出，使用 release() 而非 reset()
+    // 以避免 thread_deleter 再次调用 osThreadTerminate()
+    m_handle.release();
     m_semaphore.reset();
   }
 
   void terminate() {
-    if (m_handle != nullptr) {
+    if (m_handle) {
       m_handle.reset();
     }
-    if (!m_semaphore) {
+    if (m_semaphore) {
       m_semaphore.reset();
     }
   }

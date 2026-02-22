@@ -282,12 +282,12 @@ private:
  *   footprint is required.
  *
  * Important limitations:
- * - Any single allocation request larger than @p BlockSize will fail and
- *   return nullptr.
+ * - Any single allocation request larger than @p BlockSize will be rejected.
  * - The effective usable capacity is less than @p BlockSize because TLSF
  *   stores internal metadata inside the buffer.
  * - When the internal pool is exhausted or too fragmented to satisfy a
- *   request, allocations will fail and return nullptr.
+ *   request, @c do_allocate() returns nullptr. Since @c do_allocate() does
+ *   not throw, callers receive a nullptr return value and must check for it.
  */
 template <std::size_t BlockSize>
 class fixed_block_resource : public std::pmr::memory_resource {
