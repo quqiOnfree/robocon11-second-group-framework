@@ -105,8 +105,19 @@ public:
           memory_deleter{StackSize, alignof(std::max_align_t)});
       data = allocator.allocate(1);
     }
-    // 注意：在 -fno-exceptions 构建下，allocate() 失败时直接调用 std::terminate
-    // 而不会返回 nullptr，因此此处无需进行空指针检查
+    // fixed_block_resource::do_allocate() 在内存不足时返回 nullptr（而非抛出异常），
+    // std::pmr::memory_resource::allocate() 会将该 nullptr 透传，
+    // 因此此处的空指针检查是必要的
+    if (!data || !m_control_block || !m_stack) {
+      if (data) {
+        std::lock_guard lock(thread_memory_resource::pool_mutex);
+        allocator.deallocate(data, 1);
+      }
+      m_semaphore.reset();
+      m_control_block.reset();
+      m_stack.reset();
+      return;
+    }
     allocator.template construct<bound_type>(data, std::move(bound));
     osThreadAttr_t attributes = {.name = "gdut_thread",
                                  .cb_mem = m_control_block.get(),
@@ -163,7 +174,7 @@ public:
   }
 
   void terminate() {
-    if (m_handle != nullptr) {
+    if (m_handle) {
       m_handle.reset();
     }
     if (m_semaphore) {
