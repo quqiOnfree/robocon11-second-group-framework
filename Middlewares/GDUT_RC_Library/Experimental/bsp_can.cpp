@@ -14,9 +14,7 @@ base_can_proxy::base_can_proxy(CAN_HandleTypeDef &hcan,
                                can_mailbox mail_box)
     : m_tx_header(tx_header), m_mail_box(mail_box), m_hcan(hcan) {}
 
-base_can_proxy::~base_can_proxy() noexcept {
-  unregister_self();
-}
+base_can_proxy::~base_can_proxy() noexcept { unregister_self(); }
 
 bool base_can_proxy::unregister_self() {
   bool success = false;

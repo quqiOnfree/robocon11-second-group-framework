@@ -105,9 +105,9 @@ public:
           memory_deleter{StackSize, alignof(std::max_align_t)});
       data = allocator.allocate(1);
     }
-    // fixed_block_resource::do_allocate() 在内存不足时返回 nullptr（而非抛出异常），
-    // std::pmr::memory_resource::allocate() 会将该 nullptr 透传，
-    // 因此此处的空指针检查是必要的
+    // fixed_block_resource::do_allocate() 在内存不足时返回
+    // nullptr（而非抛出异常）， std::pmr::memory_resource::allocate() 会将该
+    // nullptr 透传， 因此此处的空指针检查是必要的
     if (!data || !m_control_block || !m_stack) {
       if (data) {
         std::lock_guard lock(thread_memory_resource::pool_mutex);
