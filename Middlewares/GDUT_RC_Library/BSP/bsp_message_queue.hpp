@@ -11,6 +11,11 @@
 
 namespace gdut {
 
+struct empty_message_queue_t {
+  explicit empty_message_queue_t() = default;
+};
+inline constexpr empty_message_queue_t empty_message_queue{};
+
 template <typename Ty>
   requires std::is_trivially_copyable_v<Ty>
 class message_queue {
@@ -18,6 +23,13 @@ public:
   explicit message_queue(uint32_t msg_count) {
     m_id = osMessageQueueNew(msg_count, sizeof(Ty), nullptr);
   }
+
+  explicit message_queue(empty_message_queue_t) {}
+
+  // 从已有的 CMSIS-RTOS2 消息队列句柄构造。
+  // 允许传入 nullptr，此时对象处于无效状态（valid() 返回 false），
+  // 所有成员函数将返回 false/0 而不会调用底层 RTOS API。
+  explicit message_queue(osMessageQueueId_t id) : m_id(id) {}
 
   ~message_queue() {
     if (m_id != nullptr) {

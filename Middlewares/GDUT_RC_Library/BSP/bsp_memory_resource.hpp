@@ -7,6 +7,7 @@
 #include <cmsis_os2.h>
 #include <cstddef>
 #include <memory_resource>
+#include <mutex>
 
 namespace gdut::pmr {
 
@@ -170,18 +171,18 @@ public:
   operator=(const synchronized_tlsf_resource &) = delete;
 
   explicit operator bool() const {
-    lock_guard<mutex> lock(m_mutex);
+    std::lock_guard lock(m_mutex);
     return static_cast<bool>(m_pool);
   }
 
 private:
   void *do_allocate(size_t bytes, size_t alignment) override {
-    lock_guard<mutex> lock(m_mutex);
+    std::lock_guard lock(m_mutex);
     return m_pool.allocate(bytes, alignment);
   }
 
   void do_deallocate(void *p, size_t bytes, size_t alignment) override {
-    lock_guard<mutex> lock(m_mutex);
+    std::lock_guard lock(m_mutex);
     m_pool.deallocate(p, bytes, alignment);
   }
 
@@ -189,6 +190,12 @@ private:
     return this == std::addressof(other);
   }
 };
+
+struct empty_os_memory_pool_resource_t {
+  explicit empty_os_memory_pool_resource_t() = default;
+};
+inline constexpr empty_os_memory_pool_resource_t
+    empty_os_memory_pool_resource{};
 
 class os_memory_pool_resource : public std::pmr::memory_resource {
   osMemoryPoolId_t m_pool_id{nullptr};
@@ -200,8 +207,30 @@ public:
     m_pool_id = osMemoryPoolNew(block_count, block_size, nullptr);
   }
 
+  explicit os_memory_pool_resource(empty_os_memory_pool_resource_t) {}
+
+  explicit os_memory_pool_resource(osMemoryPoolId_t pool_id)
+      : m_pool_id(pool_id),
+        m_block_size(pool_id != nullptr ? osMemoryPoolGetBlockSize(pool_id)
+                                        : 0) {}
+
   os_memory_pool_resource(const os_memory_pool_resource &) = delete;
   os_memory_pool_resource &operator=(const os_memory_pool_resource &) = delete;
+
+  os_memory_pool_resource(os_memory_pool_resource &&other) noexcept
+      : m_pool_id(std::exchange(other.m_pool_id, nullptr)),
+        m_block_size(std::exchange(other.m_block_size, 0)) {}
+
+  os_memory_pool_resource &operator=(os_memory_pool_resource &&other) noexcept {
+    if (this != std::addressof(other)) {
+      if (m_pool_id != nullptr) {
+        osMemoryPoolDelete(m_pool_id);
+      }
+      m_pool_id = std::exchange(other.m_pool_id, nullptr);
+      m_block_size = std::exchange(other.m_block_size, 0);
+    }
+    return *this;
+  }
 
   ~os_memory_pool_resource() override {
     if (m_pool_id != nullptr) {
@@ -235,6 +264,80 @@ private:
   bool do_is_equal(const memory_resource &other) const noexcept override {
     return this == std::addressof(other);
   }
+};
+
+/**
+ * @brief Fixed-size, static memory resource backed by TLSF.
+ *
+ * This memory_resource implements a single, statically allocated memory pool
+ * of size @p BlockSize bytes using the TLSF (Two-Level Segregated Fit)
+ * allocator. All allocations are served from the internal @p m_block buffer;
+ * the pool cannot grow and no dynamic memory is requested from the system
+ * heap or FreeRTOS.
+ *
+ * Compared to other memory resources in this file, this class:
+ * - Uses a fixed-size static buffer instead of dynamically obtained memory.
+ * - Provides TLSF's O(1) allocation/free characteristics.
+ * - Is suitable for deterministic, embedded use where a bounded memory
+ *   footprint is required.
+ *
+ * Important limitations:
+ * - Any single allocation request larger than @p BlockSize will be rejected.
+ * - The effective usable capacity is less than @p BlockSize because TLSF
+ *   stores internal metadata inside the buffer.
+ * - When the internal pool is exhausted or too fragmented to satisfy a
+ *   request, @c do_allocate() returns nullptr. Since @c do_allocate() does
+ *   not throw, callers receive a nullptr return value and must check for it.
+ */
+template <std::size_t BlockSize>
+class fixed_block_resource : public std::pmr::memory_resource {
+  static_assert(BlockSize > 0, "Block size must be greater than zero.");
+
+public:
+  fixed_block_resource() {
+    m_pool_memory = tlsf_create_with_pool(m_block, BlockSize);
+  }
+
+  fixed_block_resource(const fixed_block_resource &) = delete;
+  fixed_block_resource &operator=(const fixed_block_resource &) = delete;
+  fixed_block_resource(fixed_block_resource &&) = delete;
+  fixed_block_resource &operator=(fixed_block_resource &&) = delete;
+
+  ~fixed_block_resource() override {
+    if (m_pool_memory != nullptr) {
+      tlsf_destroy(m_pool_memory);
+    }
+  }
+
+  explicit operator bool() const { return m_pool_memory != nullptr; }
+
+private:
+  void *do_allocate(size_t bytes, size_t alignment) override {
+    if (m_pool_memory == nullptr || bytes == 0) {
+      return nullptr;
+    }
+    // Verify that the requested size fits the block size
+    if (bytes > BlockSize - tlsf_size()) {
+      return nullptr;
+    }
+    return tlsf_memalign(m_pool_memory, alignment, bytes);
+  }
+
+  void do_deallocate(void *p, size_t bytes, size_t alignment) override {
+    (void)bytes;     // bytes is ignored in this implementation
+    (void)alignment; // alignment is ignored in this implementation
+    if (m_pool_memory != nullptr && p != nullptr) {
+      tlsf_free(m_pool_memory, p);
+    }
+  }
+
+  bool do_is_equal(const memory_resource &other) const noexcept override {
+    return this == std::addressof(other);
+  }
+
+private:
+  tlsf_t m_pool_memory{nullptr};
+  alignas(std::max_align_t) char m_block[BlockSize]{};
 };
 
 } // namespace gdut::pmr
