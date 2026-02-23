@@ -40,7 +40,9 @@ public:
   /**
    * @brief Construct a mutex wrapper from an existing CMSIS-RTOS2 mutex ID.
    *
-   * Passing a non-null @p mutex_id wraps an existing mutex created elsewhere.
+   * This constructor takes @b ownership of @p mutex_id: the wrapper will call
+   * @c osMutexDelete on the handle when destroyed or moved-from.
+   * Do not delete or manage the mutex elsewhere after passing its handle here.
    * Passing @c nullptr is explicitly allowed and results in an invalid mutex
    * object, equivalent to constructing with ::gdut::empty_mutex. In this case,
    * valid() and operator bool() will return false and lock operations will

@@ -16,7 +16,10 @@ namespace gdut {
 
 // 内部内存资源，用于线程函数对象的分配
 struct thread_memory_resource {
-  static constexpr size_t pool_size = 1024; // 内存池总大小，单位字节
+  // 内存池总大小，单位字节。每个 thread<StackSize> 实例大约需要
+  // sizeof(StaticTask_t) + StackSize + sizeof(函数对象) 字节，再加上 TLSF
+  // 分配器自身开销（约 256 字节），可根据最大并发线程数和最大栈大小调整此值。
+  static constexpr size_t pool_size = 4096;
   GDUT_CCMRAM inline static gdut::pmr::fixed_block_resource<pool_size>
       pool_resource{};
   GDUT_CCMRAM inline static gdut::mutex pool_mutex{gdut::empty_mutex};

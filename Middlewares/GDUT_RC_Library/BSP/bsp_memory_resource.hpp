@@ -209,6 +209,14 @@ public:
 
   explicit os_memory_pool_resource(empty_os_memory_pool_resource_t) {}
 
+  /**
+   * @brief Construct a wrapper around an existing CMSIS-RTOS2 memory pool.
+   *
+   * This constructor takes @b ownership of @p pool_id: the wrapper will call
+   * @c osMemoryPoolDelete on the handle when destroyed or moved-from.
+   * Do not delete or manage the pool elsewhere after passing its handle here.
+   * Passing @c nullptr is allowed and yields a non-owning, invalid wrapper.
+   */
   explicit os_memory_pool_resource(osMemoryPoolId_t pool_id)
       : m_pool_id(pool_id),
         m_block_size(pool_id != nullptr ? osMemoryPoolGetBlockSize(pool_id)
@@ -286,8 +294,12 @@ private:
  * - The effective usable capacity is less than @p BlockSize because TLSF
  *   stores internal metadata inside the buffer.
  * - When the internal pool is exhausted or too fragmented to satisfy a
- *   request, @c do_allocate() returns nullptr. Since @c do_allocate() does
- *   not throw, callers receive a nullptr return value and must check for it.
+ *   request, @c do_allocate() returns @c nullptr internally. However, because
+ *   this project builds with @c -fno-exceptions, the standard PMR interface
+ *   @c std::pmr::memory_resource::allocate() (and @c
+ *   std::pmr::polymorphic_allocator) will call @c std::terminate() upon
+ *   seeing the @c nullptr before it is observable to callers. Treat pool
+ *   exhaustion as a fatal, non-recoverable error.
  */
 template <std::size_t BlockSize>
 class fixed_block_resource : public std::pmr::memory_resource {
