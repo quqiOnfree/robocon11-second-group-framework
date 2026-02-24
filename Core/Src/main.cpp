@@ -19,10 +19,11 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "bsp_gpio_pin.hpp"
-#include "bsp_memory_resource.hpp"
 #include "bsp_mutex.hpp"
+#include "bsp_semaphore.hpp"
 #include "bsp_thread.hpp"
 #include "bsp_type_traits.hpp"
+#include "cmsis_os2.h"
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_gpio.h"
 #include "stm32f4xx_hal_rcc.h"
@@ -38,49 +39,52 @@ int main(void) {
   SystemClock_Config();
   osKernelInitialize();
 
-  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
 
   // 初始化全局内存资源和互斥量，确保在任何线程使用前都已准备就绪
   gdut::thread_memory_resource::pool_mutex = gdut::mutex{};
 
-  gdut::gpio_pin<gdut::gpio_port::A,
-                 GPIO_InitTypeDef{.Pin = GPIO_PIN_5,
+  gdut::gpio_pin<gdut::gpio_port::F,
+                 GPIO_InitTypeDef{.Pin = GPIO_PIN_9,
                                   .Mode = GPIO_MODE_OUTPUT_PP,
                                   .Pull = GPIO_NOPULL,
                                   .Speed = GPIO_SPEED_FREQ_LOW,
                                   .Alternate = 0}>
-      led;
+      led0;
+  gdut::gpio_pin<gdut::gpio_port::F,
+                 GPIO_InitTypeDef{.Pin = GPIO_PIN_10,
+                                  .Mode = GPIO_MODE_OUTPUT_PP,
+                                  .Pull = GPIO_NOPULL,
+                                  .Speed = GPIO_SPEED_FREQ_LOW,
+                                  .Alternate = 0}>
+      led1;
 
-  gdut::thread<4 * 128> main_thread([&led]() {
-    gdut::mutex mutex;
-    int counter = 0;
+  gdut::thread<4 * 128> main_thread([&led0, &led1]() {
+    led0.write(true);
+    led1.write(true);
+    gdut::binary_semaphore semaphore1{0u};
+    gdut::binary_semaphore semaphore2{0u};
 
-    gdut::thread<4 * 128> thread1([&mutex, &counter]() {
-      for (int i = 0; i < 1000; ++i) {
-        std::lock_guard lock(mutex);
-        ++counter;
-        osDelay(10);
+    gdut::thread<4 * 128> thread1([&semaphore1, &semaphore2]() {
+      for (int i = 0; i < 2500; ++i) {
+        semaphore1.release();
+        semaphore2.acquire();
       }
     });
 
-    gdut::thread<4 * 128> thread2([&mutex, &counter]() {
-      for (int i = 0; i < 1000; ++i) {
-        std::lock_guard lock(mutex);
-        ++counter;
-        osDelay(10);
+    gdut::thread<4 * 128> thread2([&semaphore1, &semaphore2]() {
+      for (int i = 0; i < 2500; ++i) {
+        semaphore1.acquire();
+        semaphore2.release();
       }
     });
 
     thread1.join();
     thread2.join();
-    if (counter == 2000) {
-      led.write(true);
-    } else {
-      led.write(false);
-    }
 
     while (true) {
-      osDelay(1000);
+      osDelay(500);
+      led1.toggle();
     }
   });
 

@@ -98,36 +98,16 @@ public:
     {
       // 线程安全地从内存池分配内存用于存储绑定的函数对象
       std::lock_guard lock(thread_memory_resource::pool_mutex);
-      m_control_block = std::unique_ptr<void, memory_deleter>(
-          thread_memory_resource::pool_resource.allocate(sizeof(StaticTask_t),
-                                                         alignof(StaticTask_t)),
-          memory_deleter{sizeof(StaticTask_t), alignof(StaticTask_t)});
-      m_stack = std::unique_ptr<void, memory_deleter>(
-          thread_memory_resource::pool_resource.allocate(
-              StackSize, alignof(std::max_align_t)),
-          memory_deleter{StackSize, alignof(std::max_align_t)});
       data = allocator.allocate(1);
     }
-    // fixed_block_resource::do_allocate() 在内存不足时返回
-    // nullptr（而非抛出异常）， std::pmr::memory_resource::allocate() 会将该
-    // nullptr 透传， 因此此处的空指针检查是必要的
-    if (!data || !m_control_block || !m_stack) {
-      if (data) {
-        std::lock_guard lock(thread_memory_resource::pool_mutex);
-        allocator.deallocate(data, 1);
-      }
+    // fixed_block_resource::do_allocate() 在内存不足时返回 nullptr
+    if (!data) {
       m_semaphore.reset();
-      m_control_block.reset();
-      m_stack.reset();
       return;
     }
     allocator.template construct<bound_type>(data, std::move(bound));
-    osThreadAttr_t attributes = {.name = "gdut_thread",
-                                 .cb_mem = m_control_block.get(),
-                                 .cb_size = sizeof(StaticTask_t),
-                                 .stack_mem = m_stack.get(),
-                                 .stack_size = StackSize,
-                                 .priority = Priority};
+    osThreadAttr_t attributes = {
+        .name = "gdut_thread", .stack_size = StackSize, .priority = Priority};
     m_handle =
         std::unique_ptr<std::remove_pointer_t<osThreadId_t>, thread_deleter>{
             osThreadNew(
@@ -149,8 +129,6 @@ public:
         allocator.deallocate(data, 1);
       }
       m_semaphore.reset();
-      m_control_block.reset();
-      m_stack.reset();
     }
   }
 
@@ -190,20 +168,20 @@ public:
 
   thread(thread &&other) noexcept
       : m_handle(std::move(other.m_handle)),
-        m_semaphore(std::move(other.m_semaphore)),
-        m_control_block(std::move(other.m_control_block)),
-        m_stack(std::move(other.m_stack)) {}
+        m_semaphore(std::move(other.m_semaphore)) {}
 
   thread &operator=(thread &&other) noexcept {
     if (this != std::addressof(other)) {
       terminate();
       m_handle = std::move(other.m_handle);
       m_semaphore = std::move(other.m_semaphore);
-      m_control_block = std::move(other.m_control_block);
-      m_stack = std::move(other.m_stack);
     }
     return *this;
   }
+
+  bool valid() const noexcept { return m_handle && m_semaphore; }
+
+  explicit operator bool() const noexcept { return valid(); }
 
 private:
   struct thread_deleter {
@@ -241,8 +219,6 @@ private:
       nullptr};
   std::unique_ptr<std::remove_pointer_t<osSemaphoreId_t>, semaphore_deleter>
       m_semaphore{nullptr};
-  std::unique_ptr<void, memory_deleter> m_control_block{nullptr};
-  std::unique_ptr<void, memory_deleter> m_stack{nullptr};
 };
 
 } // namespace gdut
