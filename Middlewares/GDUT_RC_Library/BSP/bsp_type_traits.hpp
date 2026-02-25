@@ -179,11 +179,6 @@ inline uint32_t time_to_ticks(std::chrono::milliseconds timeout) {
     return 0;
   }
 
-  // Handle zero or positive durations
-  if (ms == 0) {
-    return 0;
-  }
-
   // Convert milliseconds to ticks (tickFreq is in Hz)
   uint32_t tick_freq = osKernelGetTickFreq();
   // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for
