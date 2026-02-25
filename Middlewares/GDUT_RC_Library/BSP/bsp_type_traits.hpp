@@ -98,20 +98,23 @@ enum class timer_id : uint8_t {
 }
 
 // 获取UART实例索引
-[[nodiscard]] constexpr uint8_t get_uart_index(USART_TypeDef *uart_instance) {
-  if (uart_instance == USART1)
+[[nodiscard]] inline uint8_t get_uart_index(USART_TypeDef *uart_instance) {
+  switch (reinterpret_cast<uintptr_t>(uart_instance)) {
+  case USART1_BASE:
     return 0;
-  if (uart_instance == USART2)
+  case USART2_BASE:
     return 1;
-  if (uart_instance == USART3)
+  case USART3_BASE:
     return 2;
-  if (uart_instance == UART4)
+  case UART4_BASE:
     return 3;
-  if (uart_instance == UART5)
+  case UART5_BASE:
     return 4;
-  if (uart_instance == USART6)
+  case USART6_BASE:
     return 5;
-  return 0xFF;
+  default:
+    return 0xFF;
+  }
 }
 
 template <typename Rep, typename Period>

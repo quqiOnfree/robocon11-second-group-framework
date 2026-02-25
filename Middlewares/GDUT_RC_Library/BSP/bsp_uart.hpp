@@ -38,8 +38,6 @@ public:
                          DMA_HandleTypeDef *hdma_tx = nullptr) {
     if (m_huart) {
       attach_dma_rx(hdma_rx);
-    }
-    if (m_huart) {
       attach_dma_tx(hdma_tx);
     }
     return HAL_UART_Init(m_huart);
@@ -221,6 +219,7 @@ public:
       return;
     }
     uart *u = static_cast<uart *>(hdma->Parent);
+    // 半传输完成时复用接收完成回调，使上层可通过同一回调处理两种事件
     if (u && u->m_callbacks.dma_rx_cplt_cb) {
       std::invoke(u->m_callbacks.dma_rx_cplt_cb);
     }
@@ -329,6 +328,26 @@ private:
   uart_callbacks m_callbacks{};          // 回调管理器
 };
 
+/**
+ * @brief UART 中断分发器与实例注册管理类。
+ *
+ * 维护一个静态的 @ref uart 实例注册表，并为 HAL/中断回调提供统一的分发入口。
+ * 每个底层 `UART_HandleTypeDef::Instance`（如 USART1、USART2 等）被映射到
+ * 对应的 @ref uart 对象指针，从而在中断服务程序中根据硬件句柄找到上层封装
+ * 对象并调用其回调。
+ *
+ * @section uart_irq_handler_usage 使用方式
+ * - 创建并初始化 @ref uart 对象后，调用 @ref register_uart 注册该实例。
+ * - 在 @ref uart 对象被销毁或硬件外设反初始化之前，必须调用
+ *   @ref unregister_uart 取消注册，以避免注册表中残留悬空指针。
+ * - HAL 层中断服务函数应调用本类提供的静态分发函数，由本类根据
+ *   `UART_HandleTypeDef::Instance` 查找对应的 @ref uart 实例并触发其回调。
+ *
+ * @section uart_irq_handler_thread_safety 线程安全说明
+ * - 本类不包含任何同步原语，本身不是线程安全类。
+ * - 建议在调度器启动前或临界区内调用 @ref register_uart / @ref unregister_uart
+ *   进行静态配置，不要在 ISR 中修改注册表。
+ */
 class uart_irq_handler {
 public:
   uart_irq_handler() = default;
@@ -341,6 +360,8 @@ public:
   static bool register_uart(uart *uart_obj) {
     if (!uart_obj)
       return false;
+    if (!uart_obj->get_huart())
+      return false;
     uint8_t idx = get_uart_index(uart_obj->get_huart()->Instance);
     if (idx < 6) {
       m_uarts[idx] = uart_obj;
@@ -350,6 +371,8 @@ public:
   }
   static void unregister_uart(uart *uart_obj) {
     if (!uart_obj)
+      return;
+    if (!uart_obj->get_huart())
       return;
     uint8_t idx = get_uart_index(uart_obj->get_huart()->Instance);
     if (idx < 6) {
