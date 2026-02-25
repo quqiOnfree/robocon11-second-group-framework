@@ -32,11 +32,11 @@ public:
   HAL_StatusTypeDef stop() { return HAL_TIM_Base_Stop(htim); }
 
   // 中断和 DMA 控制
-  HAL_StatusTypeDef enableIT(uint32_t interrupt) {
+  HAL_StatusTypeDef enable_it(uint32_t interrupt) {
     __HAL_TIM_ENABLE_IT(htim, interrupt);
     return HAL_OK;
   }
-  HAL_StatusTypeDef disableIT(uint32_t interrupt) {
+  HAL_StatusTypeDef disable_it(uint32_t interrupt) {
     __HAL_TIM_DISABLE_IT(htim, interrupt);
     return HAL_OK;
   }
@@ -147,18 +147,18 @@ public:
       return HAL_TIM_PWM_Stop(m_proxy->htim, channel);
     }
 
-    HAL_StatusTypeDef pwm_start_IT(uint32_t channel) {
+    HAL_StatusTypeDef pwm_start_it(uint32_t channel) {
       return HAL_TIM_PWM_Start_IT(m_proxy->htim, channel);
     }
-    HAL_StatusTypeDef pwm_stop_IT(uint32_t channel) {
+    HAL_StatusTypeDef pwm_stop_it(uint32_t channel) {
       return HAL_TIM_PWM_Stop_IT(m_proxy->htim, channel);
     }
 
-    HAL_StatusTypeDef pwm_start_DMA(uint32_t channel, const uint32_t *pData,
+    HAL_StatusTypeDef pwm_start_dma(uint32_t channel, const uint32_t *pData,
                                     uint16_t Length) {
       return HAL_TIM_PWM_Start_DMA(m_proxy->htim, channel, pData, Length);
     }
-    HAL_StatusTypeDef pwm_stop_DMA(uint32_t channel) {
+    HAL_StatusTypeDef pwm_stop_dma(uint32_t channel) {
       return HAL_TIM_PWM_Stop_DMA(m_proxy->htim, channel);
     }
 
@@ -216,19 +216,19 @@ public:
       return HAL_TIM_Encoder_Stop(m_proxy->htim, channel);
     }
 
-    HAL_StatusTypeDef encoder_start_IT(uint32_t channel) {
+    HAL_StatusTypeDef encoder_start_it(uint32_t channel) {
       return HAL_TIM_Encoder_Start_IT(m_proxy->htim, channel);
     }
-    HAL_StatusTypeDef encoder_stop_IT(uint32_t channel) {
+    HAL_StatusTypeDef encoder_stop_it(uint32_t channel) {
       return HAL_TIM_Encoder_Stop_IT(m_proxy->htim, channel);
     }
 
-    HAL_StatusTypeDef encoder_start_DMA(uint32_t channel, uint32_t *pData1,
+    HAL_StatusTypeDef encoder_start_dma(uint32_t channel, uint32_t *pData1,
                                         uint32_t *pData2, uint16_t Length) {
       return HAL_TIM_Encoder_Start_DMA(m_proxy->htim, channel, pData1, pData2,
                                        Length);
     }
-    HAL_StatusTypeDef encoder_stop_DMA(uint32_t channel) {
+    HAL_StatusTypeDef encoder_stop_dma(uint32_t channel) {
       return HAL_TIM_Encoder_Stop_DMA(m_proxy->htim, channel);
     }
 
@@ -271,10 +271,10 @@ public:
       return HAL_TIM_OC_Stop(m_proxy->htim, channel);
     }
 
-    HAL_StatusTypeDef oc_start_IT(uint32_t channel) {
+    HAL_StatusTypeDef oc_start_it(uint32_t channel) {
       return HAL_TIM_OC_Start_IT(m_proxy->htim, channel);
     }
-    HAL_StatusTypeDef oc_stop_IT(uint32_t channel) {
+    HAL_StatusTypeDef oc_stop_it(uint32_t channel) {
       return HAL_TIM_OC_Stop_IT(m_proxy->htim, channel);
     }
 
@@ -312,18 +312,18 @@ public:
       return HAL_TIM_IC_Stop(m_proxy->htim, channel);
     }
 
-    HAL_StatusTypeDef ic_start_IT(uint32_t channel) {
+    HAL_StatusTypeDef ic_start_it(uint32_t channel) {
       return HAL_TIM_IC_Start_IT(m_proxy->htim, channel);
     }
-    HAL_StatusTypeDef ic_stop_IT(uint32_t channel) {
+    HAL_StatusTypeDef ic_stop_it(uint32_t channel) {
       return HAL_TIM_IC_Stop_IT(m_proxy->htim, channel);
     }
 
-    HAL_StatusTypeDef ic_start_DMA(uint32_t channel, uint32_t *pData,
+    HAL_StatusTypeDef ic_start_dma(uint32_t channel, uint32_t *pData,
                                    uint16_t Length) {
       return HAL_TIM_IC_Start_DMA(m_proxy->htim, channel, pData, Length);
     }
-    HAL_StatusTypeDef ic_stop_DMA(uint32_t channel) {
+    HAL_StatusTypeDef ic_stop_dma(uint32_t channel) {
       return HAL_TIM_IC_Stop_DMA(m_proxy->htim, channel);
     }
     uint32_t get_capture(uint32_t channel) {
