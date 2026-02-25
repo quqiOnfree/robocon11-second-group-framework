@@ -6,6 +6,7 @@
 #include "stm32f4xx_hal_dma.h"
 #include "stm32f4xx_hal_uart.h"
 
+#include "bsp_type_traits.hpp"
 #include "bsp_uncopyable.hpp"
 
 #include <chrono>
@@ -154,23 +155,6 @@ public:
   // 检查是否有数据可读
   bool is_rx_ready() const {
     return __HAL_UART_GET_FLAG(m_huart, UART_FLAG_RXNE) != RESET;
-  }
-
-  // 获取UART实例索引
-  uint8_t get_uart_index() const {
-    if (m_huart->Instance == USART1)
-      return 1;
-    if (m_huart->Instance == USART2)
-      return 2;
-    if (m_huart->Instance == USART3)
-      return 3;
-    if (m_huart->Instance == UART4)
-      return 4;
-    if (m_huart->Instance == UART5)
-      return 5;
-    if (m_huart->Instance == USART6)
-      return 6;
-    return 0xFF;
   }
 
   // 配置接口
@@ -357,7 +341,7 @@ public:
   static bool register_uart(uart *uart_obj) {
     if (!uart_obj)
       return false;
-    uint8_t idx = uart_obj->get_uart_index();
+    uint8_t idx = get_uart_index(uart_obj->get_huart()->Instance);
     if (idx < 6) {
       m_uarts[idx] = uart_obj;
       return true;
@@ -367,7 +351,7 @@ public:
   static void unregister_uart(uart *uart_obj) {
     if (!uart_obj)
       return;
-    uint8_t idx = uart_obj->get_uart_index();
+    uint8_t idx = get_uart_index(uart_obj->get_huart()->Instance);
     if (idx < 6) {
       m_uarts[idx] = nullptr;
     }
@@ -419,22 +403,6 @@ public:
 private:
   inline static uart *m_uarts[6] =
       {}; // 支持USART1, USART2, USART3, UART4, UART5, USART6
-
-  static uint8_t get_uart_index(USART_TypeDef *instance) {
-    if (instance == USART1)
-      return 1;
-    if (instance == USART2)
-      return 2;
-    if (instance == USART3)
-      return 3;
-    if (instance == UART4)
-      return 4;
-    if (instance == UART5)
-      return 5;
-    if (instance == USART6)
-      return 6;
-    return 0xFF;
-  }
 };
 
 } // namespace gdut

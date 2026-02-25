@@ -45,8 +45,13 @@ public:
     m_callbacks.period_elapsed_cb = std::move(cb);
   }
 
-  void register_capture_callback(uint32_t channel, callback_t cb) {
-    m_callbacks.capture_cbs[channel] = std::move(cb);
+  [[nodiscard]] bool register_capture_callback(uint32_t channel,
+                                               callback_t cb) {
+    if (channel >= 1 && channel <= 4) {
+      m_callbacks.capture_cbs[channel - 1] = std::move(cb);
+      return true;
+    }
+    return false;
   }
 
   void register_error_callback(callback_t cb) {

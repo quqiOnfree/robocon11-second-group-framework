@@ -97,6 +97,23 @@ enum class timer_id : uint8_t {
   }
 }
 
+// 获取UART实例索引
+[[nodiscard]] constexpr uint8_t get_uart_index(USART_TypeDef *uart_instance) {
+  if (uart_instance == USART1)
+    return 0;
+  if (uart_instance == USART2)
+    return 1;
+  if (uart_instance == USART3)
+    return 2;
+  if (uart_instance == UART4)
+    return 3;
+  if (uart_instance == UART5)
+    return 4;
+  if (uart_instance == USART6)
+    return 5;
+  return 0xFF;
+}
+
 template <typename Rep, typename Period>
 uint32_t time_to_ticks(const std::chrono::duration<Rep, Period> &timeout) {
   uint32_t ticks;
