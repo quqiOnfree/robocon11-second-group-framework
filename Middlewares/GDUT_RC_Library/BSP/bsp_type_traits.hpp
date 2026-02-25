@@ -98,7 +98,7 @@ enum class timer_id : uint8_t {
 }
 
 // 获取UART实例索引
-[[nodiscard]] inline uint8_t get_uart_index(USART_TypeDef *uart_instance) {
+[[nodiscard]] constexpr uint8_t get_uart_index(USART_TypeDef *uart_instance) {
   switch (reinterpret_cast<uintptr_t>(uart_instance)) {
   case USART1_BASE:
     return 0;

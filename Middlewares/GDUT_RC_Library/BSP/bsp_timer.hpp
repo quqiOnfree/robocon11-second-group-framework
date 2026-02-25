@@ -32,6 +32,7 @@ public:
         m_callbacks(std::move(other.m_callbacks)) {
     if (m_hdma) {
       m_hdma->Parent = this;
+      other.m_hdma->Parent = nullptr;
     }
     other.m_htim = nullptr;
     other.m_hdma = nullptr;
@@ -47,6 +48,7 @@ public:
       m_callbacks = std::move(other.m_callbacks);
       if (m_hdma) {
         m_hdma->Parent = this;
+        other.m_hdma->Parent = nullptr;
       }
       other.m_htim = nullptr;
       other.m_hdma = nullptr;
@@ -62,6 +64,8 @@ public:
       m_hdma->XferCpltCallback = nullptr;
       m_hdma->XferHalfCpltCallback = nullptr;
       m_hdma->XferErrorCallback = nullptr;
+      m_hdma->XferAbortCallback = nullptr;
+      m_hdma->Parent = nullptr;
       m_hdma = nullptr;
     }
     return HAL_TIM_Base_DeInit(m_htim);
