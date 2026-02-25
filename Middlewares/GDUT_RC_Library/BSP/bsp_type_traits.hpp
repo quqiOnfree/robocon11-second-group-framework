@@ -166,6 +166,30 @@ uint32_t time_to_ticks(const std::chrono::duration<Rep, Period> &timeout) {
   return ticks;
 }
 
+// Specialized overload for std::chrono::milliseconds to avoid unnecessary
+// conversion
+inline uint32_t time_to_ticks(std::chrono::milliseconds timeout) {
+  if (timeout == std::chrono::milliseconds::max()) {
+    return osWaitForever;
+  }
+
+  auto ms = timeout.count();
+  // Handle negative durations (invalid state)
+  if (ms < 0) {
+    return 0;
+  }
+
+  // Convert milliseconds to ticks (tickFreq is in Hz)
+  uint32_t tick_freq = osKernelGetTickFreq();
+  // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for
+  // osWaitForever)
+  uint64_t max_ms = static_cast<uint64_t>(UINT32_MAX - 1) * 1000ULL / tick_freq;
+  if (static_cast<uint64_t>(ms) >= max_ms) {
+    return UINT32_MAX - 1;
+  }
+  return static_cast<uint32_t>((static_cast<uint64_t>(ms) * tick_freq) / 1000);
+}
+
 } // namespace gdut
 
 #endif // BSP_TYPE_TRAITS_HPP
