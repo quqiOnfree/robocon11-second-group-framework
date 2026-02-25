@@ -131,50 +131,38 @@ public:
   // timer提供时钟基功能
   class timer_proxy {
   public:
-    timer_proxy(timer *t) : m_timer(t) {}
+    timer_proxy(timer *t) : m_htim(t ? t->m_htim : nullptr) {}
     ~timer_proxy() noexcept = default;
     timer_proxy(const timer_proxy &) = default;
     timer_proxy &operator=(const timer_proxy &other) = default;
     timer_proxy(timer_proxy &&other) noexcept
-        : m_timer(std::exchange(other.m_timer, nullptr)) {}
+        : m_htim(std::exchange(other.m_htim, nullptr)) {}
     timer_proxy &operator=(timer_proxy &&other) noexcept {
       if (this != std::addressof(other)) {
-        m_timer = std::exchange(other.m_timer, nullptr);
+        m_htim = std::exchange(other.m_htim, nullptr);
       }
       return *this;
     }
 
-    HAL_StatusTypeDef base_init() {
-      return HAL_TIM_Base_Init(m_timer->m_htim);
-    }
-    HAL_StatusTypeDef base_deinit() {
-      return HAL_TIM_Base_DeInit(m_timer->m_htim);
-    }
+    TIM_HandleTypeDef *get_htim() { return m_htim; }
+    const TIM_HandleTypeDef *get_htim() const { return m_htim; }
 
-    void set_arr(uint32_t arr) {
-      __HAL_TIM_SET_AUTORELOAD(m_timer->m_htim, arr);
-    }
-    uint32_t get_arr() const {
-      return __HAL_TIM_GET_AUTORELOAD(m_timer->m_htim);
-    }
+    HAL_StatusTypeDef base_init() { return HAL_TIM_Base_Init(m_htim); }
+    HAL_StatusTypeDef base_deinit() { return HAL_TIM_Base_DeInit(m_htim); }
 
-    void set_psc(uint32_t psc) {
-      __HAL_TIM_SET_PRESCALER(m_timer->m_htim, psc);
-    }
-    uint32_t get_psc() const { return m_timer->m_htim->Instance->PSC; }
+    void set_arr(uint32_t arr) { __HAL_TIM_SET_AUTORELOAD(m_htim, arr); }
+    uint32_t get_arr() const { return __HAL_TIM_GET_AUTORELOAD(m_htim); }
+
+    void set_psc(uint32_t psc) { __HAL_TIM_SET_PRESCALER(m_htim, psc); }
+    uint32_t get_psc() const { return m_htim->Instance->PSC; }
 
     void set_counter(uint32_t counter) {
-      __HAL_TIM_SET_COUNTER(m_timer->m_htim, counter);
+      __HAL_TIM_SET_COUNTER(m_htim, counter);
     }
-    uint32_t get_counter() const {
-      return __HAL_TIM_GET_COUNTER(m_timer->m_htim);
-    }
-
-    timer *operator->() { return m_timer; }
-    const timer *operator->() const { return m_timer; }
+    uint32_t get_counter() const { return __HAL_TIM_GET_COUNTER(m_htim); }
 
   private:
-    timer *m_timer;
+    TIM_HandleTypeDef *m_htim;
   };
 
   // timer提供pwm
@@ -193,47 +181,47 @@ public:
     }
 
     HAL_StatusTypeDef pwm_start(uint32_t channel) {
-      return HAL_TIM_PWM_Start(m_proxy->m_htim, channel);
+      return HAL_TIM_PWM_Start(m_proxy.get_htim(), channel);
     }
     HAL_StatusTypeDef pwm_stop(uint32_t channel) {
-      return HAL_TIM_PWM_Stop(m_proxy->m_htim, channel);
+      return HAL_TIM_PWM_Stop(m_proxy.get_htim(), channel);
     }
 
     HAL_StatusTypeDef pwm_start_it(uint32_t channel) {
-      return HAL_TIM_PWM_Start_IT(m_proxy->m_htim, channel);
+      return HAL_TIM_PWM_Start_IT(m_proxy.get_htim(), channel);
     }
     HAL_StatusTypeDef pwm_stop_it(uint32_t channel) {
-      return HAL_TIM_PWM_Stop_IT(m_proxy->m_htim, channel);
+      return HAL_TIM_PWM_Stop_IT(m_proxy.get_htim(), channel);
     }
 
     HAL_StatusTypeDef pwm_start_dma(uint32_t channel, const uint32_t *pData,
                                     uint16_t Length) {
-      return HAL_TIM_PWM_Start_DMA(m_proxy->m_htim, channel, pData, Length);
+      return HAL_TIM_PWM_Start_DMA(m_proxy.get_htim(), channel, pData, Length);
     }
     HAL_StatusTypeDef pwm_stop_dma(uint32_t channel) {
-      return HAL_TIM_PWM_Stop_DMA(m_proxy->m_htim, channel);
+      return HAL_TIM_PWM_Stop_DMA(m_proxy.get_htim(), channel);
     }
 
     HAL_StatusTypeDef pwm_start_complementary(uint32_t channel) {
-      return HAL_TIMEx_PWMN_Start(m_proxy->m_htim, channel);
+      return HAL_TIMEx_PWMN_Start(m_proxy.get_htim(), channel);
     }
     HAL_StatusTypeDef pwm_stop_complementary(uint32_t channel) {
-      return HAL_TIMEx_PWMN_Stop(m_proxy->m_htim, channel);
+      return HAL_TIMEx_PWMN_Stop(m_proxy.get_htim(), channel);
     }
 
     HAL_StatusTypeDef set_duty(uint32_t channel, uint32_t duty) {
       switch (channel) {
       case TIM_CHANNEL_1:
-        __HAL_TIM_SET_COMPARE(m_proxy->m_htim, TIM_CHANNEL_1, duty);
+        __HAL_TIM_SET_COMPARE(m_proxy.get_htim(), TIM_CHANNEL_1, duty);
         break;
       case TIM_CHANNEL_2:
-        __HAL_TIM_SET_COMPARE(m_proxy->m_htim, TIM_CHANNEL_2, duty);
+        __HAL_TIM_SET_COMPARE(m_proxy.get_htim(), TIM_CHANNEL_2, duty);
         break;
       case TIM_CHANNEL_3:
-        __HAL_TIM_SET_COMPARE(m_proxy->m_htim, TIM_CHANNEL_3, duty);
+        __HAL_TIM_SET_COMPARE(m_proxy.get_htim(), TIM_CHANNEL_3, duty);
         break;
       case TIM_CHANNEL_4:
-        __HAL_TIM_SET_COMPARE(m_proxy->m_htim, TIM_CHANNEL_4, duty);
+        __HAL_TIM_SET_COMPARE(m_proxy.get_htim(), TIM_CHANNEL_4, duty);
         break;
       default:
         return HAL_ERROR;
@@ -262,38 +250,38 @@ public:
     }
 
     HAL_StatusTypeDef encoder_start(uint32_t channel) {
-      return HAL_TIM_Encoder_Start(m_proxy->m_htim, channel);
+      return HAL_TIM_Encoder_Start(m_proxy.get_htim(), channel);
     }
     HAL_StatusTypeDef encoder_stop(uint32_t channel) {
-      return HAL_TIM_Encoder_Stop(m_proxy->m_htim, channel);
+      return HAL_TIM_Encoder_Stop(m_proxy.get_htim(), channel);
     }
 
     HAL_StatusTypeDef encoder_start_it(uint32_t channel) {
-      return HAL_TIM_Encoder_Start_IT(m_proxy->m_htim, channel);
+      return HAL_TIM_Encoder_Start_IT(m_proxy.get_htim(), channel);
     }
     HAL_StatusTypeDef encoder_stop_it(uint32_t channel) {
-      return HAL_TIM_Encoder_Stop_IT(m_proxy->m_htim, channel);
+      return HAL_TIM_Encoder_Stop_IT(m_proxy.get_htim(), channel);
     }
 
     HAL_StatusTypeDef encoder_start_dma(uint32_t channel, uint32_t *pData1,
                                         uint32_t *pData2, uint16_t Length) {
-      return HAL_TIM_Encoder_Start_DMA(m_proxy->m_htim, channel, pData1,
+      return HAL_TIM_Encoder_Start_DMA(m_proxy.get_htim(), channel, pData1,
                                        pData2, Length);
     }
     HAL_StatusTypeDef encoder_stop_dma(uint32_t channel) {
-      return HAL_TIM_Encoder_Stop_DMA(m_proxy->m_htim, channel);
+      return HAL_TIM_Encoder_Stop_DMA(m_proxy.get_htim(), channel);
     }
 
     bool is_counting_down() const {
-      return __HAL_TIM_IS_TIM_COUNTING_DOWN(m_proxy->m_htim);
+      return __HAL_TIM_IS_TIM_COUNTING_DOWN(m_proxy.get_htim());
     }
 
     HAL_StatusTypeDef enable_index_interrupt(uint32_t interrupt) {
-      __HAL_TIM_ENABLE_IT(m_proxy->m_htim, interrupt);
+      __HAL_TIM_ENABLE_IT(m_proxy.get_htim(), interrupt);
       return HAL_OK;
     }
     HAL_StatusTypeDef disable_index_interrupt(uint32_t interrupt) {
-      __HAL_TIM_DISABLE_IT(m_proxy->m_htim, interrupt);
+      __HAL_TIM_DISABLE_IT(m_proxy.get_htim(), interrupt);
       return HAL_OK;
     }
 
@@ -317,25 +305,25 @@ public:
     }
 
     HAL_StatusTypeDef oc_start(uint32_t channel) {
-      return HAL_TIM_OC_Start(m_proxy->m_htim, channel);
+      return HAL_TIM_OC_Start(m_proxy.get_htim(), channel);
     }
     HAL_StatusTypeDef oc_stop(uint32_t channel) {
-      return HAL_TIM_OC_Stop(m_proxy->m_htim, channel);
+      return HAL_TIM_OC_Stop(m_proxy.get_htim(), channel);
     }
 
     HAL_StatusTypeDef oc_start_it(uint32_t channel) {
-      return HAL_TIM_OC_Start_IT(m_proxy->m_htim, channel);
+      return HAL_TIM_OC_Start_IT(m_proxy.get_htim(), channel);
     }
     HAL_StatusTypeDef oc_stop_it(uint32_t channel) {
-      return HAL_TIM_OC_Stop_IT(m_proxy->m_htim, channel);
+      return HAL_TIM_OC_Stop_IT(m_proxy.get_htim(), channel);
     }
 
     HAL_StatusTypeDef set_compare(uint32_t channel, uint32_t compare) {
-      __HAL_TIM_SET_COMPARE(m_proxy->m_htim, channel, compare);
+      __HAL_TIM_SET_COMPARE(m_proxy.get_htim(), channel, compare);
       return HAL_OK;
     }
     uint32_t get_compare(uint32_t channel) {
-      return __HAL_TIM_GET_COMPARE(m_proxy->m_htim, channel);
+      return __HAL_TIM_GET_COMPARE(m_proxy.get_htim(), channel);
     }
 
   private:
@@ -358,28 +346,28 @@ public:
     }
 
     HAL_StatusTypeDef ic_start(uint32_t channel) {
-      return HAL_TIM_IC_Start(m_proxy->m_htim, channel);
+      return HAL_TIM_IC_Start(m_proxy.get_htim(), channel);
     }
     HAL_StatusTypeDef ic_stop(uint32_t channel) {
-      return HAL_TIM_IC_Stop(m_proxy->m_htim, channel);
+      return HAL_TIM_IC_Stop(m_proxy.get_htim(), channel);
     }
 
     HAL_StatusTypeDef ic_start_it(uint32_t channel) {
-      return HAL_TIM_IC_Start_IT(m_proxy->m_htim, channel);
+      return HAL_TIM_IC_Start_IT(m_proxy.get_htim(), channel);
     }
     HAL_StatusTypeDef ic_stop_it(uint32_t channel) {
-      return HAL_TIM_IC_Stop_IT(m_proxy->m_htim, channel);
+      return HAL_TIM_IC_Stop_IT(m_proxy.get_htim(), channel);
     }
 
     HAL_StatusTypeDef ic_start_dma(uint32_t channel, uint32_t *pData,
                                    uint16_t Length) {
-      return HAL_TIM_IC_Start_DMA(m_proxy->m_htim, channel, pData, Length);
+      return HAL_TIM_IC_Start_DMA(m_proxy.get_htim(), channel, pData, Length);
     }
     HAL_StatusTypeDef ic_stop_dma(uint32_t channel) {
-      return HAL_TIM_IC_Stop_DMA(m_proxy->m_htim, channel);
+      return HAL_TIM_IC_Stop_DMA(m_proxy.get_htim(), channel);
     }
     uint32_t get_capture(uint32_t channel) {
-      return __HAL_TIM_GET_COMPARE(m_proxy->m_htim, channel);
+      return __HAL_TIM_GET_COMPARE(m_proxy.get_htim(), channel);
     }
 
   private:
