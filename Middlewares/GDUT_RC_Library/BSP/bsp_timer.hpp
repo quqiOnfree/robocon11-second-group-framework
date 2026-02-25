@@ -128,10 +128,13 @@ public:
     m_callbacks.dma_error_cb = std::move(cb);
   }
 
+  TIM_HandleTypeDef *get_htim() { return m_htim; }
+  const TIM_HandleTypeDef *get_htim() const { return m_htim; }
+
   // timer提供时钟基功能
   class timer_proxy {
   public:
-    timer_proxy(timer *t) : m_htim(t ? t->m_htim : nullptr) {}
+    timer_proxy(timer *t) : m_htim(t ? t->get_htim() : nullptr) {}
     ~timer_proxy() noexcept = default;
     timer_proxy(const timer_proxy &) = default;
     timer_proxy &operator=(const timer_proxy &other) = default;
