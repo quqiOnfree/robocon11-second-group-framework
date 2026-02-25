@@ -27,15 +27,13 @@ public:
 
   // 移动构造函数
   timer(timer &&other) noexcept
-      : m_htim(other.m_htim),
-        m_hdma(other.m_hdma),
+      : m_htim(other.m_htim), m_hdma(other.m_hdma),
         m_callbacks(std::move(other.m_callbacks)) {
     if (m_hdma) {
       m_hdma->Parent = this;
     }
     other.m_htim = nullptr;
     other.m_hdma = nullptr;
-    other.m_callbacks = timer_callbacks{};
   }
 
   // 移动赋值运算符
@@ -50,7 +48,6 @@ public:
       }
       other.m_htim = nullptr;
       other.m_hdma = nullptr;
-      other.m_callbacks = timer_callbacks{};
     }
     return *this;
   }
@@ -451,7 +448,7 @@ public:
 protected:
   struct timer_callbacks {
     callback_t period_elapsed_cb{}; // 更新中断回调
-    callback_t capture_cbs[4]{};   // 捕获中断回调（最多4个通道）
+    callback_t capture_cbs[4]{};    // 捕获中断回调（最多4个通道）
     callback_t error_cb{};
     callback_t dma_xfer_cplt_cb{};
     callback_t dma_xfer_half_cb{};

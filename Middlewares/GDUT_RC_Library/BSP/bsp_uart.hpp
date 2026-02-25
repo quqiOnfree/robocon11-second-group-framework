@@ -312,13 +312,13 @@ public:
 
 protected:
   struct uart_callbacks {
-    rx_callback_t rx_cb = nullptr;                   // 接收完成回调
-    tx_callback_t tx_cb = nullptr;                   // 发送完成回调
-    error_callback_t error_cb = nullptr;             // 错误回调
-    idle_callback_t idle_cb = nullptr;               // 空闲中断回调
-    dma_rx_cplt_callback_t dma_rx_cplt_cb = nullptr; // DMA接收完成回调
-    dma_tx_cplt_callback_t dma_tx_cplt_cb = nullptr; // DMA发送完成回调
-    dma_error_callback_t dma_error_cb = nullptr;     // DMA错误回调
+    rx_callback_t rx_cb;                   // 接收完成回调
+    tx_callback_t tx_cb;                   // 发送完成回调
+    error_callback_t error_cb;             // 错误回调
+    idle_callback_t idle_cb;               // 空闲中断回调
+    dma_rx_cplt_callback_t dma_rx_cplt_cb; // DMA接收完成回调
+    dma_tx_cplt_callback_t dma_tx_cplt_cb; // DMA发送完成回调
+    dma_error_callback_t dma_error_cb;     // DMA错误回调
   };
 
 private:
