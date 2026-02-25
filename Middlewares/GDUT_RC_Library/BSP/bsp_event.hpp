@@ -65,11 +65,10 @@ public:
     return osEventFlagsGet(m_id);
   }
 
-  template <typename Rep = int64_t, typename Period = std::milli>
-  uint32_t wait(uint32_t flags,
-                const std::chrono::duration<Rep, Period> &timeout =
-                    std::chrono::milliseconds::max(),
-                bool wait_all = false, bool no_clear = false) {
+  uint32_t
+  wait(uint32_t flags,
+       std::chrono::milliseconds timeout = std::chrono::milliseconds::max(),
+       bool wait_all = false, bool no_clear = false) {
     if (m_id == nullptr)
       return osFlagsErrorParameter;
 

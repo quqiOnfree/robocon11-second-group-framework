@@ -93,9 +93,8 @@ public:
    *         osErrorTimeout if timeout expired
    *         osError if semaphore is invalid or other error
    */
-  template <typename Rep = int64_t, typename Period = std::milli>
-  osStatus_t acquire(const std::chrono::duration<Rep, Period> &timeout =
-                         std::chrono::milliseconds::max()) {
+  osStatus_t acquire(
+      std::chrono::milliseconds timeout = std::chrono::milliseconds::max()) {
     if (m_semaphore_id == nullptr) {
       return osError;
     }

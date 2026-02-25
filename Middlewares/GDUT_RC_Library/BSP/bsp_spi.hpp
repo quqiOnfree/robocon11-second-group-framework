@@ -20,15 +20,13 @@ public:
 
   // SPI 发送数据（阻塞模式）
   // 参数：begin - 发送数据指针，size - 字节数，timeout - 超时时间（默认最大值）
-  template <typename Rep = int64_t, typename Period = std::milli>
-  bool transmit(const uint8_t *begin, uint16_t size,
-                const std::chrono::duration<Rep, Period> &timeout =
-                    std::chrono::milliseconds::max()) {
+  bool transmit(
+      const uint8_t *begin, uint16_t size,
+      std::chrono::milliseconds timeout = std::chrono::milliseconds::max()) {
     if (begin == nullptr || size == 0) {
       return false; // 参数非法
     }
-    auto timeout_ms =
-        std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count();
+    auto timeout_ms = timeout.count();
     // HAL_SPI_Transmit 要求 uint8_t* 而非 const uint8_t*，需要 const_cast
     return HAL_SPI_Transmit(&m_hspi, const_cast<uint8_t *>(begin), size,
                             timeout_ms >= osWaitForever
@@ -38,15 +36,13 @@ public:
 
   // SPI 接收数据（阻塞模式）
   // 参数：data - 接收缓冲区，size - 字节数，timeout - 超时时间（默认最大值）
-  template <typename Rep = int64_t, typename Period = std::milli>
-  bool receive(uint8_t *data, uint16_t size,
-               const std::chrono::duration<Rep, Period> &timeout =
-                   std::chrono::milliseconds::max()) {
+  bool receive(
+      uint8_t *data, uint16_t size,
+      std::chrono::milliseconds timeout = std::chrono::milliseconds::max()) {
     if (data == nullptr || size == 0) {
       return false; // 参数非法
     }
-    auto timeout_ms =
-        std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count();
+    auto timeout_ms = timeout.count();
     return HAL_SPI_Receive(&m_hspi, data, size,
                            timeout_ms >= osWaitForever
                                ? osWaitForever
@@ -56,15 +52,13 @@ public:
   // SPI 全双工传输（同时发送和接收，阻塞模式）
   // 参数：tx_data - 发送数据，rx_data - 接收缓冲区，size - 字节数，timeout -
   // 超时
-  template <typename Rep = int64_t, typename Period = std::milli>
-  bool transmit_receive(const uint8_t *tx_data, uint8_t *rx_data, uint16_t size,
-                        const std::chrono::duration<Rep, Period> &timeout =
-                            std::chrono::milliseconds::max()) {
+  bool transmit_receive(
+      const uint8_t *tx_data, uint8_t *rx_data, uint16_t size,
+      std::chrono::milliseconds timeout = std::chrono::milliseconds::max()) {
     if (tx_data == nullptr || rx_data == nullptr || size == 0) {
       return false; // 参数非法
     }
-    auto timeout_ms =
-        std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count();
+    auto timeout_ms = timeout.count();
     // HAL_SPI_TransmitReceive 要求 uint8_t* 而非 const uint8_t*，需要
     // const_cast
     return HAL_SPI_TransmitReceive(

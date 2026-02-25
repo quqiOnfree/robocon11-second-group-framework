@@ -52,11 +52,10 @@ public:
     return *this;
   }
 
-  template <typename Rep = int64_t, typename Period = std::milli>
-  bool send(const Ty &msg,
-            const std::chrono::duration<Rep, Period> &timeout =
-                std::chrono::milliseconds::max(),
-            uint8_t priority = 0) {
+  bool
+  send(const Ty &msg,
+       std::chrono::milliseconds timeout = std::chrono::milliseconds::max(),
+       uint8_t priority = 0) {
     if (m_id == nullptr)
       return false;
     return osMessageQueuePut(m_id, &msg, priority, time_to_ticks(timeout)) ==
@@ -69,8 +68,7 @@ public:
     return osMessageQueuePut(m_id, &msg, priority, 0) == osOK;
   }
 
-  template <typename Rep = int64_t, typename Period = std::milli>
-  bool receive(Ty &msg, const std::chrono::duration<Rep, Period> &timeout =
+  bool receive(Ty &msg, std::chrono::milliseconds timeout =
                             std::chrono::milliseconds::max()) {
     if (m_id == nullptr)
       return false;
