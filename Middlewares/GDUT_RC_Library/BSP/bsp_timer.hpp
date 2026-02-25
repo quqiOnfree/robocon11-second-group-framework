@@ -32,7 +32,6 @@ public:
         m_callbacks(std::move(other.m_callbacks)) {
     if (m_hdma) {
       m_hdma->Parent = this;
-      other.m_hdma->Parent = nullptr;
     }
     other.m_htim = nullptr;
     other.m_hdma = nullptr;
@@ -48,7 +47,6 @@ public:
       m_callbacks = std::move(other.m_callbacks);
       if (m_hdma) {
         m_hdma->Parent = this;
-        other.m_hdma->Parent = nullptr;
       }
       other.m_htim = nullptr;
       other.m_hdma = nullptr;
@@ -58,7 +56,12 @@ public:
   }
 
   // 初始化和去初始化定时器
-  HAL_StatusTypeDef init() { return HAL_TIM_Base_Init(m_htim); }
+  HAL_StatusTypeDef init() {
+    if (!m_htim) {
+      return HAL_ERROR;
+    }
+    return HAL_TIM_Base_Init(m_htim);
+  }
   HAL_StatusTypeDef deinit() {
     if (m_hdma != nullptr) {
       m_hdma->XferCpltCallback = nullptr;
@@ -68,19 +71,38 @@ public:
       m_hdma->Parent = nullptr;
       m_hdma = nullptr;
     }
+    if (!m_htim) {
+      return HAL_OK;
+    }
     return HAL_TIM_Base_DeInit(m_htim);
   }
 
   // 启动和停止定时器
-  HAL_StatusTypeDef start() { return HAL_TIM_Base_Start(m_htim); }
-  HAL_StatusTypeDef stop() { return HAL_TIM_Base_Stop(m_htim); }
+  HAL_StatusTypeDef start() {
+    if (!m_htim) {
+      return HAL_ERROR;
+    }
+    return HAL_TIM_Base_Start(m_htim);
+  }
+  HAL_StatusTypeDef stop() {
+    if (!m_htim) {
+      return HAL_ERROR;
+    }
+    return HAL_TIM_Base_Stop(m_htim);
+  }
 
   // 中断和 DMA 控制
   HAL_StatusTypeDef enable_it(uint32_t interrupt) {
+    if (!m_htim) {
+      return HAL_ERROR;
+    }
     __HAL_TIM_ENABLE_IT(m_htim, interrupt);
     return HAL_OK;
   }
   HAL_StatusTypeDef disable_it(uint32_t interrupt) {
+    if (!m_htim) {
+      return HAL_ERROR;
+    }
     __HAL_TIM_DISABLE_IT(m_htim, interrupt);
     return HAL_OK;
   }
