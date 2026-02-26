@@ -40,4 +40,4 @@ void led_task() {
 - `GPIO_InitTypeDef` 需完整初始化，避免未定义字段。
 - 对象析构会反初始化 GPIO，注意生命周期不要短于使用范围。
 
-相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_gpio_pin.hpp](../Middlewares/GDUT_RC_Library/BSP/bsp_gpio_pin.hpp)
+相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_gpio_pin.hpp](../../Middlewares/GDUT_RC_Library/BSP/bsp_gpio_pin.hpp)

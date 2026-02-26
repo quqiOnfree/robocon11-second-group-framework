@@ -35,4 +35,4 @@ void timing_demo() {
 - `system_clock` 可能被系统调整，不保证单调；测时请用 `steady_clock`。
 - tick 频率变化会影响时间换算，确保系统配置一致。
 
-相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_clock.hpp](../Middlewares/GDUT_RC_Library/BSP/bsp_clock.hpp)
+相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_clock.hpp](../../Middlewares/GDUT_RC_Library/BSP/bsp_clock.hpp)

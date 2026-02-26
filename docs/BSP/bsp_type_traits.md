@@ -437,4 +437,4 @@ static uint8_t uart_rx_buffer[256];
 static uint16_t adc_values[128];
 ```
 
-相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_type_traits.hpp](../Middlewares/GDUT_RC_Library/BSP/bsp_type_traits.hpp)
+相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_type_traits.hpp](../../Middlewares/GDUT_RC_Library/BSP/bsp_type_traits.hpp)

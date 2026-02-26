@@ -260,4 +260,4 @@ static_assert(std::is_trivially_copyable_v<MessageType>,
 - 移动后的源对象不再持有队列资源
 - 接收操作会阻塞任务，若想异步处理应结合 `receive_from_isr()`
 
-相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_message_queue.hpp](../Middlewares/GDUT_RC_Library/BSP/bsp_message_queue.hpp)
+相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_message_queue.hpp](../../Middlewares/GDUT_RC_Library/BSP/bsp_message_queue.hpp)

@@ -2,10 +2,13 @@
 #define BSP_TYPE_TRAITS_HPP
 
 #include "stm32f407xx.h"
+#include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_dma.h"
 #include <chrono>
 #include <cmsis_os2.h>
 #include <cstddef>
 #include <cstdint>
+#include <system_error>
 
 /**
  * @brief 将对象放置到核心耦合存储器（.ccmram）的属性
@@ -140,6 +143,175 @@ enum class timer_id : uint8_t {
     return 0xFF;
   }
 }
+
+class dma_error_category : public std::error_category {
+public:
+  constexpr dma_error_category() noexcept = default;
+  const char *name() const noexcept override { return "dma_error_code"; }
+  std::string message(int ev) const override {
+    switch (ev) {
+    case HAL_DMA_ERROR_NONE:
+      return "No error";
+    case HAL_DMA_ERROR_TE:
+      return "Transfer error";
+    case HAL_DMA_ERROR_FE:
+      return "FIFO error";
+    case HAL_DMA_ERROR_DME:
+      return "Direct mode error";
+    case HAL_DMA_ERROR_TIMEOUT:
+      return "Timeout error";
+    case HAL_DMA_ERROR_PARAM:
+      return "Parameter error";
+    case HAL_DMA_ERROR_NO_XFER:
+      return "Abort requested with no transfer ongoing";
+    case HAL_DMA_ERROR_NOT_SUPPORTED:
+      return "Not supported mode";
+    default:
+      return "Unknown error";
+    }
+  }
+
+  static const dma_error_category &instance() {
+    static dma_error_category instance;
+    return instance;
+  }
+};
+
+enum class dma_error_code : uint32_t {
+  none = HAL_DMA_ERROR_NONE,
+  transfer_error = HAL_DMA_ERROR_TE,
+  fifo_error = HAL_DMA_ERROR_FE,
+  direct_mode_error = HAL_DMA_ERROR_DME,
+  timeout_error = HAL_DMA_ERROR_TIMEOUT,
+  parameter_error = HAL_DMA_ERROR_PARAM,
+  no_transfer = HAL_DMA_ERROR_NO_XFER,
+  not_supported = HAL_DMA_ERROR_NOT_SUPPORTED
+};
+
+enum class dma_stream_type : uint8_t {
+  dma1_stream0,
+  dma1_stream1,
+  dma1_stream2,
+  dma1_stream3,
+  dma1_stream4,
+  dma1_stream5,
+  dma1_stream6,
+  dma1_stream7,
+  dma2_stream0,
+  dma2_stream1,
+  dma2_stream2,
+  dma2_stream3,
+  dma2_stream4,
+  dma2_stream5,
+  dma2_stream6,
+  dma2_stream7
+};
+
+constexpr DMA_Stream_TypeDef* get_dma_stream(dma_stream_type type) {
+  switch (type) {
+  case dma_stream_type::dma1_stream0:
+    return DMA1_Stream0;
+  case dma_stream_type::dma1_stream1:
+    return DMA1_Stream1;
+  case dma_stream_type::dma1_stream2:
+    return DMA1_Stream2;
+  case dma_stream_type::dma1_stream3:
+    return DMA1_Stream3;
+  case dma_stream_type::dma1_stream4:
+    return DMA1_Stream4;
+  case dma_stream_type::dma1_stream5:
+    return DMA1_Stream5;
+  case dma_stream_type::dma1_stream6:
+    return DMA1_Stream6;
+  case dma_stream_type::dma1_stream7:
+    return DMA1_Stream7;
+  case dma_stream_type::dma2_stream0:
+    return DMA2_Stream0;
+  case dma_stream_type::dma2_stream1:
+    return DMA2_Stream1;
+  case dma_stream_type::dma2_stream2:
+    return DMA2_Stream2;
+  case dma_stream_type::dma2_stream3:
+    return DMA2_Stream3;
+  case dma_stream_type::dma2_stream4:
+    return DMA2_Stream4;
+  case dma_stream_type::dma2_stream5:
+    return DMA2_Stream5;
+  case dma_stream_type::dma2_stream6:
+    return DMA2_Stream6;
+  case dma_stream_type::dma2_stream7:
+    return DMA2_Stream7;
+  default:
+    return nullptr; // 非法DMA类型
+  }
+}
+enum class dma_channel : uint32_t {
+  channel_0 = DMA_CHANNEL_0,
+  channel_1 = DMA_CHANNEL_1,
+  channel_2 = DMA_CHANNEL_2,
+  channel_3 = DMA_CHANNEL_3,
+  channel_4 = DMA_CHANNEL_4,
+  channel_5 = DMA_CHANNEL_5,
+  channel_6 = DMA_CHANNEL_6,
+  channel_7 = DMA_CHANNEL_7
+};
+
+enum class dma_direction : uint32_t {
+  peripheral_to_memory = DMA_PERIPH_TO_MEMORY,
+  memory_to_peripheral = DMA_MEMORY_TO_PERIPH,
+  memory_to_memory = DMA_MEMORY_TO_MEMORY
+};
+
+enum class dma_peripheral_data_alignment : uint32_t {
+  byte = DMA_PDATAALIGN_BYTE,
+  half_word = DMA_PDATAALIGN_HALFWORD,
+  word = DMA_PDATAALIGN_WORD
+};
+
+enum class dma_memory_data_alignment : uint32_t {
+  byte = DMA_MDATAALIGN_BYTE,
+  half_word = DMA_MDATAALIGN_HALFWORD,
+  word = DMA_MDATAALIGN_WORD
+};
+
+enum class dma_mode : uint32_t {
+  normal = DMA_NORMAL,
+  circular = DMA_CIRCULAR,
+  peripheral_flow_controller = DMA_PFCTRL
+};
+
+enum class dma_priority : uint32_t {
+  low = DMA_PRIORITY_LOW,
+  medium = DMA_PRIORITY_MEDIUM,
+  high = DMA_PRIORITY_HIGH,
+  very_high = DMA_PRIORITY_VERY_HIGH
+};
+
+enum class dma_fifo_mode : uint32_t {
+  disable = DMA_FIFOMODE_DISABLE,
+  enable = DMA_FIFOMODE_ENABLE
+};
+
+enum class dma_fifo_threshold : uint32_t {
+  quarter_full = DMA_FIFO_THRESHOLD_1QUARTERFULL,
+  half_full = DMA_FIFO_THRESHOLD_HALFFULL,
+  three_quarters_full = DMA_FIFO_THRESHOLD_3QUARTERSFULL,
+  full = DMA_FIFO_THRESHOLD_FULL
+};
+
+enum class dma_memory_burst : uint32_t {
+  single = DMA_MBURST_SINGLE,
+  inc4 = DMA_MBURST_INC4,
+  inc8 = DMA_MBURST_INC8,
+  inc16 = DMA_MBURST_INC16
+};
+
+enum class dma_peripheral_burst : uint32_t {
+  single = DMA_PBURST_SINGLE,
+  inc4 = DMA_PBURST_INC4,
+  inc8 = DMA_PBURST_INC8,
+  inc16 = DMA_PBURST_INC16
+};
 
 template <typename Rep, typename Period>
 uint32_t time_to_ticks(const std::chrono::duration<Rep, Period> &timeout) {

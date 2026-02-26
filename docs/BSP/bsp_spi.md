@@ -173,4 +173,4 @@ spi.transmit(data, size, std::chrono::milliseconds::max());
 - 超时过短（< 1ms）可能导致操作失败
 - 对象生命周期必须长于所有 SPI 操作
 
-相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_spi.hpp](../Middlewares/GDUT_RC_Library/BSP/bsp_spi.hpp)
+相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_spi.hpp](../../Middlewares/GDUT_RC_Library/BSP/bsp_spi.hpp)

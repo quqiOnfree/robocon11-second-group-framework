@@ -161,4 +161,4 @@ osThreadNew(consumer_task, &sync_event, nullptr);
 - 位掩码最多支持 32 位事件标志
 - 移动后的源对象不再持有事件资源
 
-相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_event.hpp](../Middlewares/GDUT_RC_Library/BSP/bsp_event.hpp)
+相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_event.hpp](../../Middlewares/GDUT_RC_Library/BSP/bsp_event.hpp)

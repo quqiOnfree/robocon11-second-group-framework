@@ -534,4 +534,4 @@ private:
 };
 ```
 
-相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_memory_resource.hpp](../Middlewares/GDUT_RC_Library/BSP/bsp_memory_resource.hpp)
+相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_memory_resource.hpp](../../Middlewares/GDUT_RC_Library/BSP/bsp_memory_resource.hpp)

@@ -605,4 +605,4 @@ using aligned_callback = gdut::basic_function<void(), 256, 32>;
 | 标准库兼容 | ❌ 否 | ✅ 是 |
 | 实时性保证 | ✅ 有 | ❌ 无 |
 
-相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_function.hpp](../Middlewares/GDUT_RC_Library/BSP/bsp_function.hpp)
+相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_function.hpp](../../Middlewares/GDUT_RC_Library/BSP/bsp_function.hpp)

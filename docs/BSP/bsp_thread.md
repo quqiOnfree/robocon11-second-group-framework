@@ -458,4 +458,4 @@ void monitor_threads() {
 }
 ```
 
-相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_thread.hpp](../Middlewares/GDUT_RC_Library/BSP/bsp_thread.hpp)
+相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_thread.hpp](../../Middlewares/GDUT_RC_Library/BSP/bsp_thread.hpp)

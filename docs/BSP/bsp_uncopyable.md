@@ -33,4 +33,4 @@ void demo() {
 - 该类仅用于继承，不提供任何资源管理功能。
 - 继承方式建议使用 `private` 或 `protected`，避免暴露给外部接口。
 
-相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_uncopyable.hpp](../Middlewares/GDUT_RC_Library/BSP/bsp_uncopyable.hpp)
+相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_uncopyable.hpp](../../Middlewares/GDUT_RC_Library/BSP/bsp_uncopyable.hpp)

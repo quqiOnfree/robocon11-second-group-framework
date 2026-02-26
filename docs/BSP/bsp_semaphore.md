@@ -434,4 +434,4 @@ void process_batch() {
 }
 ```
 
-相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_semaphore.hpp](../Middlewares/GDUT_RC_Library/BSP/bsp_semaphore.hpp)
+相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_semaphore.hpp](../../Middlewares/GDUT_RC_Library/BSP/bsp_semaphore.hpp)

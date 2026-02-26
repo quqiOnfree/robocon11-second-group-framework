@@ -359,4 +359,4 @@ bool acquire_with_timeout(uint32_t timeout_ms) {
 }
 ```
 
-相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_mutex.hpp](../Middlewares/GDUT_RC_Library/BSP/bsp_mutex.hpp)
+相关源码：[Middlewares/GDUT_RC_Library/BSP/bsp_mutex.hpp](../../Middlewares/GDUT_RC_Library/BSP/bsp_mutex.hpp)
