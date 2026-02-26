@@ -20,6 +20,13 @@
 
 namespace gdut {
 
+template <std::size_t Value> struct is_power_of_two {
+  static constexpr bool value = Value && (Value & (Value - 1)) == 0;
+};
+
+template <std::size_t Value>
+inline constexpr bool is_power_of_two_v = is_power_of_two<Value>::value;
+
 /**
  * @brief Type-safe GPIO port enumeration
  */
