@@ -4,8 +4,8 @@
 #include "stm32f407xx.h"
 #include <chrono>
 #include <cmsis_os2.h>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 /**
  * @brief Attribute for placing objects into Core Coupled Memory (.ccmram).
@@ -27,6 +27,11 @@ template <std::size_t Value> struct is_power_of_two {
 
 template <std::size_t Value>
 inline constexpr bool is_power_of_two_v = is_power_of_two<Value>::value;
+
+template <typename> struct always_false : std::false_type {};
+
+template <typename T>
+inline constexpr bool always_false_v = always_false<T>::value;
 
 /**
  * @brief Type-safe GPIO port enumeration

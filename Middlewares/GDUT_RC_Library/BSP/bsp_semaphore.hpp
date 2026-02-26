@@ -5,7 +5,6 @@
 #include <chrono>
 #include <cmsis_os2.h>
 #include <cstddef>
-#include <cstdint>
 #include <memory>
 #include <utility>
 
@@ -71,11 +70,11 @@ public:
     return *this;
   }
 
-  osStatus_t release() {
+  void release() {
     if (m_semaphore_id == nullptr) {
-      return osError;
+      std::terminate();
     }
-    return osSemaphoreRelease(m_semaphore_id);
+    osSemaphoreRelease(m_semaphore_id);
   }
 
   /**
@@ -93,22 +92,27 @@ public:
    *         osErrorTimeout if timeout expired
    *         osError if semaphore is invalid or other error
    */
-  osStatus_t acquire(
+  void acquire(
       std::chrono::milliseconds timeout = std::chrono::milliseconds::max()) {
     if (m_semaphore_id == nullptr) {
-      return osError;
+      std::terminate();
     }
-
-    return osSemaphoreAcquire(m_semaphore_id, time_to_ticks(timeout));
+    osSemaphoreAcquire(m_semaphore_id, time_to_ticks(timeout));
   }
 
   bool try_acquire() noexcept {
-    return acquire(std::chrono::seconds::zero()) == osOK;
+    if (m_semaphore_id == nullptr) {
+      std::terminate();
+    }
+    return osSemaphoreAcquire(m_semaphore_id, 0) == osOK;
   }
 
   template <class Rep, class Period>
   bool try_acquire_for(const std::chrono::duration<Rep, Period> &rel_time) {
-    return acquire(rel_time) == osOK;
+    if (m_semaphore_id == nullptr) {
+      std::terminate();
+    }
+    return osSemaphoreAcquire(m_semaphore_id, time_to_ticks(rel_time)) == osOK;
   }
 
   bool valid() const noexcept { return m_semaphore_id != nullptr; }

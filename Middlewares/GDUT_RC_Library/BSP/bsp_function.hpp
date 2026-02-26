@@ -3,16 +3,18 @@
 
 #include "bsp_type_traits.hpp"
 #include <cstddef>
+#include <exception>
+#include <new>
+#include <exception>
 #include <type_traits>
 #include <utility>
-#include <new>
 
 namespace gdut {
 
 template <typename T, std::size_t StorageSize, std::size_t Alignment>
 class basic_function {
-  static_assert(false, "basic_function is a base class template and cannot be "
-                       "instantiated directly.");
+  static_assert(always_false_v<T>, "basic_function is a base class template "
+                                   "and cannot be instantiated directly.");
 };
 
 template <typename R, typename... Args, std::size_t StorageSize,
@@ -58,11 +60,14 @@ public:
 
   ~basic_function() noexcept { destroy(); }
 
+  bool valid() const noexcept { return m_callable != nullptr; }
+
   R operator()(Args... args) {
+    if (!valid()) {
+      std::terminate();
+    }
     return (*m_callable)(std::forward<Args>(args)...);
   }
-
-  bool valid() const noexcept { return m_callable != nullptr; }
 
   explicit operator bool() const noexcept { return valid(); }
 
@@ -91,9 +96,8 @@ public:
 
   void swap(basic_function &other) noexcept {
     if (this != std::addressof(other)) {
-      basic_function temp(std::move(other));
-      other = std::move(*this);
-      *this = std::move(temp);
+      std::swap(m_callable, other.m_callable);
+      std::swap(m_storage, other.m_storage);
     }
   }
 

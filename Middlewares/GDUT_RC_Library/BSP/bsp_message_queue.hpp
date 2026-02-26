@@ -3,7 +3,6 @@
 
 #include <chrono>
 #include <cmsis_os2.h>
-#include <ratio>
 #include <type_traits>
 #include <utility>
 

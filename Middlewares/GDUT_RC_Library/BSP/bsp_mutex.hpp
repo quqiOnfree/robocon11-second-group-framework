@@ -2,6 +2,7 @@
 #define GDUT_MUTEX_CMSIS_RTOS2_INCLUDED
 
 #include <cmsis_os2.h>
+#include <exception>
 #include <memory>
 #include <utility>
 
@@ -32,7 +33,7 @@ class mutex {
 public:
   mutex() : m_mutex_id(nullptr) {
     osMutexAttr_t attr = {
-        "GDUT", osMutexRecursive | osMutexPrioInherit | osMutexRobust, 0, 0};
+        "GDUT", osMutexRecursive | osMutexPrioInherit, 0, 0};
     m_mutex_id = osMutexNew(&attr);
   }
   explicit mutex(empty_mutex_t) : m_mutex_id(nullptr) {}
@@ -71,25 +72,25 @@ public:
     }
   }
 
-  osStatus_t lock() {
+  void lock() {
     if (m_mutex_id == nullptr) {
-      return osError;
+      std::terminate();
     }
-    return osMutexAcquire(m_mutex_id, osWaitForever);
+    osMutexAcquire(m_mutex_id, osWaitForever);
   }
 
   bool try_lock() {
     if (m_mutex_id == nullptr) {
-      return false;
+      std::terminate();
     }
     return osMutexAcquire(m_mutex_id, 0) == osOK;
   }
 
-  osStatus_t unlock() {
+  void unlock() {
     if (m_mutex_id == nullptr) {
-      return osError;
+      std::terminate();
     }
-    return osMutexRelease(m_mutex_id);
+    osMutexRelease(m_mutex_id);
   }
 
   /**
