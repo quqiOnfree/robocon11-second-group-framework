@@ -144,50 +144,6 @@ enum class timer_id : uint8_t {
   }
 }
 
-class dma_error_category : public std::error_category {
-public:
-  constexpr dma_error_category() noexcept = default;
-  const char *name() const noexcept override { return "dma_error_code"; }
-  std::string message(int ev) const override {
-    switch (ev) {
-    case HAL_DMA_ERROR_NONE:
-      return "No error";
-    case HAL_DMA_ERROR_TE:
-      return "Transfer error";
-    case HAL_DMA_ERROR_FE:
-      return "FIFO error";
-    case HAL_DMA_ERROR_DME:
-      return "Direct mode error";
-    case HAL_DMA_ERROR_TIMEOUT:
-      return "Timeout error";
-    case HAL_DMA_ERROR_PARAM:
-      return "Parameter error";
-    case HAL_DMA_ERROR_NO_XFER:
-      return "Abort requested with no transfer ongoing";
-    case HAL_DMA_ERROR_NOT_SUPPORTED:
-      return "Not supported mode";
-    default:
-      return "Unknown error";
-    }
-  }
-
-  static const dma_error_category &instance() {
-    static dma_error_category instance;
-    return instance;
-  }
-};
-
-enum class dma_error_code : uint32_t {
-  none = HAL_DMA_ERROR_NONE,
-  transfer_error = HAL_DMA_ERROR_TE,
-  fifo_error = HAL_DMA_ERROR_FE,
-  direct_mode_error = HAL_DMA_ERROR_DME,
-  timeout_error = HAL_DMA_ERROR_TIMEOUT,
-  parameter_error = HAL_DMA_ERROR_PARAM,
-  no_transfer = HAL_DMA_ERROR_NO_XFER,
-  not_supported = HAL_DMA_ERROR_NOT_SUPPORTED
-};
-
 enum class dma_stream_type : uint8_t {
   dma1_stream0,
   dma1_stream1,
@@ -207,7 +163,7 @@ enum class dma_stream_type : uint8_t {
   dma2_stream7
 };
 
-constexpr DMA_Stream_TypeDef* get_dma_stream(dma_stream_type type) {
+[[nodiscard]] constexpr DMA_Stream_TypeDef* get_dma_stream(dma_stream_type type) {
   switch (type) {
   case dma_stream_type::dma1_stream0:
     return DMA1_Stream0;
@@ -245,6 +201,7 @@ constexpr DMA_Stream_TypeDef* get_dma_stream(dma_stream_type type) {
     return nullptr; // 非法DMA类型
   }
 }
+
 enum class dma_channel : uint32_t {
   channel_0 = DMA_CHANNEL_0,
   channel_1 = DMA_CHANNEL_1,
