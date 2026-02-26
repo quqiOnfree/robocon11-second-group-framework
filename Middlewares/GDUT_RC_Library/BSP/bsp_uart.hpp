@@ -8,6 +8,7 @@
 
 #include "bsp_type_traits.hpp"
 #include "bsp_uncopyable.hpp"
+#include "bsp_function.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -17,13 +18,13 @@
 namespace gdut {
 class uart : private uncopyable {
 public:
-  using rx_callback_t = std::function<void(const uint8_t *data, uint16_t size)>;
-  using tx_callback_t = std::function<void()>;
-  using error_callback_t = std::function<void(uint32_t error)>;
-  using idle_callback_t = std::function<void()>;
-  using dma_rx_cplt_callback_t = std::function<void()>;
-  using dma_tx_cplt_callback_t = std::function<void()>;
-  using dma_error_callback_t = std::function<void()>;
+  using rx_callback_t = gdut::function<void(const uint8_t *data, uint16_t size)>;
+  using tx_callback_t = gdut::function<void()>;
+  using error_callback_t = gdut::function<void(uint32_t error)>;
+  using idle_callback_t = gdut::function<void()>;
+  using dma_rx_cplt_callback_t = gdut::function<void()>;
+  using dma_tx_cplt_callback_t = gdut::function<void()>;
+  using dma_error_callback_t = gdut::function<void()>;
 
   uart(UART_HandleTypeDef *huart, DMA_HandleTypeDef *hdma_rx = nullptr,
        DMA_HandleTypeDef *hdma_tx = nullptr)

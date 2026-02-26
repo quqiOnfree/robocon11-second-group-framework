@@ -7,6 +7,7 @@
 #include "stm32f4xx_hal_tim.h"
 
 #include "bsp_uncopyable.hpp"
+#include "bsp_function.hpp"
 
 #include <functional>
 #include <utility>
@@ -15,7 +16,7 @@ namespace gdut {
 
 class timer : private uncopyable {
 public:
-  using callback_t = std::function<void()>;
+  using callback_t = gdut::function<void()>;
 
   // 构造函数
   timer(TIM_HandleTypeDef *htim, DMA_HandleTypeDef *hdma = nullptr)
