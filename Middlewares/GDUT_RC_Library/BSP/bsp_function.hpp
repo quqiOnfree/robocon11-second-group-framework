@@ -94,10 +94,12 @@ public:
   }
 
   void swap(basic_function &other) noexcept {
-    if (this != std::addressof(other)) {
-      std::swap(m_callable, other.m_callable);
-      std::swap(m_storage, other.m_storage);
+    if (this == std::addressof(other)) {
+      return;
     }
+    basic_function tmp(std::move(other));
+    other = std::move(*this);
+    *this = std::move(tmp);
   }
 
   friend void swap(basic_function &lhs, basic_function &rhs) noexcept {
