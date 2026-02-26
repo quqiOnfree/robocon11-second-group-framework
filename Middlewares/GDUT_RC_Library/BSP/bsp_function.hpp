@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <type_traits>
 #include <utility>
+#include <new>
 
 namespace gdut {
 
@@ -27,7 +28,7 @@ public:
   basic_function(const basic_function &other) {
     if (other.m_callable) {
       other.m_callable->clone(m_storage);
-      m_callable = reinterpret_cast<callable *>(m_storage);
+      m_callable = std::launder(reinterpret_cast<callable *>(m_storage));
     }
   }
 
@@ -44,13 +45,13 @@ public:
                   "The function object requires stricter alignment than "
                   "storage provides.");
     new (m_storage) model<std::decay_t<Func>>{std::forward<Func>(func)};
-    m_callable = reinterpret_cast<callable *>(m_storage);
+    m_callable = std::launder(reinterpret_cast<callable *>(m_storage));
   }
 
   basic_function(basic_function &&other) noexcept {
     if (other.m_callable) {
       other.m_callable->move(m_storage);
-      m_callable = reinterpret_cast<callable *>(m_storage);
+      m_callable = std::launder(reinterpret_cast<callable *>(m_storage));
       other.destroy();
     }
   }
@@ -61,14 +62,16 @@ public:
     return (*m_callable)(std::forward<Args>(args)...);
   }
 
-  explicit operator bool() const noexcept { return m_callable != nullptr; }
+  bool valid() const noexcept { return m_callable != nullptr; }
+
+  explicit operator bool() const noexcept { return valid(); }
 
   basic_function &operator=(const basic_function &other) {
     if (this != std::addressof(other)) {
       destroy();
       if (other.m_callable) {
         other.m_callable->clone(m_storage);
-        m_callable = reinterpret_cast<callable *>(m_storage);
+        m_callable = std::launder(reinterpret_cast<callable *>(m_storage));
       }
     }
     return *this;
@@ -79,7 +82,7 @@ public:
       destroy();
       if (other.m_callable) {
         other.m_callable->move(m_storage);
-        m_callable = reinterpret_cast<callable *>(m_storage);
+        m_callable = std::launder(reinterpret_cast<callable *>(m_storage));
         other.destroy();
       }
     }
@@ -121,6 +124,7 @@ protected:
     void move(std::byte *storage) noexcept override {
       new (storage) model<Func>(std::move(*this));
     }
+    ~model() override = default;
   };
 
   void destroy() noexcept {

@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cmsis_os2.h>
 #include <cstdint>
+#include <cstddef>
 
 /**
  * @brief Attribute for placing objects into Core Coupled Memory (.ccmram).
