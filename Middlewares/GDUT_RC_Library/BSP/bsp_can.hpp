@@ -107,6 +107,6 @@ protected:
   virtual uint32_t get_can_id() const override { return CanId; }
 };
 
-} // namespace gdut
+} // 命名空间 gdut
 
-#endif // BSP_CAN_HPP
+#endif // BSP_CAN_HPP 结束

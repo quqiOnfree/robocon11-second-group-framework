@@ -16,17 +16,23 @@ struct empty_semaphore_t {
 inline constexpr empty_semaphore_t empty_semaphore{};
 
 /**
- * @brief Counting semaphore based on CMSIS-RTOS2
+ * @brief 基于 CMSIS-RTOS2 的计数信号量
  *
- * This class provides a C++-style counting semaphore wrapper.
- * Features:
- * - Standard semaphore operations (acquire, release, try_acquire)
- * - Timeout support with std::chrono
- * - Move semantics supported
+ * 该类提供了 C++ 风格的计数信号量包装。
+ * 特性：
+ * - 标准信号量操作（acquire, release, try_acquire）
+ * - 支持 std::chrono 超时
+ * - 支持移动语义
  *
- * Thread Safety: All methods are thread-safe.
+ * 线程安全：所有方法都是线程安全的。
  *
- * @tparam LeastMaxValue Maximum value the semaphore can reach
+ * 重要：信号量创建可能失败，原因如下：
+ * - 系统资源（FreeRTOS 堆）耗尽
+ * - osKernelInitialize() 尚未被调用
+ * 若信号量无效，acquire() 和 release() 会返回 osError，
+ * 不会调用 std::terminate()。
+ *
+ * @tparam LeastMaxValue 信号量能覾的最大值
  */
 template <std::size_t LeastMaxValue> class counting_semaphore {
 public:
@@ -39,12 +45,12 @@ public:
   explicit counting_semaphore(empty_semaphore_t) {}
 
   /**
-   * @brief Construct from an existing CMSIS-RTOS2 semaphore handle.
+   * @brief 从已存在的 CMSIS-RTOS2 信号量句柄构造。
    *
-   * Passing nullptr is allowed and will create an invalid semaphore object.
-   * In that case, valid() and operator bool() will return false and member
-   * functions such as acquire() and release() will return osError without
-   * calling the underlying CMSIS-RTOS2 API.
+   * 允许传递 nullptr，结果是一个无效的信号量对象。
+   * 此时 valid() 和 operator bool() 返回 false，成员函数
+   * 如 acquire() 和 release() 会返回 osError，不会调用
+   * 下层 CMSIS-RTOS2 API。
    */
   explicit counting_semaphore(osSemaphoreId_t semaphore_id) noexcept
       : m_semaphore_id(semaphore_id) {}
@@ -77,21 +83,6 @@ public:
     osSemaphoreRelease(m_semaphore_id);
   }
 
-  /**
-   * @brief Acquire the semaphore
-   *
-   * @param timeout Maximum time to wait for the semaphore.
-   *                - Use std::chrono::duration<Rep, Period>::max() for infinite
-   * wait
-   *                - Use std::chrono::seconds::zero() for no wait (try once)
-   *                - Precision: milliseconds (sub-millisecond durations are
-   * truncated)
-   *
-   * @return osOK if successful
-   *         osErrorParameter if timeout is negative
-   *         osErrorTimeout if timeout expired
-   *         osError if semaphore is invalid or other error
-   */
   void acquire(
       std::chrono::milliseconds timeout = std::chrono::milliseconds::max()) {
     if (m_semaphore_id == nullptr) {

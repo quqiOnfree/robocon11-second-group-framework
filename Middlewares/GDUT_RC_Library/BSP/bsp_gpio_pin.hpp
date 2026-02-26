@@ -9,9 +9,9 @@
 namespace gdut {
 
 /**
- * @brief GPIO pin tag for compile-time configuration
- * @tparam Port The GPIO port (A-I)
- * @tparam InitStruct The HAL GPIO initialization structure
+ * @brief GPIO 引脚的编译期配置标签
+ * @tparam Port GPIO 端口（A-I）
+ * @tparam InitStruct HAL GPIO 初始化结构体
  */
 template <gpio_port Port, GPIO_InitTypeDef InitStruct> struct gpio_pin_tag {
   static constexpr gpio_port port = Port;
@@ -19,25 +19,25 @@ template <gpio_port Port, GPIO_InitTypeDef InitStruct> struct gpio_pin_tag {
 };
 
 /**
- * @brief RAII wrapper for HAL GPIO pin
+ * @brief HAL GPIO 引脚的 RAII 包装
  *
- * This class provides compile-time configured GPIO pin management.
- * The pin is initialized in constructor and de-initialized in destructor.
+ * 该类提供编译期配置的 GPIO 引脚管理。
+ * 构造时初始化，引脚析构时反初始化。
  *
- * Features:
- * - Compile-time configuration via template parameters
- * - RAII resource management
- * - Type-safe port and pin selection
- * - Non-copyable (hardware resource)
+ * 特性：
+ * - 通过模板参数进行编译期配置
+ * - RAII 资源管理
+ * - 类型安全的端口和引脚选择
+ * - 不可拷贝（硬件资源）
  *
- * Usage:
+ * 使用示例：
  *   gdut::gpio_pin<gdut::gpio_port::A,
  *                  GPIO_InitTypeDef{.Pin = GPIO_PIN_5,
  *                                   .Mode = GPIO_MODE_OUTPUT_PP}> led;
- *   led.write(true);  // Turn on
+ *   led.write(true);  // 置高
  *
- * @tparam Port The GPIO port (A-I)
- * @tparam InitStruct The HAL GPIO initialization structure
+ * @tparam Port GPIO 端口（A-I）
+ * @tparam InitStruct HAL GPIO 初始化结构体
  */
 template <gpio_port Port, GPIO_InitTypeDef InitStruct>
 class gpio_pin : private uncopyable {

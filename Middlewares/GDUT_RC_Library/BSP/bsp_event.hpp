@@ -20,10 +20,10 @@ public:
 
   explicit event_flags(empty_event_flags_t) {}
 
-  // Construct from an existing CMSIS-RTOS event flags ID.
-  // Passing nullptr is allowed and will create an invalid event_flags object
-  // (valid() returns false); member functions will return error codes or 0
-  // according to their existing nullptr checks.
+  // 从已有的 CMSIS-RTOS 事件标志 ID 构造。
+  // 允许传入 nullptr，会得到一个无效的 event_flags 对象
+  //（valid() 返回 false）；成员函数会根据现有的 nullptr 检查
+  // 返回错误码或 0。
   explicit event_flags(osEventFlagsId_t id) : m_id(id) {}
 
   ~event_flags() {

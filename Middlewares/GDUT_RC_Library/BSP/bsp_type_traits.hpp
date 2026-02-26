@@ -8,14 +8,13 @@
 #include <cstdint>
 
 /**
- * @brief Attribute for placing objects into Core Coupled Memory (.ccmram).
+ * @brief 将对象放置到核心耦合存储器（.ccmram）的属性
  *
- * @note On STM32F407, CCM RAM is not accessible by any DMA controller.
- *       Thread stacks, control blocks, and function objects may safely reside
- *       in CCM RAM. However, any buffer or data that is used directly or
- *       indirectly as a DMA source or destination must NOT be placed in CCM
- *       RAM (i.e., must not be annotated with GDUT_CCMRAM, allocated from a
- *       CCMRAM pool, or captured in a lambda stored in CCMRAM).
+ * @note 在 STM32F407 上，CCM RAM 不能被任何 DMA 控制器访问。
+ *       线程栈、控制块和函数对象可以安全地放在 CCM RAM。
+ *       但任何直接或间接作为 DMA 源/目的的数据缓冲区都
+ *       不能放在 CCM RAM 中（即不要使用 GDUT_CCMRAM 标注、
+ *       不要从 CCMRAM 池分配，也不要捕获到存放在 CCMRAM 的 lambda）。
  */
 #define GDUT_CCMRAM __attribute__((section(".ccmram")))
 
@@ -34,7 +33,7 @@ template <typename T>
 inline constexpr bool always_false_v = always_false<T>::value;
 
 /**
- * @brief Type-safe GPIO port enumeration
+ * @brief 类型安全的 GPIO 端口枚举
  */
 enum class gpio_port : uint8_t { A = 1, B, C, D, E, F, G, H, I };
 
@@ -59,7 +58,7 @@ enum class gpio_port : uint8_t { A = 1, B, C, D, E, F, G, H, I };
   case GPIOI_BASE:
     return GPIOI;
   default:
-    return nullptr; // Invalid port
+    return nullptr; // 端口非法
   }
 }
 
@@ -84,7 +83,7 @@ enum class gpio_port : uint8_t { A = 1, B, C, D, E, F, G, H, I };
   case gpio_port::I:
     return GPIOI;
   default:
-    return nullptr; // Invalid port
+    return nullptr; // 端口非法
   }
 }
 
@@ -118,7 +117,7 @@ enum class timer_id : uint8_t {
   case timer_id::tim11:
     return TIM11;
   default:
-    return nullptr; // Invalid timer ID
+    return nullptr; // 定时器 ID 非法
   }
 }
 
@@ -148,24 +147,23 @@ uint32_t time_to_ticks(const std::chrono::duration<Rep, Period> &timeout) {
   if (timeout == std::chrono::duration<Rep, Period>::max()) {
     ticks = osWaitForever;
   } else {
-    // Convert to milliseconds (sub-millisecond precision is truncated)
+    // 转换为毫秒（亚毫秒精度会被截断）
     auto ms =
         std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count();
-    // Handle negative durations (invalid state)
+    // 处理负数时长（非法状态）
     if (ms < 0) {
       return 0;
     }
 
-    // Handle zero or positive durations
+    // 处理 0 或正数时长
     if (ms == 0) {
       ticks = 0;
     } else {
-      // Convert milliseconds to ticks (tickFreq is in Hz)
-      // ticks = (ms * tickFreq) / 1000
+      // 将毫秒转换为 tick（tickFreq 单位为 Hz）
+      // tick 计算：ticks = (ms * tickFreq) / 1000
       uint32_t tick_freq = osKernelGetTickFreq();
-      // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for
-      // osWaitForever) Calculate max_ms to avoid overflow: max_ms =
-      // (UINT32_MAX - 1) * 1000 / tick_freq
+      // 夹紧到 UINT32_MAX-1 以避免溢出（UINT32_MAX 保留给 osWaitForever）
+      // 为避免溢出，计算 max_ms：max_ms = (UINT32_MAX - 1) * 1000 / tick_freq
       uint64_t max_ms =
           static_cast<uint64_t>(UINT32_MAX - 1) * 1000ULL / tick_freq;
       if (static_cast<uint64_t>(ms) >= max_ms) {
@@ -179,23 +177,21 @@ uint32_t time_to_ticks(const std::chrono::duration<Rep, Period> &timeout) {
   return ticks;
 }
 
-// Specialized overload for std::chrono::milliseconds to avoid unnecessary
-// conversion
+// 针对 std::chrono::milliseconds 的特化重载，避免不必要的转换
 inline uint32_t time_to_ticks(std::chrono::milliseconds timeout) {
   if (timeout == std::chrono::milliseconds::max()) {
     return osWaitForever;
   }
 
   auto ms = timeout.count();
-  // Handle negative durations (invalid state)
+  // 处理负数时长（非法状态）
   if (ms < 0) {
     return 0;
   }
 
-  // Convert milliseconds to ticks (tickFreq is in Hz)
+  // 将毫秒转换为 tick（tickFreq 单位为 Hz）
   uint32_t tick_freq = osKernelGetTickFreq();
-  // Clamp to UINT32_MAX-1 to avoid overflow (reserve UINT32_MAX for
-  // osWaitForever)
+  // 夹紧到 UINT32_MAX-1 以避免溢出（UINT32_MAX 保留给 osWaitForever）
   uint64_t max_ms = static_cast<uint64_t>(UINT32_MAX - 1) * 1000ULL / tick_freq;
   if (static_cast<uint64_t>(ms) >= max_ms) {
     return UINT32_MAX - 1;
@@ -203,6 +199,6 @@ inline uint32_t time_to_ticks(std::chrono::milliseconds timeout) {
   return static_cast<uint32_t>((static_cast<uint64_t>(ms) * tick_freq) / 1000);
 }
 
-} // namespace gdut
+} // 命名空间 gdut
 
-#endif // BSP_TYPE_TRAITS_HPP
+#endif // BSP_TYPE_TRAITS_HPP 结束

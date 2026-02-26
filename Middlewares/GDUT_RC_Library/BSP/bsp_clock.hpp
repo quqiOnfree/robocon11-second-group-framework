@@ -33,12 +33,12 @@ struct system_clock {
   using period = duration::period;
   using time_point = std::chrono::time_point<system_clock>;
 
-  // system_clock may be adjusted by the OS, therefore not monotonic/steady
+  // system_clock 可能被系统调整，因此不是单调/稳定时钟
   static constexpr bool is_steady = false;
 
   static time_point now() noexcept {
-    // Use integer arithmetic to avoid precision loss
-    // Convert ticks to milliseconds: (ticks * 1000) / tick_freq
+    // 使用整数运算避免精度损失
+    // 将 tick 转换为毫秒：(ticks * 1000) / tick_freq
     uint32_t ticks = basic_kernel_clock::get_tick_count();
     uint32_t freq = basic_kernel_clock::get_tick_freq();
     uint64_t ms = (static_cast<uint64_t>(ticks) * duration::period::den) / freq;
@@ -55,8 +55,8 @@ struct steady_clock {
   static constexpr bool is_steady = true;
 
   static time_point now() noexcept {
-    // Use integer arithmetic to avoid precision loss
-    // Convert sys timer counts to microseconds
+    // 使用整数运算避免精度损失
+    // 将系统计时器计数转换为微秒
     uint32_t counts = basic_kernel_clock::get_sys_timer_count();
     uint32_t freq = basic_kernel_clock::get_sys_timer_freq();
     uint64_t us =

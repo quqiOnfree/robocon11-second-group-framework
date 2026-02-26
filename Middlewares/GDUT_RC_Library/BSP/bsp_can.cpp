@@ -148,7 +148,7 @@ bool base_can_proxy::receive(CAN_RxHeaderTypeDef *rxh, uint8_t data[8]) {
   return true; // 默认不处理接收数据
 }
 
-} // namespace gdut
+} // 命名空间 gdut
 
 // CAN FIFO0 接收中断回调（HAL 库会在 FIFO0 有消息挂起时自动调用）
 // 强符号定义以可靠覆盖 HAL 的 __weak 默认实现
