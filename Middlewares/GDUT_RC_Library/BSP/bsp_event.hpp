@@ -22,7 +22,7 @@ public:
 
   // 从已有的 CMSIS-RTOS 事件标志 ID 构造。
   // 允许传入 nullptr，会得到一个无效的 event_flags 对象
-  //（valid() 返回 false）；成员函数会根据现有的 nullptr 检查
+  // （valid() 返回 false）；成员函数会根据现有的 nullptr 检查
   // 返回错误码或 0。
   explicit event_flags(osEventFlagsId_t id) : m_id(id) {}
 

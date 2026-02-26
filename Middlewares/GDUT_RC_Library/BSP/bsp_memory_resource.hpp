@@ -346,6 +346,6 @@ private:
   alignas(std::max_align_t) char m_block[BlockSize]{};
 };
 
-} // 命名空间 gdut::pmr
+} // namespace gdut::pmr
 
 #endif // BSP_MEMORY_RESOURCE_HPP

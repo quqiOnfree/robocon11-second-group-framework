@@ -199,6 +199,6 @@ inline uint32_t time_to_ticks(std::chrono::milliseconds timeout) {
   return static_cast<uint32_t>((static_cast<uint64_t>(ms) * tick_freq) / 1000);
 }
 
-} // 命名空间 gdut
+} // namespace gdut
 
 #endif // BSP_TYPE_TRAITS_HPP 结束
