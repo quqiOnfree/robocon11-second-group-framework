@@ -22,14 +22,11 @@ struct thread_memory_resource {
   static constexpr size_t pool_size = 4096;
   GDUT_CCMRAM inline static gdut::pmr::fixed_block_resource<pool_size>
       pool_resource{};
-  // 必须在 osKernelInitialize() 之后、创建任何 thread 之前在 main() 中手动初始化
   inline static gdut::mutex pool_mutex{gdut::empty_mutex};
 
   static void init() {
     static std::once_flag once;
-    std::call_once(once, []() {
-        pool_mutex = gdut::mutex{};
-      });
+    std::call_once(once, []() { pool_mutex = gdut::mutex{}; });
   }
 };
 

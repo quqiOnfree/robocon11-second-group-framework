@@ -32,8 +32,7 @@ inline constexpr empty_mutex_t empty_mutex{};
 class mutex {
 public:
   mutex() : m_mutex_id(nullptr) {
-    osMutexAttr_t attr = {
-        "GDUT", osMutexRecursive | osMutexPrioInherit, 0, 0};
+    osMutexAttr_t attr = {"GDUT", osMutexRecursive | osMutexPrioInherit, 0, 0};
     m_mutex_id = osMutexNew(&attr);
   }
   explicit mutex(empty_mutex_t) : m_mutex_id(nullptr) {}

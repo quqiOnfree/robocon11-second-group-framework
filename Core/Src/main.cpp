@@ -18,12 +18,12 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "bsp_function.hpp"
 #include "bsp_gpio_pin.hpp"
 #include "bsp_mutex.hpp"
 #include "bsp_semaphore.hpp"
 #include "bsp_thread.hpp"
 #include "bsp_type_traits.hpp"
-#include "bsp_function.hpp"
 #include "cmsis_os2.h"
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_gpio.h"

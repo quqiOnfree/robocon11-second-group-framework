@@ -5,7 +5,6 @@
 #include <cstddef>
 #include <exception>
 #include <new>
-#include <exception>
 #include <type_traits>
 #include <utility>
 
