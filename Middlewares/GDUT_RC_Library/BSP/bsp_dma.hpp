@@ -32,23 +32,23 @@ public:
   std::string message(int ev) const override {
     switch (ev) {
     case HAL_DMA_ERROR_NONE:
-      return "无错误";
+      return "No error";
     case HAL_DMA_ERROR_TE:
-      return "传输错误";
+      return "Transfer error";
     case HAL_DMA_ERROR_FE:
-      return "FIFO 错误";
+      return "FIFO error";
     case HAL_DMA_ERROR_DME:
-      return "直接模式错误";
+      return "Direct mode error";
     case HAL_DMA_ERROR_TIMEOUT:
-      return "超时错误";
+      return "Timeout error";
     case HAL_DMA_ERROR_PARAM:
-      return "参数错误";
+      return "Parameter error";
     case HAL_DMA_ERROR_NO_XFER:
-      return "无传输时中止请求";
+      return "Abort requested with no transfer ongoing";
     case HAL_DMA_ERROR_NOT_SUPPORTED:
-      return "不支持的模式";
+      return "Not supported mode";
     default:
-      return "未知错误";
+      return "Unknown error";
     }
   }
 
