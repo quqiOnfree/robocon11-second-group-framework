@@ -21,9 +21,12 @@ namespace gdut {
  * @brief 针对 UART 外设的 DMA 操作封装
  *
  * 通过 CRTP 继承 dma_transfer_base，将 TX/RX dma_proxy 与 UART HAL 句柄关联，
- * 并通过 HAL_UART_Transmit_DMA / HAL_UART_Receive_DMA 发起传输。
+ * 并手动配置 DMA 发起传输。传输完成或出错时，由内部静态回调恢复 UART HAL 状态
+ * 后再通过 dma_proxy::call_dma_callback() 转发用户回调。
  *
  * @note address 参数对 UART 无意义，所有传输均忽略该参数。
+ * @note 不直接调用 HAL_UART_Transmit_DMA / HAL_UART_Receive_DMA，
+ *       以防止 HAL 内部覆盖 dma_proxy 已注册的回调函数。
  */
 class dma_uart : public dma_transfer_base<dma_uart> {
 public:
@@ -71,15 +74,42 @@ private:
       return false;
     }
 
-    // 初始化 DMA 代理（设置 HAL DMA 句柄参数）
+    if (m_uart->gState != HAL_UART_STATE_READY) {
+      return false;
+    }
+
+    // 初始化 DMA 代理（注册 HAL DMA 句柄回调并调用 HAL_DMA_Init）
     m_tx_dma->init();
 
-    // 直接调用 HAL_UART_Transmit_DMA，让 HAL 内部的 DMA 回调负责
-    // 设置/恢复 gState 与 DMAT 位，避免手动实现不完整导致状态无法恢复。
-    // STM32 HAL 的接口未做到 const-correct，此处 const_cast 仅用于适配，
-    // HAL 不会修改 data 指向的数据。
-    return HAL_UART_Transmit_DMA(m_uart, const_cast<uint8_t *>(data),
-                                 static_cast<uint16_t>(size)) == HAL_OK;
+    // 覆盖 DMA 句柄的 Parent 与完成/错误回调，以便在 DMA 中断里恢复 UART 状态
+    // 并通过 dma_proxy::call_dma_callback() 转发到用户回调。
+    // 注意：不能直接调用 HAL_UART_Transmit_DMA，否则 HAL 会重新覆盖这些回调。
+    DMA_HandleTypeDef *hdma_tx = m_tx_dma->get_handle();
+    hdma_tx->Parent = this;
+    hdma_tx->XferCpltCallback = tx_dma_cplt_cb;
+    hdma_tx->XferErrorCallback = tx_dma_error_cb;
+
+    // 参考 HAL_UART_Transmit_DMA 内部实现，手动配置 UART 状态与 DMA
+    m_uart->pTxBuffPtr = const_cast<uint8_t *>(data);
+    m_uart->TxXferSize = static_cast<uint16_t>(size);
+    m_uart->TxXferCount = static_cast<uint16_t>(size);
+    m_uart->ErrorCode = HAL_UART_ERROR_NONE;
+    m_uart->gState = HAL_UART_STATE_BUSY_TX;
+
+    const auto src_addr =
+        static_cast<uint32_t>(reinterpret_cast<uintptr_t>(data));
+    const auto dst_addr = static_cast<uint32_t>(
+        reinterpret_cast<uintptr_t>(&m_uart->Instance->DR));
+    if (HAL_DMA_Start_IT(hdma_tx, src_addr, dst_addr,
+                         static_cast<uint16_t>(size)) != HAL_OK) {
+      m_uart->ErrorCode = HAL_UART_ERROR_DMA;
+      m_uart->gState = HAL_UART_STATE_READY;
+      return false;
+    }
+
+    __HAL_UART_CLEAR_FLAG(m_uart, UART_FLAG_TC);
+    ATOMIC_SET_BIT(m_uart->Instance->CR3, USART_CR3_DMAT);
+    return true;
   }
 
   bool do_receive(uint8_t *buffer, std::size_t size, uint16_t address) {
@@ -91,13 +121,109 @@ private:
       return false;
     }
 
-    // 初始化 DMA 代理（设置 HAL DMA 句柄参数）
+    if (m_uart->RxState == HAL_UART_STATE_BUSY_RX) {
+      return false; // 已有接收在进行中
+    }
+
+    // 初始化 DMA 代理（注册 HAL DMA 句柄回调并调用 HAL_DMA_Init）
     m_rx_dma->init();
 
-    // 直接调用 HAL_UART_Receive_DMA，让 HAL 内部的 DMA 回调负责
-    // 设置/恢复 RxState 与 DMAR/EIE 位，避免手动实现不完整导致状态无法恢复。
-    return HAL_UART_Receive_DMA(m_uart, buffer,
-                                static_cast<uint16_t>(size)) == HAL_OK;
+    // 覆盖 DMA 句柄的 Parent 与完成/错误回调，以便在 DMA 中断里恢复 UART 状态
+    // 并通过 dma_proxy::call_dma_callback() 转发到用户回调。
+    DMA_HandleTypeDef *hdma_rx = m_rx_dma->get_handle();
+    hdma_rx->Parent = this;
+    hdma_rx->XferCpltCallback = rx_dma_cplt_cb;
+    hdma_rx->XferErrorCallback = rx_dma_error_cb;
+
+    // 参考 HAL_UART_Receive_DMA 内部实现，手动配置 UART 状态与 DMA
+    m_uart->ReceptionType = HAL_UART_RECEPTION_STANDARD;
+    m_uart->pRxBuffPtr = buffer;
+    m_uart->RxXferSize = static_cast<uint16_t>(size);
+    m_uart->ErrorCode = HAL_UART_ERROR_NONE;
+    m_uart->RxState = HAL_UART_STATE_BUSY_RX;
+
+    const auto src_addr = static_cast<uint32_t>(
+        reinterpret_cast<uintptr_t>(&m_uart->Instance->DR));
+    const auto dst_addr =
+        static_cast<uint32_t>(reinterpret_cast<uintptr_t>(buffer));
+    if (HAL_DMA_Start_IT(hdma_rx, src_addr, dst_addr,
+                         static_cast<uint16_t>(size)) != HAL_OK) {
+      m_uart->ErrorCode = HAL_UART_ERROR_DMA;
+      m_uart->RxState = HAL_UART_STATE_READY;
+      return false;
+    }
+
+    __HAL_UART_CLEAR_OREFLAG(m_uart);
+    if (m_uart->Init.Parity != UART_PARITY_NONE) {
+      ATOMIC_SET_BIT(m_uart->Instance->CR1, USART_CR1_PEIE);
+    }
+    ATOMIC_SET_BIT(m_uart->Instance->CR3, USART_CR3_EIE);
+    ATOMIC_SET_BIT(m_uart->Instance->CR3, USART_CR3_DMAR);
+    return true;
+  }
+
+  // TX DMA 传输完成回调：清除 DMAT 位、恢复 gState，然后转发用户回调
+  static void tx_dma_cplt_cb(DMA_HandleTypeDef *hdma) {
+    if (!hdma)
+      return;
+    auto *self = static_cast<dma_uart *>(hdma->Parent);
+    if (!self || !self->m_uart)
+      return;
+    ATOMIC_CLEAR_BIT(self->m_uart->Instance->CR3, USART_CR3_DMAT);
+    self->m_uart->gState = HAL_UART_STATE_READY;
+    if (self->m_tx_dma)
+      self->m_tx_dma->call_dma_callback({});
+  }
+
+  // TX DMA 错误回调：清除 DMAT 位、恢复 gState，然后上报错误
+  static void tx_dma_error_cb(DMA_HandleTypeDef *hdma) {
+    if (!hdma)
+      return;
+    auto *self = static_cast<dma_uart *>(hdma->Parent);
+    if (!self || !self->m_uart)
+      return;
+    ATOMIC_CLEAR_BIT(self->m_uart->Instance->CR3, USART_CR3_DMAT);
+    self->m_uart->ErrorCode = HAL_UART_ERROR_DMA;
+    self->m_uart->gState = HAL_UART_STATE_READY;
+    if (self->m_tx_dma)
+      self->m_tx_dma->call_dma_callback(
+          std::error_code(hdma->ErrorCode, dma_error_category::instance()));
+  }
+
+  // RX DMA 传输完成回调：清除 DMAR/EIE/PEIE 位、恢复 RxState，然后转发用户回调
+  static void rx_dma_cplt_cb(DMA_HandleTypeDef *hdma) {
+    if (!hdma)
+      return;
+    auto *self = static_cast<dma_uart *>(hdma->Parent);
+    if (!self || !self->m_uart)
+      return;
+    ATOMIC_CLEAR_BIT(self->m_uart->Instance->CR3,
+                     USART_CR3_DMAR | USART_CR3_EIE);
+    if (self->m_uart->Init.Parity != UART_PARITY_NONE) {
+      ATOMIC_CLEAR_BIT(self->m_uart->Instance->CR1, USART_CR1_PEIE);
+    }
+    self->m_uart->RxState = HAL_UART_STATE_READY;
+    if (self->m_rx_dma)
+      self->m_rx_dma->call_dma_callback({});
+  }
+
+  // RX DMA 错误回调：清除 DMAR/EIE/PEIE 位、恢复 RxState，然后上报错误
+  static void rx_dma_error_cb(DMA_HandleTypeDef *hdma) {
+    if (!hdma)
+      return;
+    auto *self = static_cast<dma_uart *>(hdma->Parent);
+    if (!self || !self->m_uart)
+      return;
+    ATOMIC_CLEAR_BIT(self->m_uart->Instance->CR3,
+                     USART_CR3_DMAR | USART_CR3_EIE);
+    if (self->m_uart->Init.Parity != UART_PARITY_NONE) {
+      ATOMIC_CLEAR_BIT(self->m_uart->Instance->CR1, USART_CR1_PEIE);
+    }
+    self->m_uart->ErrorCode = HAL_UART_ERROR_DMA;
+    self->m_uart->RxState = HAL_UART_STATE_READY;
+    if (self->m_rx_dma)
+      self->m_rx_dma->call_dma_callback(
+          std::error_code(hdma->ErrorCode, dma_error_category::instance()));
   }
 
   UART_HandleTypeDef *m_uart{nullptr};
