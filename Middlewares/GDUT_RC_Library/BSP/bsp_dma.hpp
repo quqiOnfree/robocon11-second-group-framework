@@ -4,14 +4,14 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_dma.h"
 #include "stm32f4xx_hal_i2c.h"
-#include "stm32f4xx_hal_spi.h"
 #include "stm32f4xx_hal_uart.h"
 
 #include "bsp_function.hpp"
-#include "bsp_uncopyable.hpp"
 #include "bsp_type_traits.hpp"
+#include "bsp_uncopyable.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <system_error>
 #include <utility>
 
@@ -88,12 +88,11 @@ inline std::error_code make_error_code(dma_error_code e) {
 namespace std {
 
 /// 启用 gdut::dma_error_code 到 std::error_code 的隐式转换
-template <>
-struct is_error_code_enum<gdut::dma_error_code> : true_type {};
+template <> struct is_error_code_enum<gdut::dma_error_code> : true_type {};
 
 } // namespace std
 
-namespace gdut::dma {
+namespace gdut {
 
 /**
  * @brief HAL DMA 句柄的 RAII 代理封装
@@ -167,7 +166,7 @@ public:
       m_handle->XferCpltCallback = dma_rx_xfer_cplt_cb;
       m_handle->XferHalfCpltCallback = nullptr;
       m_handle->XferErrorCallback = dma_error_cb;
-      m_handle->XferAbortCallback = dma_error_cb;
+      m_handle->XferAbortCallback = nullptr;
       m_handle->Parent = this; // 关联 DMA 句柄与 dma_proxy 对象，用于回调派发
       HAL_DMA_Init(m_handle);
     }
@@ -198,22 +197,19 @@ public:
   /**
    * @brief 以中断模式启动一次 DMA 传输。
    *
-   * 返回底层 HAL_DMA_Start_IT 的状态码，调用方可选择检查。
-   * 同时，若启动失败（句柄无效或 HAL 出错），也会通过回调向上层通知，
+   * 若启动失败（句柄无效或 HAL 出错），会通过回调向上层通知，
    * 以便仅依赖回调的调用方感知启动阶段的失败。
    *
    * @param src_address  源地址
    * @param dst_address  目标地址
    * @param data_length  数据长度（以 DMA 数据宽度单位为单位）
-   * @return HAL_StatusTypeDef  HAL_OK 表示启动成功，否则为错误码
    */
-  HAL_StatusTypeDef start(void *src_address, void *dst_address,
-                          std::size_t data_length) {
+  void start(void *src_address, void *dst_address, std::size_t data_length) {
     if (!m_handle) {
       if (m_callback_handler) {
         m_callback_handler(std::make_error_code(std::errc::invalid_argument));
       }
-      return HAL_ERROR; // DMA 句柄无效
+      return; // DMA 句柄无效
     }
     const auto status =
         HAL_DMA_Start_IT(m_handle, reinterpret_cast<uint32_t>(src_address),
@@ -221,12 +217,10 @@ public:
     if (status != HAL_OK) {
       if (m_callback_handler) {
         // 启动失败，通过回调上报 HAL DMA 错误码（ErrorCode 含具体故障原因）
-        m_callback_handler(std::error_code(
-            static_cast<int>(m_handle->ErrorCode),
-            gdut::dma_error_category::instance()));
+        m_callback_handler(
+            make_error_code(static_cast<dma_error_code>(m_handle->ErrorCode)));
       }
     }
-    return status;
   }
 
   [[nodiscard]] DMA_HandleTypeDef *get_handle() const { return m_handle; }
@@ -240,67 +234,93 @@ public:
   }
 
   void set_instance(dma_stream_type instance) {
-    if (!m_handle) return;
+    if (!m_handle) {
+      return;
+    }
     m_handle->Instance = get_dma_stream(instance);
   }
 
   void set_channel(dma_channel channel) {
-    if (!m_handle) return;
+    if (!m_handle) {
+      return;
+    }
     m_handle->Init.Channel = std::to_underlying(channel);
   }
 
   void set_direction(dma_direction direction) {
-    if (!m_handle) return;
+    if (!m_handle) {
+      return;
+    }
     m_handle->Init.Direction = std::to_underlying(direction);
   }
 
   void set_periph_inc(bool enable) {
-    if (!m_handle) return;
+    if (!m_handle) {
+      return;
+    }
     m_handle->Init.PeriphInc = enable ? DMA_PINC_ENABLE : DMA_PINC_DISABLE;
   }
 
   void set_mem_inc(bool enable) {
-    if (!m_handle) return;
+    if (!m_handle) {
+      return;
+    }
     m_handle->Init.MemInc = enable ? DMA_MINC_ENABLE : DMA_MINC_DISABLE;
   }
 
   void set_periph_data_alignment(dma_peripheral_data_alignment alignment) {
-    if (!m_handle) return;
+    if (!m_handle) {
+      return;
+    }
     m_handle->Init.PeriphDataAlignment = std::to_underlying(alignment);
   }
 
   void set_mem_data_alignment(dma_memory_data_alignment alignment) {
-    if (!m_handle) return;
+    if (!m_handle) {
+      return;
+    }
     m_handle->Init.MemDataAlignment = std::to_underlying(alignment);
   }
 
   void set_mode(dma_mode mode) {
-    if (!m_handle) return;
+    if (!m_handle) {
+      return;
+    }
     m_handle->Init.Mode = std::to_underlying(mode);
   }
 
   void set_priority(dma_priority priority) {
-    if (!m_handle) return;
+    if (!m_handle) {
+      return;
+    }
     m_handle->Init.Priority = std::to_underlying(priority);
   }
 
   void set_fifo_mode(dma_fifo_mode mode) {
-    if (!m_handle) return;
+    if (!m_handle) {
+      return;
+    }
     m_handle->Init.FIFOMode = std::to_underlying(mode);
   }
 
   void set_fifo_threshold(dma_fifo_threshold threshold) {
-    if (!m_handle) return;
+    if (!m_handle) {
+      return;
+    }
     m_handle->Init.FIFOThreshold = std::to_underlying(threshold);
   }
 
   void set_memory_burst(dma_memory_burst burst) {
-    if (!m_handle) return;
+    if (!m_handle) {
+      return;
+    }
     m_handle->Init.MemBurst = std::to_underlying(burst);
   }
 
   void set_peripheral_burst(dma_peripheral_burst burst) {
-    if (!m_handle) return;
+    if (!m_handle) {
+      return;
+    }
     m_handle->Init.PeriphBurst = std::to_underlying(burst);
   }
 
@@ -333,7 +353,8 @@ protected:
 
 private:
   DMA_HandleTypeDef *m_handle{nullptr};
-  callback_t m_callback_handler{}; // 显式初始化为空，防止未初始化的函数对象被调用
+  callback_t
+      m_callback_handler{}; // 显式初始化为空，防止未初始化的函数对象被调用
 };
 
 /**
@@ -342,7 +363,8 @@ private:
  * 使用 CRTP（奇异递归模板模式）为具体外设（UART/I2C/SPI）提供统一的
  * DMA 操作接口（绑定 TX/RX 代理、发送、接收），避免虚函数调度开销。
  *
- * 派生类须实现以下私有方法（通过 friend class dma_base<Derived> 开放访问）：
+ * 派生类须实现以下私有方法（通过 friend class dma_transfer_base<Derived>
+ * 开放访问）：
  * - do_bind_tx(dma_proxy*)
  * - do_bind_rx(dma_proxy*)
  * - do_transmit(const uint8_t*, std::size_t, uint16_t)
@@ -358,10 +380,12 @@ private:
  * 线程安全：bind_tx/bind_rx/transmit/receive 均**不**提供内部同步，
  * 应在单一上下文中依次调用（配置阶段绑定，传输阶段发起）。
  */
-template <typename Derived> class dma_base : uncopyable {
-public:
-  ~dma_base() = default;
+template <typename Derived> class dma_transfer_base : uncopyable {
+protected:
+  dma_transfer_base() = default;
+  ~dma_transfer_base() = default;
 
+public:
   void bind_tx(dma_proxy *tx_dma) {
     static_cast<Derived *>(this)->do_bind_tx(tx_dma);
   }
@@ -377,8 +401,8 @@ public:
    * @param size     数据长度（字节数）
    * @param address  仅 I2C 有效：7 位从机地址（UART/SPI 忽略）
    */
-  void transmit(const uint8_t *data, std::size_t size, uint16_t address = 0) {
-    static_cast<Derived *>(this)->do_transmit(data, size, address);
+  bool transmit(const uint8_t *data, std::size_t size, uint16_t address = 0) {
+    return static_cast<Derived *>(this)->do_transmit(data, size, address);
   }
 
   /**
@@ -387,8 +411,8 @@ public:
    * @param size     数据长度（字节数）
    * @param address  仅 I2C 有效：7 位从机地址（UART/SPI 忽略）
    */
-  void receive(uint8_t *buffer, std::size_t size, uint16_t address = 0) {
-    static_cast<Derived *>(this)->do_receive(buffer, size, address);
+  bool receive(uint8_t *buffer, std::size_t size, uint16_t address = 0) {
+    return static_cast<Derived *>(this)->do_receive(buffer, size, address);
   }
 
   /// 同时绑定 TX 和 RX 两个 DMA 代理
@@ -405,88 +429,35 @@ public:
 };
 
 /**
- * @brief 针对 UART 外设的 DMA 操作封装
- *
- * 通过 CRTP 继承 dma_base，将 TX/RX dma_proxy 与 UART HAL 句柄关联，
- * 并通过 HAL_UART_Transmit_DMA / HAL_UART_Receive_DMA 发起传输。
- *
- * @note address 参数对 UART 无意义，所有传输均忽略该参数。
- */
-class dma_uart : public dma_base<dma_uart> {
-public:
-  explicit dma_uart(UART_HandleTypeDef *huart) : m_uart(huart) {}
-
-  ~dma_uart() = default;
-
-  dma_uart(dma_uart &&other) noexcept
-      : m_uart(std::exchange(other.m_uart, nullptr)) {}
-
-  dma_uart &operator=(dma_uart &&other) noexcept {
-    if (this != std::addressof(other)) {
-      m_uart = std::exchange(other.m_uart, nullptr);
-    }
-    return *this;
-  }
-
-private:
-  friend class dma_base<dma_uart>;
-
-  void do_bind_tx(dma_proxy *tx_dma) {
-    if (tx_dma && m_uart) {
-      __HAL_LINKDMA(m_uart, hdmatx, *tx_dma->get_handle());
-    }
-  }
-
-  void do_bind_rx(dma_proxy *rx_dma) {
-    if (rx_dma && m_uart) {
-      __HAL_LINKDMA(m_uart, hdmarx, *rx_dma->get_handle());
-    }
-  }
-
-  void do_transmit(const uint8_t *data, std::size_t size, uint16_t address) {
-    (void)address; // UART 不使用地址参数，忽略以避免编译器警告
-    // STM32 HAL 的 HAL_UART_Transmit_DMA 在语义上将 data 视为只读缓冲区，
-    // 但其 C 接口未做到 const-correct，参数类型为 uint8_t* 而非 const uint8_t*。
-    // 此处使用 const_cast 仅用于适配该 HAL 接口；HAL 不会修改 data 指向的数据。
-    HAL_UART_Transmit_DMA(m_uart, const_cast<uint8_t *>(data),
-                          static_cast<uint16_t>(size));
-  }
-
-  void do_receive(uint8_t *buffer, std::size_t size, uint16_t address) {
-    (void)address; // UART 不使用地址参数，忽略以避免编译器警告
-    HAL_UART_Receive_DMA(m_uart, buffer, static_cast<uint16_t>(size));
-  }
-
-
-  UART_HandleTypeDef *m_uart;
-};
-
-/**
  * @brief 针对 I2C 外设的 DMA 操作封装（主机模式）
  *
- * 通过 CRTP 继承 dma_base，将 TX/RX dma_proxy 与 I2C HAL 句柄关联，
+ * 通过 CRTP 继承 dma_transfer_base，将 TX/RX dma_proxy 与 I2C HAL 句柄关联，
  * 并通过 HAL_I2C_Master_Transmit_DMA / HAL_I2C_Master_Receive_DMA 发起传输。
  *
  * @note address 为 7 位从机地址（有效范围 0x08~0x77），传 0 在 I2C 总线上无效。
  */
-class dma_i2c : public dma_base<dma_i2c> {
+class dma_i2c : public dma_transfer_base<dma_i2c> {
 public:
-  explicit dma_i2c(I2C_HandleTypeDef *hi2c) : m_i2c(hi2c) {}
+  explicit dma_i2c(I2C_HandleTypeDef *m_i2c) : m_i2c(m_i2c) {}
 
   ~dma_i2c() = default;
 
   dma_i2c(dma_i2c &&other) noexcept
-      : m_i2c(std::exchange(other.m_i2c, nullptr)) {}
+      : m_i2c(std::exchange(other.m_i2c, nullptr)),
+        m_tx_dma(std::exchange(other.m_tx_dma, nullptr)),
+        m_rx_dma(std::exchange(other.m_rx_dma, nullptr)) {}
 
   dma_i2c &operator=(dma_i2c &&other) noexcept {
     if (this != std::addressof(other)) {
       m_i2c = std::exchange(other.m_i2c, nullptr);
+      m_tx_dma = std::exchange(other.m_tx_dma, nullptr);
+      m_rx_dma = std::exchange(other.m_rx_dma, nullptr);
     }
     return *this;
   }
 
 private:
-  friend class dma_base<dma_i2c>;
+  friend class dma_transfer_base<dma_i2c>;
 
   void do_bind_tx(dma_proxy *tx_dma) {
     if (tx_dma && m_i2c) {
@@ -500,80 +471,256 @@ private:
     }
   }
 
-  void do_transmit(const uint8_t *data, std::size_t size, uint16_t address) {
+  bool do_transmit(const uint8_t *data, std::size_t size, uint16_t address) {
     // STM32 HAL 的 HAL_I2C_Master_Transmit_DMA 在语义上将 data 视为只读缓冲区，
-    // 但其 C 接口未做到 const-correct，参数类型为 uint8_t* 而非 const uint8_t*。
-    // 此处使用 const_cast 仅用于适配该 HAL 接口；HAL 不会修改 data 指向的数据。
-    HAL_I2C_Master_Transmit_DMA(m_i2c, address, const_cast<uint8_t *>(data),
-                                static_cast<uint16_t>(size));
+    // 但其 C 接口未做到 const-correct，参数类型为 uint8_t* 而非 const
+    // uint8_t*。 此处使用 const_cast 仅用于适配该 HAL 接口；HAL 不会修改 data
+    // 指向的数据。
+
+    m_tx_dma->init(); // 确保 DMA 代理已初始化并关联到 HAL 句柄
+
+    // HAL_I2C_Master_Transmit_DMA(m_i2c, address, const_cast<uint8_t *>(data),
+    //                             static_cast<uint16_t>(size));
+    if (m_i2c->State != HAL_I2C_STATE_READY) {
+      return false;
+    }
+
+    __IO uint32_t count = 0U;
+    HAL_StatusTypeDef dmaxferstatus;
+    /* Wait until BUSY flag is reset */
+    count = 25U * (SystemCoreClock / 25U / 1000U);
+    do {
+      count--;
+      if (count == 0U) {
+        m_i2c->PreviousState = HAL_I2C_MODE_NONE;
+        m_i2c->State = HAL_I2C_STATE_READY;
+        m_i2c->Mode = HAL_I2C_MODE_NONE;
+        m_i2c->ErrorCode |= HAL_I2C_ERROR_TIMEOUT;
+
+        return false;
+      }
+    } while (__HAL_I2C_GET_FLAG(m_i2c, I2C_FLAG_BUSY) != RESET);
+
+    /* Process Locked */
+    __HAL_LOCK(m_i2c);
+
+    /* Check if the I2C is already enabled */
+    if ((m_i2c->Instance->CR1 & I2C_CR1_PE) != I2C_CR1_PE) {
+      /* Enable I2C peripheral */
+      __HAL_I2C_ENABLE(m_i2c);
+    }
+
+    /* Disable Pos */
+    CLEAR_BIT(m_i2c->Instance->CR1, I2C_CR1_POS);
+
+    m_i2c->State = HAL_I2C_STATE_BUSY_TX;
+    m_i2c->Mode = HAL_I2C_MODE_MASTER;
+    m_i2c->ErrorCode = HAL_I2C_ERROR_NONE;
+
+    /* Prepare transfer parameters */
+    m_i2c->pBuffPtr = const_cast<uint8_t *>(data);
+    m_i2c->XferCount = size;
+    m_i2c->XferSize = m_i2c->XferCount;
+    m_i2c->XferOptions = 0xFFFF0000U; /* Don't start the transfer yet */
+    m_i2c->Devaddress = address;
+    if (m_i2c->XferSize > 0U) {
+      if (m_i2c->hdmatx != nullptr) {
+        /* Enable the DMA stream */
+        dmaxferstatus = HAL_DMA_Start_IT(
+            m_i2c->hdmatx, reinterpret_cast<uint32_t>(m_i2c->pBuffPtr),
+            reinterpret_cast<uint32_t>(&m_i2c->Instance->DR), m_i2c->XferSize);
+      } else {
+        /* Update I2C state */
+        m_i2c->State = HAL_I2C_STATE_READY;
+        m_i2c->Mode = HAL_I2C_MODE_NONE;
+
+        /* Update I2C error code */
+        m_i2c->ErrorCode |= HAL_I2C_ERROR_DMA_PARAM;
+
+        /* Process Unlocked */
+        __HAL_UNLOCK(m_i2c);
+
+        return false;
+      }
+
+      if (dmaxferstatus == HAL_OK) {
+        /* Process Unlocked */
+        __HAL_UNLOCK(m_i2c);
+
+        /* Note : The I2C interrupts must be enabled after unlocking current
+        process to avoid the risk of I2C interrupt handle execution before
+        current process unlock */
+
+        /* Enable EVT and ERR interrupt */
+        __HAL_I2C_ENABLE_IT(m_i2c, I2C_IT_EVT | I2C_IT_ERR);
+
+        /* Enable DMA Request */
+        SET_BIT(m_i2c->Instance->CR2, I2C_CR2_DMAEN);
+
+        /* Enable Acknowledge */
+        SET_BIT(m_i2c->Instance->CR1, I2C_CR1_ACK);
+
+        /* Generate Start */
+        SET_BIT(m_i2c->Instance->CR1, I2C_CR1_START);
+      } else {
+        /* Update I2C state */
+        m_i2c->State = HAL_I2C_STATE_READY;
+        m_i2c->Mode = HAL_I2C_MODE_NONE;
+
+        /* Update I2C error code */
+        m_i2c->ErrorCode |= HAL_I2C_ERROR_DMA;
+
+        /* Process Unlocked */
+        __HAL_UNLOCK(m_i2c);
+
+        return false;
+      }
+    } else {
+      /* Enable Acknowledge */
+      SET_BIT(m_i2c->Instance->CR1, I2C_CR1_ACK);
+
+      /* Generate Start */
+      SET_BIT(m_i2c->Instance->CR1, I2C_CR1_START);
+
+      /* Process Unlocked */
+      __HAL_UNLOCK(m_i2c);
+
+      /* Note : The I2C interrupts must be enabled after unlocking current
+      process to avoid the risk of I2C interrupt handle execution before current
+      process unlock */
+
+      /* Enable EVT, BUF and ERR interrupt */
+      __HAL_I2C_ENABLE_IT(m_i2c, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR);
+    }
+
+    return true;
   }
 
-  void do_receive(uint8_t *buffer, std::size_t size, uint16_t address) {
-    HAL_I2C_Master_Receive_DMA(m_i2c, address, buffer,
-                               static_cast<uint16_t>(size));
-  }
+  bool do_receive(uint8_t *buffer, std::size_t size, uint16_t address) {
+    m_rx_dma->init();
 
+    // HAL_I2C_Master_Receive_DMA(m_i2c, address, buffer,
+    //                            static_cast<uint16_t>(size));
+    if (m_i2c->State != HAL_I2C_STATE_READY) {
+      return false;
+    }
+
+    __IO uint32_t count = 0U;
+    HAL_StatusTypeDef dmaxferstatus;
+    /* Wait until BUSY flag is reset */
+    count = 25U * (SystemCoreClock / 25U / 1000U);
+    do {
+      count--;
+      if (count == 0U) {
+        m_i2c->PreviousState = HAL_I2C_MODE_NONE;
+        m_i2c->State = HAL_I2C_STATE_READY;
+        m_i2c->Mode = HAL_I2C_MODE_NONE;
+        m_i2c->ErrorCode |= HAL_I2C_ERROR_TIMEOUT;
+
+        return false;
+      }
+    } while (__HAL_I2C_GET_FLAG(m_i2c, I2C_FLAG_BUSY) != RESET);
+
+    /* Process Locked */
+    __HAL_LOCK(m_i2c);
+
+    /* Check if the I2C is already enabled */
+    if ((m_i2c->Instance->CR1 & I2C_CR1_PE) != I2C_CR1_PE) {
+      /* Enable I2C peripheral */
+      __HAL_I2C_ENABLE(m_i2c);
+    }
+
+    /* Disable Pos */
+    CLEAR_BIT(m_i2c->Instance->CR1, I2C_CR1_POS);
+
+    m_i2c->State = HAL_I2C_STATE_BUSY_RX;
+    m_i2c->Mode = HAL_I2C_MODE_MASTER;
+    m_i2c->ErrorCode = HAL_I2C_ERROR_NONE;
+
+    /* Prepare transfer parameters */
+    m_i2c->pBuffPtr = buffer;
+    m_i2c->XferCount = size;
+    m_i2c->XferSize = m_i2c->XferCount;
+    m_i2c->XferOptions = 0xFFFF0000U; /* Don't start the transfer yet */
+    m_i2c->Devaddress = address;
+    if (m_i2c->XferSize > 0U) {
+      if (m_i2c->hdmarx != nullptr) {
+        /* Enable the DMA stream */
+        dmaxferstatus = HAL_DMA_Start_IT(
+            m_i2c->hdmarx, reinterpret_cast<uint32_t>(&m_i2c->Instance->DR),
+            reinterpret_cast<uint32_t>(m_i2c->pBuffPtr), m_i2c->XferSize);
+      } else {
+        /* Update I2C state */
+        m_i2c->State = HAL_I2C_STATE_READY;
+        m_i2c->Mode = HAL_I2C_MODE_NONE;
+
+        /* Update I2C error code */
+        m_i2c->ErrorCode |= HAL_I2C_ERROR_DMA_PARAM;
+
+        /* Process Unlocked */
+        __HAL_UNLOCK(m_i2c);
+
+        return false;
+      }
+
+      if (dmaxferstatus == HAL_OK) {
+        /* Enable Acknowledge */
+        SET_BIT(m_i2c->Instance->CR1, I2C_CR1_ACK);
+
+        /* Generate Start */
+        SET_BIT(m_i2c->Instance->CR1, I2C_CR1_START);
+
+        /* Process Unlocked */
+        __HAL_UNLOCK(m_i2c);
+
+        /* Note : The I2C interrupts must be enabled after unlocking current
+        process to avoid the risk of I2C interrupt handle execution before
+        current process unlock */
+
+        /* Enable EVT and ERR interrupt */
+        __HAL_I2C_ENABLE_IT(m_i2c, I2C_IT_EVT | I2C_IT_ERR);
+
+        /* Enable DMA Request */
+        SET_BIT(m_i2c->Instance->CR2, I2C_CR2_DMAEN);
+      } else {
+        /* Update I2C state */
+        m_i2c->State = HAL_I2C_STATE_READY;
+        m_i2c->Mode = HAL_I2C_MODE_NONE;
+
+        /* Update I2C error code */
+        m_i2c->ErrorCode |= HAL_I2C_ERROR_DMA;
+
+        /* Process Unlocked */
+        __HAL_UNLOCK(m_i2c);
+
+        return false;
+      }
+    } else {
+      /* Process Unlocked */
+      __HAL_UNLOCK(m_i2c);
+
+      /* Note : The I2C interrupts must be enabled after unlocking current
+      process to avoid the risk of I2C interrupt handle execution before current
+      process unlock */
+
+      /* Enable EVT, BUF and ERR interrupt */
+      __HAL_I2C_ENABLE_IT(m_i2c, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR);
+
+      /* Enable Acknowledge */
+      SET_BIT(m_i2c->Instance->CR1, I2C_CR1_ACK);
+
+      /* Generate Start */
+      SET_BIT(m_i2c->Instance->CR1, I2C_CR1_START);
+    }
+
+    return true;
+  }
 
   I2C_HandleTypeDef *m_i2c;
+  dma_proxy *m_tx_dma;
+  dma_proxy *m_rx_dma;
 };
 
-/**
- * @brief 针对 SPI 外设的 DMA 操作封装
- *
- * 通过 CRTP 继承 dma_base，将 TX/RX dma_proxy 与 SPI HAL 句柄关联，
- * 并通过 HAL_SPI_Transmit_DMA / HAL_SPI_Receive_DMA 发起传输。
- *
- * @note address 参数对 SPI 无意义，所有传输均忽略该参数。
- */
-class dma_spi : public dma_base<dma_spi> {
-public:
-  explicit dma_spi(SPI_HandleTypeDef *hspi) : m_spi(hspi) {}
-
-  ~dma_spi() = default;
-
-  dma_spi(dma_spi &&other) noexcept
-      : m_spi(std::exchange(other.m_spi, nullptr)) {}
-
-  dma_spi &operator=(dma_spi &&other) noexcept {
-    if (this != std::addressof(other)) {
-      m_spi = std::exchange(other.m_spi, nullptr);
-    }
-    return *this;
-  }
-
-private:
-  friend class dma_base<dma_spi>;
-
-  void do_bind_tx(dma_proxy *tx_dma) {
-    if (tx_dma && m_spi) {
-      __HAL_LINKDMA(m_spi, hdmatx, *tx_dma->get_handle());
-    }
-  }
-
-  void do_bind_rx(dma_proxy *rx_dma) {
-    if (rx_dma && m_spi) {
-      __HAL_LINKDMA(m_spi, hdmarx, *rx_dma->get_handle());
-    }
-  }
-
-  void do_transmit(const uint8_t *data, std::size_t size, uint16_t address) {
-    (void)address; // SPI 不使用地址参数，忽略以避免编译器警告
-    // STM32 HAL 的 HAL_SPI_Transmit_DMA 在语义上将 data 视为只读缓冲区，
-    // 但其 C 接口未做到 const-correct，参数类型为 uint8_t* 而非 const uint8_t*。
-    // 此处使用 const_cast 仅用于适配该 HAL 接口；HAL 不会修改 data 指向的数据。
-    HAL_SPI_Transmit_DMA(m_spi, const_cast<uint8_t *>(data),
-                         static_cast<uint16_t>(size));
-  }
-
-  void do_receive(uint8_t *buffer, std::size_t size, uint16_t address) {
-    (void)address; // SPI 不使用地址参数，忽略以避免编译器警告
-    HAL_SPI_Receive_DMA(m_spi, buffer, static_cast<uint16_t>(size));
-  }
-
-
-  SPI_HandleTypeDef *m_spi;
-};
-
-} // namespace gdut::dma
+} // namespace gdut
 
 #endif // BSP_DMA_HPP

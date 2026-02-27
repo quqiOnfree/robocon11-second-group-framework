@@ -6,8 +6,8 @@
 #include "stm32f4xx_hal_dma.h"
 #include "stm32f4xx_hal_tim.h"
 
-#include "bsp_uncopyable.hpp"
 #include "bsp_function.hpp"
+#include "bsp_uncopyable.hpp"
 
 #include <functional>
 #include <utility>

@@ -6,9 +6,10 @@
 #include "stm32f4xx_hal_dma.h"
 #include "stm32f4xx_hal_uart.h"
 
+#include "bsp_dma.hpp"
+#include "bsp_function.hpp"
 #include "bsp_type_traits.hpp"
 #include "bsp_uncopyable.hpp"
-#include "bsp_function.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -16,9 +17,164 @@
 #include <utility>
 
 namespace gdut {
+/**
+ * @brief 针对 UART 外设的 DMA 操作封装
+ *
+ * 通过 CRTP 继承 dma_transfer_base，将 TX/RX dma_proxy 与 UART HAL 句柄关联，
+ * 并通过 HAL_UART_Transmit_DMA / HAL_UART_Receive_DMA 发起传输。
+ *
+ * @note address 参数对 UART 无意义，所有传输均忽略该参数。
+ */
+class dma_uart : public dma_transfer_base<dma_uart> {
+public:
+  explicit dma_uart(UART_HandleTypeDef *m_uart) : m_uart(m_uart) {}
+
+  ~dma_uart() = default;
+
+  dma_uart(dma_uart &&other) noexcept
+      : m_uart(std::exchange(other.m_uart, nullptr)),
+        m_tx_dma(std::exchange(other.m_tx_dma, nullptr)),
+        m_rx_dma(std::exchange(other.m_rx_dma, nullptr)) {}
+
+  dma_uart &operator=(dma_uart &&other) noexcept {
+    if (this != std::addressof(other)) {
+      m_uart = std::exchange(other.m_uart, nullptr);
+      m_tx_dma = std::exchange(other.m_tx_dma, nullptr);
+      m_rx_dma = std::exchange(other.m_rx_dma, nullptr);
+    }
+    return *this;
+  }
+
+private:
+  friend class dma_transfer_base<dma_uart>;
+
+  void do_bind_tx(dma_proxy *tx_dma) {
+    if (tx_dma && m_uart) {
+      m_tx_dma = tx_dma;
+      __HAL_LINKDMA(m_uart, hdmatx, *tx_dma->get_handle());
+    }
+  }
+
+  void do_bind_rx(dma_proxy *rx_dma) {
+    if (rx_dma && m_uart) {
+      m_rx_dma = rx_dma;
+      __HAL_LINKDMA(m_uart, hdmarx, *rx_dma->get_handle());
+    }
+  }
+
+  bool do_transmit(const uint8_t *data, std::size_t size, uint16_t address) {
+    (void)address; // UART 不使用地址参数，忽略以避免编译器警告
+    // STM32 HAL 的 HAL_UART_Transmit_DMA 在语义上将 data 视为只读缓冲区，
+    // 但其 C 接口未做到 const-correct，参数类型为 uint8_t* 而非 const
+    // uint8_t*。 此处使用 const_cast 仅用于适配该 HAL 接口；HAL 不会修改 data
+    // 指向的数据。
+
+    m_tx_dma->init();
+
+    // HAL_UART_Transmit_DMA(m_uart, const_cast<uint8_t *>(data),
+    //                       static_cast<uint16_t>(size));
+
+    // 以下代码参考 STM32 HAL 库中 HAL_UART_Transmit_DMA 的实现，手动配置 DMA
+
+    /* Check that a Tx process is not already ongoing */
+    if (m_uart->gState == HAL_UART_STATE_READY) {
+      if ((data == nullptr) || (size == 0U)) {
+        return false;
+      }
+
+      m_uart->pTxBuffPtr = data;
+      m_uart->TxXferSize = size;
+      m_uart->TxXferCount = size;
+
+      m_uart->ErrorCode = HAL_UART_ERROR_NONE;
+      m_uart->gState = HAL_UART_STATE_BUSY_TX;
+
+      /* Enable the UART transmit DMA stream */
+      const uint32_t *tmp = (const uint32_t *)&data;
+      if (HAL_DMA_Start_IT(m_uart->hdmatx, *(const uint32_t *)tmp,
+                           (uint32_t)&m_uart->Instance->DR, size) != HAL_OK) {
+        /* Set error code to DMA */
+        m_uart->ErrorCode = HAL_UART_ERROR_DMA;
+
+        /* Restore m_uart->gState to ready */
+        m_uart->gState = HAL_UART_STATE_READY;
+
+        return false;
+      }
+      /* Clear the TC flag in the SR register by writing 0 to it */
+      __HAL_UART_CLEAR_FLAG(m_uart, UART_FLAG_TC);
+
+      /* Enable the DMA transfer for transmit request by setting the DMAT bit
+         in the UART CR3 register */
+      ATOMIC_SET_BIT(m_uart->Instance->CR3, USART_CR3_DMAT);
+
+      return true;
+    }
+    return false;
+  }
+
+  bool do_receive(uint8_t *buffer, std::size_t size, uint16_t address) {
+    (void)address; // UART 不使用地址参数，忽略以避免编译器警告
+
+    m_rx_dma->init();
+    // HAL_UART_Receive_DMA(m_uart, buffer, static_cast<uint16_t>(size));
+
+    // 以下代码参考 STM32 HAL 库中 HAL_UART_Receive_DMA 的实现，手动配置 DMA
+    // 以确保回调正确触发
+    if (m_uart->RxState == HAL_UART_STATE_BUSY_RX || buffer == nullptr ||
+        size == 0U) {
+      return false; // 已有接收在进行中
+    }
+
+    /* Set Reception type to Standard reception */
+    m_uart->ReceptionType = HAL_UART_RECEPTION_STANDARD;
+
+    m_uart->pRxBuffPtr = buffer;
+    m_uart->RxXferSize = size;
+
+    m_uart->ErrorCode = HAL_UART_ERROR_NONE;
+    m_uart->RxState = HAL_UART_STATE_BUSY_RX;
+
+    /* Enable the DMA stream */
+    if (HAL_DMA_Start_IT(m_uart->hdmarx,
+                         reinterpret_cast<uint32_t>(&m_uart->Instance->DR),
+                         reinterpret_cast<uint32_t>(buffer), size) != HAL_OK) {
+      /* Set error code to DMA */
+      m_uart->ErrorCode = HAL_UART_ERROR_DMA;
+      /* Restore m_uart->RxState to ready */
+      m_uart->RxState = HAL_UART_STATE_READY;
+
+      return false;
+    }
+    /* Clear the Overrun flag just before enabling the DMA Rx request: can be
+     * mandatory for the second transfer */
+    __HAL_UART_CLEAR_OREFLAG(m_uart);
+
+    if (m_uart->Init.Parity != UART_PARITY_NONE) {
+      /* Enable the UART Parity Error Interrupt */
+      ATOMIC_SET_BIT(m_uart->Instance->CR1, USART_CR1_PEIE);
+    }
+
+    /* Enable the UART Error Interrupt: (Frame error, noise error, overrun
+     * error) */
+    ATOMIC_SET_BIT(m_uart->Instance->CR3, USART_CR3_EIE);
+
+    /* Enable the DMA transfer for the receiver request by setting the DMAR bit
+    in the UART CR3 register */
+    ATOMIC_SET_BIT(m_uart->Instance->CR3, USART_CR3_DMAR);
+
+    return true;
+  }
+
+  UART_HandleTypeDef *m_uart;
+  dma_proxy *m_tx_dma;
+  dma_proxy *m_rx_dma;
+};
+
 class uart : private uncopyable {
 public:
-  using rx_callback_t = gdut::function<void(const uint8_t *data, uint16_t size)>;
+  using rx_callback_t =
+      gdut::function<void(const uint8_t *data, uint16_t size)>;
   using tx_callback_t = gdut::function<void()>;
   using error_callback_t = gdut::function<void(uint32_t error)>;
   using idle_callback_t = gdut::function<void()>;

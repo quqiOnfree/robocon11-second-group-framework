@@ -163,7 +163,8 @@ enum class dma_stream_type : uint8_t {
   dma2_stream7
 };
 
-[[nodiscard]] constexpr DMA_Stream_TypeDef* get_dma_stream(dma_stream_type type) {
+[[nodiscard]] constexpr DMA_Stream_TypeDef *
+get_dma_stream(dma_stream_type type) {
   switch (type) {
   case dma_stream_type::dma1_stream0:
     return DMA1_Stream0;
@@ -268,6 +269,71 @@ enum class dma_peripheral_burst : uint32_t {
   inc4 = DMA_PBURST_INC4,
   inc8 = DMA_PBURST_INC8,
   inc16 = DMA_PBURST_INC16
+};
+
+enum class spi_mode : uint32_t {
+  master = SPI_MODE_MASTER,
+  slave = SPI_MODE_SLAVE
+};
+
+enum class spi_direction : uint32_t {
+  two_lines = SPI_DIRECTION_2LINES,
+  two_lines_rx_only = SPI_DIRECTION_2LINES_RXONLY,
+  one_line = SPI_DIRECTION_1LINE
+};
+
+enum class spi_data_size : uint32_t {
+  data_size_8bit = SPI_DATASIZE_8BIT,
+  data_size_16bit = SPI_DATASIZE_16BIT
+};
+
+enum class spi_clock_polarity : uint32_t {
+  low = SPI_POLARITY_LOW,
+  high = SPI_POLARITY_HIGH
+};
+
+enum class spi_clock_phase : uint32_t {
+  first_edge = SPI_PHASE_1EDGE,
+  second_edge = SPI_PHASE_2EDGE
+};
+
+enum class spi_nss : uint32_t {
+  soft = SPI_NSS_SOFT,
+  hard_input = SPI_NSS_HARD_INPUT,
+  hard_output = SPI_NSS_HARD_OUTPUT
+};
+
+enum class spi_baud_rate_prescaler : uint32_t {
+  div2 = SPI_BAUDRATEPRESCALER_2,
+  div4 = SPI_BAUDRATEPRESCALER_4,
+  div8 = SPI_BAUDRATEPRESCALER_8,
+  div16 = SPI_BAUDRATEPRESCALER_16,
+  div32 = SPI_BAUDRATEPRESCALER_32,
+  div64 = SPI_BAUDRATEPRESCALER_64,
+  div128 = SPI_BAUDRATEPRESCALER_128,
+  div256 = SPI_BAUDRATEPRESCALER_256
+};
+
+enum class spi_first_bit : uint32_t {
+  msb = SPI_FIRSTBIT_MSB,
+  lsb = SPI_FIRSTBIT_LSB
+};
+
+enum class spi_ti_mode : uint32_t {
+  disable = SPI_TIMODE_DISABLE,
+  enable = SPI_TIMODE_ENABLE
+};
+
+enum class spi_crc_calculation : uint32_t {
+  disable = SPI_CRCCALCULATION_DISABLE,
+  enable = SPI_CRCCALCULATION_ENABLE
+};
+
+enum class spi_crc_polynomial : uint16_t {
+  crc_polynomial_7 = 7,
+  crc_polynomial_8 = 8,
+  crc_polynomial_16 = 16,
+  crc_polynomial_32 = 32
 };
 
 template <typename Rep, typename Period>

@@ -20,7 +20,7 @@
 - 所有 `set_*` 配置方法含 nullptr 有效性检查
 - `start()` 方法启动失败时既返回 `HAL_StatusTypeDef` 错误码，也通过回调通知上层
 
-### CRTP 基类 `dma_base<Derived>`
+### CRTP 基类 `dma_transfer_base<Derived>`
 
 - 使用 CRTP（奇异递归模板模式）为外设提供统一的 DMA 操作接口，避免虚函数开销
 - 提供 `bind_tx()`、`bind_rx()`、`bind()`、`transmit()`、`receive()` 接口
@@ -32,7 +32,7 @@
 |------|----------|------|
 | `dma_uart` | UART | address 参数忽略 |
 | `dma_i2c`  | I2C（主机模式） | address 为 7 位从机地址（0x08~0x77） |
-| `dma_spi`  | SPI | address 参数忽略 |
+| `dma_spi`  | SPI | address 参数忽略；支持单向发送、全双工收发 |
 
 ## 如何使用
 
@@ -45,7 +45,7 @@
 extern DMA_HandleTypeDef hdma_usart1_rx;
 
 // 创建 DMA 代理
-gdut::dma::dma_proxy dma_rx(&hdma_usart1_rx);
+gdut::dma_proxy dma_rx(&hdma_usart1_rx);
 
 // 设置回调
 dma_rx.set_callback_handler([](std::error_code ec) {
@@ -72,15 +72,15 @@ extern DMA_HandleTypeDef hdma_usart1_rx;
 extern DMA_HandleTypeDef hdma_usart1_tx;
 
 // 创建 DMA 代理
-gdut::dma::dma_proxy dma_rx(&hdma_usart1_rx);
-gdut::dma::dma_proxy dma_tx(&hdma_usart1_tx);
+gdut::dma_proxy dma_rx(&hdma_usart1_rx);
+gdut::dma_proxy dma_tx(&hdma_usart1_tx);
 
 // 初始化 DMA 代理
 dma_rx.init();
 dma_tx.init();
 
 // 创建 UART DMA 操作对象并绑定代理
-gdut::dma::dma_uart uart_dma(&huart1);
+gdut::dma_uart uart_dma(&huart1);
 uart_dma.bind(&dma_tx, &dma_rx);
 
 // 发送数据（HAL 不修改 data 内容，const_cast 仅用于适配 C 接口）
@@ -101,12 +101,12 @@ extern I2C_HandleTypeDef hi2c1;
 extern DMA_HandleTypeDef hdma_i2c1_tx;
 extern DMA_HandleTypeDef hdma_i2c1_rx;
 
-gdut::dma::dma_proxy dma_tx(&hdma_i2c1_tx);
-gdut::dma::dma_proxy dma_rx(&hdma_i2c1_rx);
+gdut::dma_proxy dma_tx(&hdma_i2c1_tx);
+gdut::dma_proxy dma_rx(&hdma_i2c1_rx);
 dma_tx.init();
 dma_rx.init();
 
-gdut::dma::dma_i2c i2c_dma(&hi2c1);
+gdut::dma_i2c i2c_dma(&hi2c1);
 i2c_dma.bind(&dma_tx, &dma_rx);
 
 // 向从机地址 0x50 发送数据（address 必须为有效 7 位地址，0 无效）
@@ -116,6 +116,48 @@ i2c_dma.transmit(cmd, sizeof(cmd), 0x50);
 // 从从机读取数据
 uint8_t buf[4];
 i2c_dma.receive(buf, sizeof(buf), 0x50);
+```
+
+### SPI + DMA
+
+```cpp
+#include "bsp_dma.hpp"
+
+extern SPI_HandleTypeDef hspi2;
+extern DMA_HandleTypeDef hdma_spi2_tx;
+extern DMA_HandleTypeDef hdma_spi2_rx;
+
+// 创建并初始化 DMA 代理
+gdut::dma_proxy spi_tx_dma(&hdma_spi2_tx);
+gdut::dma_proxy spi_rx_dma(&hdma_spi2_rx);
+
+// 设置回调
+spi_tx_dma.set_callback_handler([](std::error_code ec) {
+    if (!ec) {
+        // 发送完成
+    }
+});
+
+spi_rx_dma.set_callback_handler([](std::error_code ec) {
+    if (!ec) {
+        // 接收完成
+    }
+});
+
+spi_tx_dma.init();
+spi_rx_dma.init();
+
+// 创建 SPI DMA 对象并绑定
+gdut::dma_spi spi_dma(&hspi2);
+spi_dma.bind(&spi_tx_dma, &spi_rx_dma);
+
+// 单向发送（address 参数忽略）
+const uint8_t tx_data[] = {0xAA, 0xBB, 0xCC};
+spi_dma.transmit(tx_data, sizeof(tx_data));
+
+// 全双工传输（同时发送和接收，使用同一缓冲区）
+uint8_t buffer[8] = {0x01, 0x02, /* ... */};
+spi_dma.receive(buffer, sizeof(buffer));  // 发送 buffer 内容，接收后覆盖 buffer
 ```
 
 ### 错误处理
@@ -159,6 +201,10 @@ dma.init();
 - 必须先调用 `init()` 再启动传输，否则 `Parent` 未设置导致回调不触发
 - 回调函数在**中断上下文**执行，禁止在回调中调用阻塞操作（如 `osMutexAcquire` 等）
 - I2C 的 address 参数为 7 位从机地址（有效范围 0x08~0x77），传 0 无效
+- SPI 的 address 参数被忽略（通过 `(void)address` 消除编译器警告），传任意值均可
+- SPI 全双工传输（`dma_spi::receive()`）使用**同一缓冲区**进行发送和接收，先发后收
+- SPI 必须配置为全双工模式（`SPI_DIRECTION_2LINES`），否则 `receive()` 会调用 `std::terminate()`
+- `dma_spi` 手动实现了 HAL 的 DMA 启动流程，不直接调用 `HAL_SPI_Transmit_DMA` 等 HAL 函数，以确保回调正确触发
 - `start_receive()` 已标记为弃用（`[[deprecated]]`），请使用 `receive()` 替代
 - `dma_proxy` 不管理 `DMA_HandleTypeDef` 的内存，句柄的生命周期须由调用方保证
 
