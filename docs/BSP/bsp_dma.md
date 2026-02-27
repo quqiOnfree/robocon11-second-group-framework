@@ -8,7 +8,7 @@
 
 ### 错误类型
 
-- **`gdut::dma_error_category`**：`std::error_category` 子类，将 HAL DMA 错误码（`HAL_DMA_ERROR_*`）映射为中文可读字符串
+- **`gdut::dma_error_category`**：`std::error_category` 子类，将 HAL DMA 错误码（`HAL_DMA_ERROR_*`）映射为可读字符串
 - **`gdut::dma_error_code`**：类型安全枚举，对应 `HAL_DMA_ERROR_*` 系列宏
 - 两者配合 `make_error_code()` 和 `std::is_error_code_enum` 特化，支持 `dma_error_code` 隐式转换为 `std::error_code`
 
@@ -53,7 +53,7 @@ dma_rx.set_callback_handler([](std::error_code ec) {
         // 传输完成
         process_received_data();
     } else {
-        // 传输出错，ec.message() 返回中文错误描述
+        // 传输出错，ec.message() 返回错误描述
         handle_error(ec);
     }
 });
@@ -125,7 +125,7 @@ i2c_dma.receive(buf, sizeof(buf), 0x50);
 std::error_code ec = gdut::dma_error_code::transfer_error;
 if (ec) {
     // 输出错误描述
-    // ec.message() => "传输错误"
+    // ec.message() => "Transfer error"
 }
 ```
 
