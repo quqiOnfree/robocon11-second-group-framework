@@ -30,26 +30,38 @@ public:
   const char *name() const noexcept override { return "dma_error_code"; }
 
   std::string message(int ev) const override {
-    switch (ev) {
-    case HAL_DMA_ERROR_NONE:
+    // ErrorCode 是位掩码，多个错误标志可能同时置位，逐位检查并拼接描述
+    if (ev == HAL_DMA_ERROR_NONE) {
       return "No error";
-    case HAL_DMA_ERROR_TE:
-      return "Transfer error";
-    case HAL_DMA_ERROR_FE:
-      return "FIFO error";
-    case HAL_DMA_ERROR_DME:
-      return "Direct mode error";
-    case HAL_DMA_ERROR_TIMEOUT:
-      return "Timeout error";
-    case HAL_DMA_ERROR_PARAM:
-      return "Parameter error";
-    case HAL_DMA_ERROR_NO_XFER:
-      return "Abort requested with no transfer ongoing";
-    case HAL_DMA_ERROR_NOT_SUPPORTED:
-      return "Not supported mode";
-    default:
+    }
+    std::string msg;
+    if (ev & HAL_DMA_ERROR_TE) {
+      msg += "Transfer error; ";
+    }
+    if (ev & HAL_DMA_ERROR_FE) {
+      msg += "FIFO error; ";
+    }
+    if (ev & HAL_DMA_ERROR_DME) {
+      msg += "Direct mode error; ";
+    }
+    if (ev & HAL_DMA_ERROR_TIMEOUT) {
+      msg += "Timeout error; ";
+    }
+    if (ev & HAL_DMA_ERROR_PARAM) {
+      msg += "Parameter error; ";
+    }
+    if (ev & HAL_DMA_ERROR_NO_XFER) {
+      msg += "Abort requested with no transfer ongoing; ";
+    }
+    if (ev & HAL_DMA_ERROR_NOT_SUPPORTED) {
+      msg += "Not supported mode; ";
+    }
+    if (msg.empty()) {
       return "Unknown error";
     }
+    // 移除末尾多余的 "; "
+    msg.resize(msg.size() - 2);
+    return msg;
   }
 
   static const dma_error_category &instance() {
@@ -123,7 +135,7 @@ namespace gdut {
  * // CubeMX 生成的全局 DMA 句柄
  * DMA_HandleTypeDef hdma_usart1_rx;
  *
- * gdut::dma::dma_proxy dma_rx(&hdma_usart1_rx);
+ * gdut::dma_proxy dma_rx(&hdma_usart1_rx);
  * dma_rx.set_callback_handler([](std::error_code ec) {
  *     if (!ec) { // 传输完成（error_code 为空表示成功）
  *         process_dma_data();
@@ -461,12 +473,14 @@ private:
 
   void do_bind_tx(dma_proxy *tx_dma) {
     if (tx_dma && m_i2c) {
+      m_tx_dma = tx_dma;
       __HAL_LINKDMA(m_i2c, hdmatx, *tx_dma->get_handle());
     }
   }
 
   void do_bind_rx(dma_proxy *rx_dma) {
     if (rx_dma && m_i2c) {
+      m_rx_dma = rx_dma;
       __HAL_LINKDMA(m_i2c, hdmarx, *rx_dma->get_handle());
     }
   }
@@ -476,6 +490,12 @@ private:
     // 但其 C 接口未做到 const-correct，参数类型为 uint8_t* 而非 const
     // uint8_t*。 此处使用 const_cast 仅用于适配该 HAL 接口；HAL 不会修改 data
     // 指向的数据。
+
+    // 传输大小超过 HAL uint16_t 范围则拒绝，避免截断导致错误传输
+    if (m_tx_dma == nullptr || m_i2c == nullptr || data == nullptr ||
+        size == 0U || size > 65535U) {
+      return false;
+    }
 
     m_tx_dma->init(); // 确保 DMA 代理已初始化并关联到 HAL 句柄
 
@@ -519,7 +539,7 @@ private:
 
     /* Prepare transfer parameters */
     m_i2c->pBuffPtr = const_cast<uint8_t *>(data);
-    m_i2c->XferCount = size;
+    m_i2c->XferCount = static_cast<uint16_t>(size);
     m_i2c->XferSize = m_i2c->XferCount;
     m_i2c->XferOptions = 0xFFFF0000U; /* Don't start the transfer yet */
     m_i2c->Devaddress = address;
@@ -597,6 +617,12 @@ private:
   }
 
   bool do_receive(uint8_t *buffer, std::size_t size, uint16_t address) {
+    // 传输大小超过 HAL uint16_t 范围则拒绝，避免截断导致错误传输
+    if (m_rx_dma == nullptr || m_i2c == nullptr || buffer == nullptr ||
+        size == 0U || size > 65535U) {
+      return false;
+    }
+
     m_rx_dma->init();
 
     // HAL_I2C_Master_Receive_DMA(m_i2c, address, buffer,
@@ -639,7 +665,7 @@ private:
 
     /* Prepare transfer parameters */
     m_i2c->pBuffPtr = buffer;
-    m_i2c->XferCount = size;
+    m_i2c->XferCount = static_cast<uint16_t>(size);
     m_i2c->XferSize = m_i2c->XferCount;
     m_i2c->XferOptions = 0xFFFF0000U; /* Don't start the transfer yet */
     m_i2c->Devaddress = address;
@@ -716,9 +742,9 @@ private:
     return true;
   }
 
-  I2C_HandleTypeDef *m_i2c;
-  dma_proxy *m_tx_dma;
-  dma_proxy *m_rx_dma;
+  I2C_HandleTypeDef *m_i2c{nullptr};
+  dma_proxy *m_tx_dma{nullptr};
+  dma_proxy *m_rx_dma{nullptr};
 };
 
 } // namespace gdut

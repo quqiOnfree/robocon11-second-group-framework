@@ -18,7 +18,7 @@
 - 封装 HAL 回调注册（`XferCpltCallback`、`XferErrorCallback` 等）
 - 统一错误回调接口：传输完成/中止/出错均通过 `callback_t`（`function<void(std::error_code)>`）通知上层
 - 所有 `set_*` 配置方法含 nullptr 有效性检查
-- `start()` 方法启动失败时既返回 `HAL_StatusTypeDef` 错误码，也通过回调通知上层
+- `start()` 方法为 `void`，启动是否成功及错误信息均通过回调通知上层，不返回 `HAL_StatusTypeDef`
 
 ### CRTP 基类 `dma_transfer_base<Derived>`
 
@@ -174,7 +174,7 @@ if (ec) {
 ### 配置 DMA 参数
 
 ```cpp
-gdut::dma::dma_proxy dma(&hdma_usart1_rx);
+gdut::dma_proxy dma(&hdma_usart1_rx);
 
 // 配置各项参数（set_* 方法在句柄为 nullptr 时为空操作）
 dma.set_channel(gdut::dma_channel::channel_4);
