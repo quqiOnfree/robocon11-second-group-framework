@@ -457,7 +457,7 @@ private:
     HAL_UART_Receive_DMA(m_uart, buffer, static_cast<uint16_t>(size));
   }
 
-private:
+
   UART_HandleTypeDef *m_uart;
 };
 
@@ -513,7 +513,7 @@ private:
                                static_cast<uint16_t>(size));
   }
 
-private:
+
   I2C_HandleTypeDef *m_i2c;
 };
 
@@ -570,7 +570,7 @@ private:
     HAL_SPI_Receive_DMA(m_spi, buffer, static_cast<uint16_t>(size));
   }
 
-private:
+
   SPI_HandleTypeDef *m_spi;
 };
 
