@@ -3,10 +3,120 @@
 本文档详细说明如何配置VS Code开发环境，包括OpenOCD调试器的安装和环境变量设置。
 
 ## 目录
+- [VS Code 扩展与插件](#vs-code-扩展与插件)
 - [OpenOCD 安装](#openocd-安装)
 - [环境变量配置](#环境变量配置)
 - [VS Code 调试配置](#vs-code-调试配置)
 - [常见问题](#常见问题)
+
+---
+
+## VS Code 扩展与插件
+
+### 必需的扩展
+
+为了获得完整的 STM32 开发体验，需要安装以下 VS Code 扩展：
+
+| 扩展 | 功能 | 下载链接 |
+|------|------|--------|
+| **C/C++** | C/C++ 代码编辑、调试 | [Microsoft C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) |
+| **Cortex-Debug** | ARM Cortex-M 调试工具 | [Cortex-Debug](https://marketplace.visualstudio.com/items?itemName=marus25.cortex-debug) |
+| **CMake** | CMake 构建系统支持 | [CMake](https://marketplace.visualstudio.com/items?itemName=twxs.cmake) |
+| **CMake Tools** | CMake 集成工具 | [CMake Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) |
+| **Clang-Format** | 代码格式化工具 | [Clang-Format](https://marketplace.visualstudio.com/items?itemName=xaver.clang-format) |
+
+### 安装方法
+
+#### 方法一：VS Code 扩展市场（推荐）
+
+1. 打开 VS Code
+2. 按 `Ctrl + Shift + X` 打开扩展市场
+3. 搜索上表中的扩展名
+4. 点击 "Install" 按钮安装
+
+#### 方法二：命令行安装
+
+```powershell
+# 安装 C/C++ 扩展
+code --install-extension ms-vscode.cpptools
+
+# 安装 Cortex-Debug 扩展
+code --install-extension marus25.cortex-debug
+
+# 安装 CMake 扩展
+code --install-extension twxs.cmake
+
+# 安装 CMake Tools 扩展
+code --install-extension ms-vscode.cmake-tools
+
+# 安装 Clang-Format 扩展
+code --install-extension xaver.clang-format
+```
+
+### Cortex-Debug 插件详细说明
+
+**Cortex-Debug** 是专为 ARM Cortex-M 微控制器设计的调试工具，提供更强大的硬件调试功能。
+
+#### 核心功能
+
+- 🎯 **SVD 文件支持**：寄存器窗口显示外设和寄存器信息
+- 📊 **变量和内存查看**：实时查看变量值和内存内容
+- 🔍 **条件断点**：设置复杂的断点条件
+- 📈 **性能分析**：用于代码性能优化
+- 🛠️ **外设模拟**：模拟硬件外设行为
+
+#### 与本项目的集成
+
+本项目已在 `debug/` 文件夹提供了 Cortex-Debug 的配置：
+
+- **launch.json** - 如果使用 Cortex-Debug，需要在配置中指定：
+  ```json
+  {
+      "name": "Cortex Debug",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "openocd",
+      "cwd": "${workspaceRoot}",
+      "executable": "${workspaceRoot}/build/robocon11-second-group-framework.elf",
+      "svdFile": "${workspaceRoot}/debug/stm32f407.svd",
+      "device": "STM32F407VE",
+      "interface": "swd",
+      "configFiles": [
+          "interface/stlink.cfg",
+          "target/stm32f4x.cfg"
+      ]
+  }
+  ```
+
+#### 配置步骤
+
+1. **安装 Cortex-Debug 扩展**（见上方安装方法）
+
+2. **确保 OpenOCD 已安装**（见下方 OpenOCD 安装段落）
+
+3. **使用 SVD 文件**（可选但推荐）
+   - 项目已包含 `debug/stm32f407.svd` 文件
+   - 该文件提供 STM32F407 的外设定义
+   - 在调试时可以查看和修改寄存器值
+
+4. **修改 launch.json**
+   - 如使用 Cortex-Debug，需将上述配置添加到 `.vscode/launch.json`
+   - 确保 `executable` 路径正确指向编译后的 ELF 文件
+
+#### 使用 Cortex-Debug 调试
+
+1. **启动调试**
+   - 按 `Ctrl + Shift + D` 打开调试面板
+   - 从下拉菜单选择 "Cortex Debug"
+   - 按 `F5` 或点击 "Start Debugging" 按钮
+
+2. **查看外设寄存器**
+   - 调试时在左侧 "Cortex-Debug" 面板中可查看
+   - 展开 "Peripherals" 部分查看 GPIO、UART 等外设
+
+3. **查看内存**
+   - 在调试面板中右键选择 "View Memory"
+   - 输入地址查看特定内存位置的值
 
 ---
 
@@ -241,26 +351,41 @@ openocd -f openocd.cfg
 
 ## 常见问题
 
-### Q1: OpenOCD 命令找不到？
+### Q1: VS Code 扩展无法安装？
+**A**:
+- 确保网络连接正常
+- 尝试切换 VS Code 扩展市场源（设置中的 Extension Gallery）
+- 可使用命令行安装：`code --install-extension <extension-id>`
+- 重启 VS Code 后重试
+
+### Q2: Cortex-Debug 无法连接调试器？
+**A**:
+- 确认已安装 OpenOCD（见上方 OpenOCD 安装段落）
+- 检查 `launch.json` 中的 `servertype` 是否设置为 `openocd`
+- 启动 OpenOCD 服务器：`openocd -f interface/stlink.cfg -f target/stm32f4x.cfg`
+- 查看 OpenOCD 是否显示 "Listening on port 3333"
+- 检查 USB 调试器是否正确连接
+
+### Q3: OpenOCD 命令找不到？
 **A**: 
 - 确认已添加环境变量到 PATH
 - 重启 VS Code 和 PowerShell
 - 在 PowerShell 中执行：`refreshenv` 刷新环境变量（在 Windows 10 之前可能需要）
 
-### Q2: 连接调试器失败？
+### Q4: 连接调试器失败？
 **A**:
 - 确保 USB 调试器已连接到电脑
 - 检查设备管理器中是否识别了设备
 - 确认使用了正确的配置文件（`interface` 和 `target`）
 - 尝试在命令行直接运行 `openocd -f openocd.cfg` 排查问题
 
-### Q3: 编译失败说找不到工具链？
+### Q5: 编译失败说找不到工具链？
 **A**:
 - 确认已安装 GCC ARM Embedded Toolchain
 - 检查 CMake 配置文件中的工具链路径是否正确
 - 执行 `cmake --build build --target clean` 清除缓存后重新编译
 
-### Q4: 调试时 GDB 连接超时？
+### Q6: 调试时 GDB 连接超时？
 **A**:
 - 确保 OpenOCD 已启动且运行正常
 - 检查防火墙是否阻止了 GDB 端口（默认为 3333）
