@@ -737,7 +737,15 @@ private:
     if (!hdma)
       return;
     auto *self = static_cast<dma_i2c *>(hdma->Parent);
-    if (self && self->m_tx_dma)
+    if (!self)
+      return;
+    if (self->m_i2c) {
+      __HAL_I2C_DISABLE_IT(self->m_i2c, I2C_IT_EVT | I2C_IT_ERR | I2C_IT_BUF);
+      CLEAR_BIT(self->m_i2c->Instance->CR2, I2C_CR2_DMAEN);
+      self->m_i2c->State = HAL_I2C_STATE_READY;
+      self->m_i2c->Mode = HAL_I2C_MODE_NONE;
+    }
+    if (self->m_tx_dma)
       self->m_tx_dma->call_dma_callback({});
   }
 
@@ -745,7 +753,16 @@ private:
     if (!hdma)
       return;
     auto *self = static_cast<dma_i2c *>(hdma->Parent);
-    if (self && self->m_tx_dma)
+    if (!self)
+      return;
+    if (self->m_i2c) {
+      __HAL_I2C_DISABLE_IT(self->m_i2c, I2C_IT_EVT | I2C_IT_ERR | I2C_IT_BUF);
+      CLEAR_BIT(self->m_i2c->Instance->CR2, I2C_CR2_DMAEN);
+      self->m_i2c->ErrorCode |= HAL_I2C_ERROR_DMA;
+      self->m_i2c->State = HAL_I2C_STATE_READY;
+      self->m_i2c->Mode = HAL_I2C_MODE_NONE;
+    }
+    if (self->m_tx_dma)
       self->m_tx_dma->call_dma_callback(
           std::error_code(hdma->ErrorCode, dma_error_category::instance()));
   }
@@ -754,7 +771,15 @@ private:
     if (!hdma)
       return;
     auto *self = static_cast<dma_i2c *>(hdma->Parent);
-    if (self && self->m_rx_dma)
+    if (!self)
+      return;
+    if (self->m_i2c) {
+      __HAL_I2C_DISABLE_IT(self->m_i2c, I2C_IT_EVT | I2C_IT_ERR | I2C_IT_BUF);
+      CLEAR_BIT(self->m_i2c->Instance->CR2, I2C_CR2_DMAEN);
+      self->m_i2c->State = HAL_I2C_STATE_READY;
+      self->m_i2c->Mode = HAL_I2C_MODE_NONE;
+    }
+    if (self->m_rx_dma)
       self->m_rx_dma->call_dma_callback({});
   }
 
@@ -762,7 +787,16 @@ private:
     if (!hdma)
       return;
     auto *self = static_cast<dma_i2c *>(hdma->Parent);
-    if (self && self->m_rx_dma)
+    if (!self)
+      return;
+    if (self->m_i2c) {
+      __HAL_I2C_DISABLE_IT(self->m_i2c, I2C_IT_EVT | I2C_IT_ERR | I2C_IT_BUF);
+      CLEAR_BIT(self->m_i2c->Instance->CR2, I2C_CR2_DMAEN);
+      self->m_i2c->ErrorCode |= HAL_I2C_ERROR_DMA;
+      self->m_i2c->State = HAL_I2C_STATE_READY;
+      self->m_i2c->Mode = HAL_I2C_MODE_NONE;
+    }
+    if (self->m_rx_dma)
       self->m_rx_dma->call_dma_callback(
           std::error_code(hdma->ErrorCode, dma_error_category::instance()));
   }

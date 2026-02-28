@@ -79,7 +79,7 @@ private:
       return false;
     }
 
-    // 初始化 DMA 代理（注册 HAL DMA 句柄回调并调用 HAL_DMA_Init）
+    // 初始化 DMA 代理（调用 HAL_DMA_Init 初始化 DMA 句柄）
     m_tx_dma->init();
 
     // 覆盖 DMA 句柄的 Parent 与完成/错误回调，以便在 DMA 中断里恢复 SPI 状态
@@ -163,7 +163,7 @@ private:
       return false;
     }
 
-    // 初始化 RX DMA 代理（注册 HAL DMA 句柄回调并调用 HAL_DMA_Init）
+    // 初始化 RX DMA 代理（调用 HAL_DMA_Init 初始化 DMA 句柄）
     m_rx_dma->init();
 
     // 覆盖 RX DMA 句柄的 Parent 与完成/错误回调，以便在 DMA 中断里恢复 SPI 状态
