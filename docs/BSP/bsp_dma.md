@@ -15,7 +15,7 @@
 ### DMA 句柄代理 `dma_proxy`
 
 - RAII 管理 `DMA_HandleTypeDef`：构造时接收句柄指针，析构时自动调用 `deinit()`
-- 封装 HAL 回调注册（`XferCpltCallback`、`XferErrorCallback` 等）
+- 单独使用时，`start()` 在启动 DMA 前自动绑定 `Parent` 与 `XferCpltCallback`/`XferErrorCallback`；外设类（`dma_uart`/`dma_spi`/`dma_i2c`）在调用 `init()` 后自行配置回调
 - 统一错误回调接口：传输完成/中止/出错均通过 `callback_t`（`function<void(std::error_code)>`）通知上层
 - 所有 `set_*` 配置方法含 nullptr 有效性检查
 - `start()` 方法为 `void`，启动是否成功及错误信息均通过回调通知上层，不返回 `HAL_StatusTypeDef`
@@ -58,7 +58,7 @@ dma_rx.set_callback_handler([](std::error_code ec) {
     }
 });
 
-// 初始化（注册 HAL 回调）
+// 初始化 DMA 句柄
 dma_rx.init();
 ```
 
@@ -198,7 +198,7 @@ dma.init();
 ## 注意事项/坑点
 
 - DMA 传输所用数据缓冲区**不能**放在 CCMRAM（`GDUT_CCMRAM`）中，CCM RAM 不可被 DMA 访问
-- 必须先调用 `init()` 再启动传输，否则 `Parent` 未设置导致回调不触发
+- 必须先调用 `init()` 再启动传输；直接使用 `dma_proxy` 时，`start()` 会在启动时自动绑定 HAL 回调
 - 回调函数在**中断上下文**执行，禁止在回调中调用阻塞操作（如 `osMutexAcquire` 等）
 - I2C 的 address 参数为 7 位从机地址（有效范围 0x08~0x77），传 0 无效
 - SPI 的 address 参数被忽略（通过 `(void)address` 消除编译器警告），传任意值均可

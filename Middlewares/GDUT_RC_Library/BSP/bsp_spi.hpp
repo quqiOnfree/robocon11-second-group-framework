@@ -86,6 +86,9 @@ private:
     // 并通过 dma_proxy::call_dma_callback() 转发到用户回调。
     // 注意：不能直接调用 HAL_SPI_Transmit_DMA，否则 HAL 会重新覆盖这些回调。
     DMA_HandleTypeDef *hdma_tx = m_tx_dma->get_handle();
+    if (hdma_tx == nullptr) {
+      return false;
+    }
     hdma_tx->Parent = this;
     hdma_tx->XferCpltCallback = tx_dma_cplt_cb;
     hdma_tx->XferErrorCallback = tx_dma_error_cb;
@@ -123,6 +126,10 @@ private:
     if (HAL_OK !=
         HAL_DMA_Start_IT(hdma_tx, src_addr, dst_addr, m_spi->TxXferCount)) {
       SET_BIT(m_spi->ErrorCode, HAL_SPI_ERROR_DMA);
+      m_spi->State = HAL_SPI_STATE_READY;
+      m_spi->TxXferCount = 0U;
+      m_spi->TxXferSize = 0U;
+      m_spi->pTxBuffPtr = nullptr;
       __HAL_UNLOCK(m_spi);
       return false;
     }
@@ -170,6 +177,9 @@ private:
     // 并通过 dma_proxy::call_dma_callback() 转发到用户回调。
     // 注意：不能直接调用 HAL_SPI_TransmitReceive_DMA，否则 HAL 会重新覆盖这些回调。
     DMA_HandleTypeDef *hdma_rx = m_rx_dma->get_handle();
+    if (hdma_rx == nullptr) {
+      return false;
+    }
     hdma_rx->Parent = this;
     hdma_rx->XferCpltCallback = rx_dma_cplt_cb;
     hdma_rx->XferErrorCallback = rx_dma_error_cb;
@@ -205,16 +215,19 @@ private:
     if (HAL_OK != HAL_DMA_Start_IT(hdma_rx, rx_src_addr, rx_dst_addr,
                                    m_spi->RxXferCount)) {
       SET_BIT(m_spi->ErrorCode, HAL_SPI_ERROR_DMA);
+      m_spi->State = HAL_SPI_STATE_READY;
       __HAL_UNLOCK(m_spi);
       return false;
     }
     SET_BIT(m_spi->Instance->CR2, SPI_CR2_RXDMAEN);
 
     // TX DMA 完成不单独处理，全双工时由 RX DMA 完成回调统一执行状态清理；
-    // 在启动 TX DMA 前清除 TX 回调，避免 TX DMA 完成时意外触发旧回调
+    // TX DMA 完成/半完成回调置 nullptr，避免意外触发旧回调；
+    // 但保留 TX DMA 的错误回调（与 RX 相同），确保 TX 错误时能清理状态并通知用户
+    m_spi->hdmatx->Parent = this;
     m_spi->hdmatx->XferHalfCpltCallback = nullptr;
     m_spi->hdmatx->XferCpltCallback = nullptr;
-    m_spi->hdmatx->XferErrorCallback = nullptr;
+    m_spi->hdmatx->XferErrorCallback = rx_dma_error_cb;
     m_spi->hdmatx->XferAbortCallback = nullptr;
 
     const auto tx_src_addr = static_cast<uint32_t>(
@@ -223,7 +236,11 @@ private:
         reinterpret_cast<uintptr_t>(&m_spi->Instance->DR));
     if (HAL_OK != HAL_DMA_Start_IT(m_spi->hdmatx, tx_src_addr, tx_dst_addr,
                                    m_spi->TxXferCount)) {
+      // TX DMA 启动失败，回滚已启动的 RX DMA 以避免外设处于不一致状态
+      (void)HAL_DMA_Abort(hdma_rx);
+      CLEAR_BIT(m_spi->Instance->CR2, SPI_CR2_RXDMAEN);
       SET_BIT(m_spi->ErrorCode, HAL_SPI_ERROR_DMA);
+      m_spi->State = HAL_SPI_STATE_READY;
       __HAL_UNLOCK(m_spi);
       return false;
     }

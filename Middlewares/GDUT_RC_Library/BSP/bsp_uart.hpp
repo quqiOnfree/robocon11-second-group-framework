@@ -85,6 +85,10 @@ private:
     // 并通过 dma_proxy::call_dma_callback() 转发到用户回调。
     // 注意：不能直接调用 HAL_UART_Transmit_DMA，否则 HAL 会重新覆盖这些回调。
     DMA_HandleTypeDef *hdma_tx = m_tx_dma->get_handle();
+    if (hdma_tx == nullptr) {
+      m_uart->ErrorCode = HAL_UART_ERROR_DMA;
+      return false;
+    }
     hdma_tx->Parent = this;
     hdma_tx->XferCpltCallback = tx_dma_cplt_cb;
     hdma_tx->XferErrorCallback = tx_dma_error_cb;
@@ -131,6 +135,10 @@ private:
     // 覆盖 DMA 句柄的 Parent 与完成/错误回调，以便在 DMA 中断里恢复 UART 状态
     // 并通过 dma_proxy::call_dma_callback() 转发到用户回调。
     DMA_HandleTypeDef *hdma_rx = m_rx_dma->get_handle();
+    if (hdma_rx == nullptr) {
+      m_uart->ErrorCode = HAL_UART_ERROR_DMA;
+      return false;
+    }
     hdma_rx->Parent = this;
     hdma_rx->XferCpltCallback = rx_dma_cplt_cb;
     hdma_rx->XferErrorCallback = rx_dma_error_cb;

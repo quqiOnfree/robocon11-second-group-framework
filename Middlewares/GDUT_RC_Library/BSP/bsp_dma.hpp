@@ -170,7 +170,8 @@ public:
    * @brief 初始化 DMA 句柄，调用 HAL_DMA_Init。
    *
    * 必须在开始任何传输之前调用。若 m_handle 为 nullptr，则为空操作。
-   * 回调函数由调用方（dma_uart / dma_spi / dma_i2c）在调用本函数后自行配置。
+   * 单独调用 start() 时，Parent 与回调由 start() 自动绑定；
+   * 外设类（dma_uart / dma_spi / dma_i2c）在调用本函数后自行配置回调。
    */
   void init() {
     if (m_handle) {
@@ -203,6 +204,8 @@ public:
   /**
    * @brief 以中断模式启动一次 DMA 传输。
    *
+   * 自动将 Parent 与完成/错误回调绑定到本对象，以便 DMA 中断触发时转发给
+   * 通过 set_callback_handler() 注册的用户回调。
    * 若启动失败（句柄无效或 HAL 出错），会通过回调向上层通知，
    * 以便仅依赖回调的调用方感知启动阶段的失败。
    *
@@ -217,6 +220,10 @@ public:
       }
       return; // DMA 句柄无效
     }
+    // 绑定 Parent 与回调，确保 DMA 中断能够回调到本对象
+    m_handle->Parent = this;
+    m_handle->XferCpltCallback = xfer_cplt_cb;
+    m_handle->XferErrorCallback = xfer_error_cb;
     const auto status =
         HAL_DMA_Start_IT(m_handle, reinterpret_cast<uint32_t>(src_address),
                          reinterpret_cast<uint32_t>(dst_address), data_length);
@@ -337,6 +344,23 @@ public:
   }
 
 private:
+  static void xfer_cplt_cb(DMA_HandleTypeDef *hdma) {
+    if (!hdma || !hdma->Parent)
+      return;
+    auto *self = static_cast<dma_proxy *>(hdma->Parent);
+    if (self)
+      self->call_dma_callback({});
+  }
+
+  static void xfer_error_cb(DMA_HandleTypeDef *hdma) {
+    if (!hdma || !hdma->Parent)
+      return;
+    auto *self = static_cast<dma_proxy *>(hdma->Parent);
+    if (self)
+      self->call_dma_callback(
+          std::error_code(hdma->ErrorCode, dma_error_category::instance()));
+  }
+
   DMA_HandleTypeDef *m_handle{nullptr};
   callback_t
       m_callback_handler{}; // 显式初始化为空，防止未初始化的函数对象被调用
@@ -446,15 +470,21 @@ private:
 
   void do_bind_tx(dma_proxy *tx_dma) {
     if (tx_dma && m_i2c) {
-      m_tx_dma = tx_dma;
-      __HAL_LINKDMA(m_i2c, hdmatx, *tx_dma->get_handle());
+      DMA_HandleTypeDef *tx_handle = tx_dma->get_handle();
+      if (tx_handle != nullptr) {
+        m_tx_dma = tx_dma;
+        __HAL_LINKDMA(m_i2c, hdmatx, *tx_handle);
+      }
     }
   }
 
   void do_bind_rx(dma_proxy *rx_dma) {
     if (rx_dma && m_i2c) {
-      m_rx_dma = rx_dma;
-      __HAL_LINKDMA(m_i2c, hdmarx, *rx_dma->get_handle());
+      DMA_HandleTypeDef *rx_handle = rx_dma->get_handle();
+      if (rx_handle != nullptr) {
+        m_rx_dma = rx_dma;
+        __HAL_LINKDMA(m_i2c, hdmarx, *rx_handle);
+      }
     }
   }
 
