@@ -119,8 +119,8 @@ private:
     }
 #endif /* USE_SPI_CRC */
 
-    const auto src_addr = static_cast<uint32_t>(
-        reinterpret_cast<uintptr_t>(m_spi->pTxBuffPtr));
+    const auto src_addr =
+        static_cast<uint32_t>(reinterpret_cast<uintptr_t>(m_spi->pTxBuffPtr));
     const auto dst_addr = static_cast<uint32_t>(
         reinterpret_cast<uintptr_t>(&m_spi->Instance->DR));
     if (HAL_OK !=
@@ -175,7 +175,8 @@ private:
 
     // 覆盖 RX DMA 句柄的 Parent 与完成/错误回调，以便在 DMA 中断里恢复 SPI 状态
     // 并通过 dma_proxy::call_dma_callback() 转发到用户回调。
-    // 注意：不能直接调用 HAL_SPI_TransmitReceive_DMA，否则 HAL 会重新覆盖这些回调。
+    // 注意：不能直接调用 HAL_SPI_TransmitReceive_DMA，否则 HAL
+    // 会重新覆盖这些回调。
     DMA_HandleTypeDef *hdma_rx = m_rx_dma->get_handle();
     if (hdma_rx == nullptr) {
       return false;
@@ -210,8 +211,8 @@ private:
 
     const auto rx_src_addr = static_cast<uint32_t>(
         reinterpret_cast<uintptr_t>(&m_spi->Instance->DR));
-    const auto rx_dst_addr = static_cast<uint32_t>(
-        reinterpret_cast<uintptr_t>(m_spi->pRxBuffPtr));
+    const auto rx_dst_addr =
+        static_cast<uint32_t>(reinterpret_cast<uintptr_t>(m_spi->pRxBuffPtr));
     if (HAL_OK != HAL_DMA_Start_IT(hdma_rx, rx_src_addr, rx_dst_addr,
                                    m_spi->RxXferCount)) {
       SET_BIT(m_spi->ErrorCode, HAL_SPI_ERROR_DMA);
@@ -223,15 +224,16 @@ private:
 
     // TX DMA 完成不单独处理，全双工时由 RX DMA 完成回调统一执行状态清理；
     // TX DMA 完成/半完成回调置 nullptr，避免意外触发旧回调；
-    // 但保留 TX DMA 的错误回调（与 RX 相同），确保 TX 错误时能清理状态并通知用户
+    // 但保留 TX DMA 的错误回调（与 RX 相同），确保 TX
+    // 错误时能清理状态并通知用户
     m_spi->hdmatx->Parent = this;
     m_spi->hdmatx->XferHalfCpltCallback = nullptr;
     m_spi->hdmatx->XferCpltCallback = nullptr;
     m_spi->hdmatx->XferErrorCallback = rx_dma_error_cb;
     m_spi->hdmatx->XferAbortCallback = nullptr;
 
-    const auto tx_src_addr = static_cast<uint32_t>(
-        reinterpret_cast<uintptr_t>(m_spi->pTxBuffPtr));
+    const auto tx_src_addr =
+        static_cast<uint32_t>(reinterpret_cast<uintptr_t>(m_spi->pTxBuffPtr));
     const auto tx_dst_addr = static_cast<uint32_t>(
         reinterpret_cast<uintptr_t>(&m_spi->Instance->DR));
     if (HAL_OK != HAL_DMA_Start_IT(m_spi->hdmatx, tx_src_addr, tx_dst_addr,
@@ -282,7 +284,8 @@ private:
           std::error_code(hdma->ErrorCode, dma_error_category::instance()));
   }
 
-  // RX DMA 传输完成回调（全双工）：清除 TXDMAEN/RXDMAEN 位、恢复 SPI State，然后转发用户回调
+  // RX DMA 传输完成回调（全双工）：清除 TXDMAEN/RXDMAEN 位、恢复 SPI
+  // State，然后转发用户回调
   static void rx_dma_cplt_cb(DMA_HandleTypeDef *hdma) {
     if (!hdma)
       return;
@@ -296,7 +299,8 @@ private:
       self->m_rx_dma->call_dma_callback({});
   }
 
-  // RX DMA 错误回调（全双工）：清除 TXDMAEN/RXDMAEN 位、恢复 SPI State，然后上报错误
+  // RX DMA 错误回调（全双工）：清除 TXDMAEN/RXDMAEN 位、恢复 SPI
+  // State，然后上报错误
   static void rx_dma_error_cb(DMA_HandleTypeDef *hdma) {
     if (!hdma)
       return;
