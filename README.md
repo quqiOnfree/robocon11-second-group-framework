@@ -192,7 +192,7 @@ void my_task(void* pvParameters) {
 | **格式化代码（Linux/macOS）** | `./format_all.sh` |
 | **启动调试** | 按 Ctrl+Shift+D，选择 "Debug with OpenOCD"，按 F5 |
 
-## �️ 项目结构与文件说明
+## 🗂️ 项目结构与文件说明
 
 ```
 robocon11-second-group-framework/
@@ -265,10 +265,10 @@ robocon11-second-group-framework/
 
 - **CMake**: >= 3.20
 - **编译器**: arm-none-eabi-gcc (ARM Embedded GCC Toolchain)
-- **构建工具**: Ninja (推荐) 或 Make
+- **构建工具**: Ninja（必需，暂不支持直接使用 make 构建）
 - **代码格式化**: clang-format >= 14.0
 
-## � 推荐阅读顺序
+## 📖 推荐阅读顺序
 
 **首次使用本项目，请按以下顺序阅读文档：**
 
