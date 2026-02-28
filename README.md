@@ -265,7 +265,7 @@ robocon11-second-group-framework/
 
 - **CMake**: >= 3.20
 - **编译器**: arm-none-eabi-gcc (ARM Embedded GCC Toolchain)
-- **构建工具**: Ninja（必需，暂不支持直接使用 make 构建）
+- **构建工具**: Ninja（推荐；也可使用其他 CMake 支持的生成器，但请始终通过 `cmake --build` 构建，而不要直接运行 `make`）
 - **代码格式化**: clang-format >= 14.0
 
 ## 📖 推荐阅读顺序

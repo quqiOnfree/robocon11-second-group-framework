@@ -72,7 +72,7 @@ code --install-extension xaver.clang-format
 - **launch.json** - 如果使用 Cortex-Debug，需要在配置中指定：
   ```json
   {
-      "name": "Cortex Debug",
+      "name": "STM32 Debug",
       "type": "cortex-debug",
       "request": "launch",
       "servertype": "openocd",
@@ -238,9 +238,10 @@ openocd.exe --version
    ```
 
 2. **检查配置**：打开 `.vscode/launch.json`，检查以下参数是否正确：
-   - `program`: ELF 文件路径
-   - `MIMode`: 调试器类型
-   - OpenOCD 连接参数
+   - `executable`: ELF 文件路径
+   - `servertype`: 调试服务器类型（应为 `openocd`）
+   - `configFiles`: OpenOCD 配置文件路径
+   - `runToEntryPoint`: 启动后停止的入口函数
 
 ### launch.json 关键配置说明
 
