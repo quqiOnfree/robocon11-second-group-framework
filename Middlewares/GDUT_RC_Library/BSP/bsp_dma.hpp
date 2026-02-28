@@ -30,26 +30,38 @@ public:
   const char *name() const noexcept override { return "dma_error_code"; }
 
   std::string message(int ev) const override {
-    switch (ev) {
-    case HAL_DMA_ERROR_NONE:
+    // ErrorCode 是位掩码，多个错误标志可能同时置位，逐位检查并拼接描述
+    if (ev == HAL_DMA_ERROR_NONE) {
       return "No error";
-    case HAL_DMA_ERROR_TE:
-      return "Transfer error";
-    case HAL_DMA_ERROR_FE:
-      return "FIFO error";
-    case HAL_DMA_ERROR_DME:
-      return "Direct mode error";
-    case HAL_DMA_ERROR_TIMEOUT:
-      return "Timeout error";
-    case HAL_DMA_ERROR_PARAM:
-      return "Parameter error";
-    case HAL_DMA_ERROR_NO_XFER:
-      return "Abort requested with no transfer ongoing";
-    case HAL_DMA_ERROR_NOT_SUPPORTED:
-      return "Not supported mode";
-    default:
+    }
+    std::string msg;
+    if (ev & HAL_DMA_ERROR_TE) {
+      msg += "Transfer error; ";
+    }
+    if (ev & HAL_DMA_ERROR_FE) {
+      msg += "FIFO error; ";
+    }
+    if (ev & HAL_DMA_ERROR_DME) {
+      msg += "Direct mode error; ";
+    }
+    if (ev & HAL_DMA_ERROR_TIMEOUT) {
+      msg += "Timeout error; ";
+    }
+    if (ev & HAL_DMA_ERROR_PARAM) {
+      msg += "Parameter error; ";
+    }
+    if (ev & HAL_DMA_ERROR_NO_XFER) {
+      msg += "Abort requested with no transfer ongoing; ";
+    }
+    if (ev & HAL_DMA_ERROR_NOT_SUPPORTED) {
+      msg += "Not supported mode; ";
+    }
+    if (msg.empty()) {
       return "Unknown error";
     }
+    // 移除末尾多余的 "; "
+    msg.resize(msg.size() - 2);
+    return msg;
   }
 
   static const dma_error_category &instance() {
@@ -116,14 +128,13 @@ namespace gdut {
  *
  * 重要约束：
  * - DMA 传输所用的数据缓冲区**不能**放在 CCMRAM（CCM RAM 不能被 DMA 访问）。
- * - 不调用 init() 而直接调用 start() 会因为 Parent 未设置而导致回调不触发。
  *
  * 使用示例：
  * @code
  * // CubeMX 生成的全局 DMA 句柄
  * DMA_HandleTypeDef hdma_usart1_rx;
  *
- * gdut::dma::dma_proxy dma_rx(&hdma_usart1_rx);
+ * gdut::dma_proxy dma_rx(&hdma_usart1_rx);
  * dma_rx.set_callback_handler([](std::error_code ec) {
  *     if (!ec) { // 传输完成（error_code 为空表示成功）
  *         process_dma_data();
@@ -156,18 +167,14 @@ public:
   ~dma_proxy() noexcept { deinit(); }
 
   /**
-   * @brief 初始化 DMA 句柄，注册 HAL 内部回调并调用 HAL_DMA_Init。
+   * @brief 初始化 DMA 句柄，调用 HAL_DMA_Init。
    *
    * 必须在开始任何传输之前调用。若 m_handle 为 nullptr，则为空操作。
-   * m_handle->Parent 被设置为 this，以便 HAL 回调可找到对应的 dma_proxy 对象。
+   * 单独调用 start() 时，Parent 与回调由 start() 自动绑定；
+   * 外设类（dma_uart / dma_spi / dma_i2c）在调用本函数后自行配置回调。
    */
   void init() {
     if (m_handle) {
-      m_handle->XferCpltCallback = dma_rx_xfer_cplt_cb;
-      m_handle->XferHalfCpltCallback = nullptr;
-      m_handle->XferErrorCallback = dma_error_cb;
-      m_handle->XferAbortCallback = nullptr;
-      m_handle->Parent = this; // 关联 DMA 句柄与 dma_proxy 对象，用于回调派发
       HAL_DMA_Init(m_handle);
     }
   }
@@ -197,6 +204,8 @@ public:
   /**
    * @brief 以中断模式启动一次 DMA 传输。
    *
+   * 自动将 Parent 与完成/错误回调绑定到本对象，以便 DMA 中断触发时转发给
+   * 通过 set_callback_handler() 注册的用户回调。
    * 若启动失败（句柄无效或 HAL 出错），会通过回调向上层通知，
    * 以便仅依赖回调的调用方感知启动阶段的失败。
    *
@@ -211,6 +220,10 @@ public:
       }
       return; // DMA 句柄无效
     }
+    // 绑定 Parent 与回调，确保 DMA 中断能够回调到本对象
+    m_handle->Parent = this;
+    m_handle->XferCpltCallback = xfer_cplt_cb;
+    m_handle->XferErrorCallback = xfer_error_cb;
     const auto status =
         HAL_DMA_Start_IT(m_handle, reinterpret_cast<uint32_t>(src_address),
                          reinterpret_cast<uint32_t>(dst_address), data_length);
@@ -330,28 +343,24 @@ public:
     }
   }
 
-protected:
-  static void dma_rx_xfer_cplt_cb(DMA_HandleTypeDef *hdma) {
-    if (!hdma)
-      return;
-    dma_proxy *d = static_cast<dma_proxy *>(hdma->Parent);
-    if (d && d->m_callback_handler) {
-      // 传输完成，以空的 error_code 通知上层（无错误）
-      d->m_callback_handler(std::error_code());
-    }
-  }
-
-  static void dma_error_cb(DMA_HandleTypeDef *hdma) {
-    if (!hdma)
-      return;
-    dma_proxy *d = static_cast<dma_proxy *>(hdma->Parent);
-    if (d && d->m_callback_handler) {
-      d->m_callback_handler(std::error_code(
-          hdma->ErrorCode, gdut::dma_error_category::instance()));
-    }
-  }
-
 private:
+  static void xfer_cplt_cb(DMA_HandleTypeDef *hdma) {
+    if (!hdma || !hdma->Parent)
+      return;
+    auto *self = static_cast<dma_proxy *>(hdma->Parent);
+    if (self)
+      self->call_dma_callback({});
+  }
+
+  static void xfer_error_cb(DMA_HandleTypeDef *hdma) {
+    if (!hdma || !hdma->Parent)
+      return;
+    auto *self = static_cast<dma_proxy *>(hdma->Parent);
+    if (self)
+      self->call_dma_callback(
+          std::error_code(hdma->ErrorCode, dma_error_category::instance()));
+  }
+
   DMA_HandleTypeDef *m_handle{nullptr};
   callback_t
       m_callback_handler{}; // 显式初始化为空，防止未初始化的函数对象被调用
@@ -461,13 +470,21 @@ private:
 
   void do_bind_tx(dma_proxy *tx_dma) {
     if (tx_dma && m_i2c) {
-      __HAL_LINKDMA(m_i2c, hdmatx, *tx_dma->get_handle());
+      DMA_HandleTypeDef *tx_handle = tx_dma->get_handle();
+      if (tx_handle != nullptr) {
+        m_tx_dma = tx_dma;
+        __HAL_LINKDMA(m_i2c, hdmatx, *tx_handle);
+      }
     }
   }
 
   void do_bind_rx(dma_proxy *rx_dma) {
     if (rx_dma && m_i2c) {
-      __HAL_LINKDMA(m_i2c, hdmarx, *rx_dma->get_handle());
+      DMA_HandleTypeDef *rx_handle = rx_dma->get_handle();
+      if (rx_handle != nullptr) {
+        m_rx_dma = rx_dma;
+        __HAL_LINKDMA(m_i2c, hdmarx, *rx_handle);
+      }
     }
   }
 
@@ -477,7 +494,22 @@ private:
     // uint8_t*。 此处使用 const_cast 仅用于适配该 HAL 接口；HAL 不会修改 data
     // 指向的数据。
 
+    // 传输大小超过 HAL uint16_t 范围则拒绝，避免截断导致错误传输
+    if (m_tx_dma == nullptr || m_i2c == nullptr || data == nullptr ||
+        size == 0U || size > 65535U) {
+      return false;
+    }
+
     m_tx_dma->init(); // 确保 DMA 代理已初始化并关联到 HAL 句柄
+
+    // 覆盖 DMA 句柄的 Parent 与完成/错误回调，以便在 DMA 中断里转发用户回调
+    DMA_HandleTypeDef *hdma_tx = m_tx_dma->get_handle();
+    if (!hdma_tx) {
+      return false;
+    }
+    hdma_tx->Parent = this;
+    hdma_tx->XferCpltCallback = tx_dma_cplt_cb;
+    hdma_tx->XferErrorCallback = tx_dma_error_cb;
 
     // HAL_I2C_Master_Transmit_DMA(m_i2c, address, const_cast<uint8_t *>(data),
     //                             static_cast<uint16_t>(size));
@@ -519,7 +551,7 @@ private:
 
     /* Prepare transfer parameters */
     m_i2c->pBuffPtr = const_cast<uint8_t *>(data);
-    m_i2c->XferCount = size;
+    m_i2c->XferCount = static_cast<uint16_t>(size);
     m_i2c->XferSize = m_i2c->XferCount;
     m_i2c->XferOptions = 0xFFFF0000U; /* Don't start the transfer yet */
     m_i2c->Devaddress = address;
@@ -597,7 +629,22 @@ private:
   }
 
   bool do_receive(uint8_t *buffer, std::size_t size, uint16_t address) {
+    // 传输大小超过 HAL uint16_t 范围则拒绝，避免截断导致错误传输
+    if (m_rx_dma == nullptr || m_i2c == nullptr || buffer == nullptr ||
+        size == 0U || size > 65535U) {
+      return false;
+    }
+
     m_rx_dma->init();
+
+    // 覆盖 DMA 句柄的 Parent 与完成/错误回调，以便在 DMA 中断里转发用户回调
+    DMA_HandleTypeDef *hdma_rx = m_rx_dma->get_handle();
+    if (!hdma_rx) {
+      return false;
+    }
+    hdma_rx->Parent = this;
+    hdma_rx->XferCpltCallback = rx_dma_cplt_cb;
+    hdma_rx->XferErrorCallback = rx_dma_error_cb;
 
     // HAL_I2C_Master_Receive_DMA(m_i2c, address, buffer,
     //                            static_cast<uint16_t>(size));
@@ -639,7 +686,7 @@ private:
 
     /* Prepare transfer parameters */
     m_i2c->pBuffPtr = buffer;
-    m_i2c->XferCount = size;
+    m_i2c->XferCount = static_cast<uint16_t>(size);
     m_i2c->XferSize = m_i2c->XferCount;
     m_i2c->XferOptions = 0xFFFF0000U; /* Don't start the transfer yet */
     m_i2c->Devaddress = address;
@@ -716,9 +763,77 @@ private:
     return true;
   }
 
-  I2C_HandleTypeDef *m_i2c;
-  dma_proxy *m_tx_dma;
-  dma_proxy *m_rx_dma;
+  static void tx_dma_cplt_cb(DMA_HandleTypeDef *hdma) {
+    if (!hdma)
+      return;
+    auto *self = static_cast<dma_i2c *>(hdma->Parent);
+    if (!self)
+      return;
+    if (self->m_i2c) {
+      __HAL_I2C_DISABLE_IT(self->m_i2c, I2C_IT_EVT | I2C_IT_ERR | I2C_IT_BUF);
+      CLEAR_BIT(self->m_i2c->Instance->CR2, I2C_CR2_DMAEN);
+      self->m_i2c->State = HAL_I2C_STATE_READY;
+      self->m_i2c->Mode = HAL_I2C_MODE_NONE;
+    }
+    if (self->m_tx_dma)
+      self->m_tx_dma->call_dma_callback({});
+  }
+
+  static void tx_dma_error_cb(DMA_HandleTypeDef *hdma) {
+    if (!hdma)
+      return;
+    auto *self = static_cast<dma_i2c *>(hdma->Parent);
+    if (!self)
+      return;
+    if (self->m_i2c) {
+      __HAL_I2C_DISABLE_IT(self->m_i2c, I2C_IT_EVT | I2C_IT_ERR | I2C_IT_BUF);
+      CLEAR_BIT(self->m_i2c->Instance->CR2, I2C_CR2_DMAEN);
+      self->m_i2c->ErrorCode |= HAL_I2C_ERROR_DMA;
+      self->m_i2c->State = HAL_I2C_STATE_READY;
+      self->m_i2c->Mode = HAL_I2C_MODE_NONE;
+    }
+    if (self->m_tx_dma)
+      self->m_tx_dma->call_dma_callback(
+          std::error_code(hdma->ErrorCode, dma_error_category::instance()));
+  }
+
+  static void rx_dma_cplt_cb(DMA_HandleTypeDef *hdma) {
+    if (!hdma)
+      return;
+    auto *self = static_cast<dma_i2c *>(hdma->Parent);
+    if (!self)
+      return;
+    if (self->m_i2c) {
+      __HAL_I2C_DISABLE_IT(self->m_i2c, I2C_IT_EVT | I2C_IT_ERR | I2C_IT_BUF);
+      CLEAR_BIT(self->m_i2c->Instance->CR2, I2C_CR2_DMAEN);
+      self->m_i2c->State = HAL_I2C_STATE_READY;
+      self->m_i2c->Mode = HAL_I2C_MODE_NONE;
+    }
+    if (self->m_rx_dma)
+      self->m_rx_dma->call_dma_callback({});
+  }
+
+  static void rx_dma_error_cb(DMA_HandleTypeDef *hdma) {
+    if (!hdma)
+      return;
+    auto *self = static_cast<dma_i2c *>(hdma->Parent);
+    if (!self)
+      return;
+    if (self->m_i2c) {
+      __HAL_I2C_DISABLE_IT(self->m_i2c, I2C_IT_EVT | I2C_IT_ERR | I2C_IT_BUF);
+      CLEAR_BIT(self->m_i2c->Instance->CR2, I2C_CR2_DMAEN);
+      self->m_i2c->ErrorCode |= HAL_I2C_ERROR_DMA;
+      self->m_i2c->State = HAL_I2C_STATE_READY;
+      self->m_i2c->Mode = HAL_I2C_MODE_NONE;
+    }
+    if (self->m_rx_dma)
+      self->m_rx_dma->call_dma_callback(
+          std::error_code(hdma->ErrorCode, dma_error_category::instance()));
+  }
+
+  I2C_HandleTypeDef *m_i2c{nullptr};
+  dma_proxy *m_tx_dma{nullptr};
+  dma_proxy *m_rx_dma{nullptr};
 };
 
 } // namespace gdut
