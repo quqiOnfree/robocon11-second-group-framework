@@ -9,13 +9,14 @@ add_library(GDUT_RC_Library
 )
 target_include_directories(GDUT_RC_Library PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/BSP
-  ${CMAKE_CURRENT_SOURCE_DIR}/CPP_Library
+  ${CMAKE_CURRENT_SOURCE_DIR}/DSP
 )
 target_link_libraries(GDUT_RC_Library PUBLIC
   STM32_Drivers
   ${TOOLCHAIN_LINK_LIBRARIES}
   FreeRTOS
   tlsf
+  CMSISDSP
 )
 target_compile_definitions(GDUT_RC_Library PUBLIC
 )

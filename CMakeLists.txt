@@ -46,6 +46,9 @@ add_subdirectory(Middlewares/Third_Party/tlsf)
 # Add GDUT RC Library
 add_subdirectory(Middlewares/GDUT_RC_Library)
 
+# Add CMSIS DSP Library
+add_subdirectory(Middlewares/Third_Party/CMSIS_DSP)
+
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
@@ -74,4 +77,31 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
     GDUT_RC_Library
     # Add user defined libraries
+)
+
+# Set compiler options for the executable target
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(CMSISDSP PRIVATE
+    -mcpu=cortex-m4
+    -mfpu=fpv4-sp-d16
+    -mfloat-abi=hard
+    -O0
+    -g3
+    -DARM_MATH_CM4
+    -D__FPU_PRESENT=1
+    )
+elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(CMSISDSP PRIVATE
+    -mcpu=cortex-m4
+    -mfpu=fpv4-sp-d16
+    -mfloat-abi=hard
+    -O3
+    -ffast-math
+    -DARM_MATH_CM4
+    -D__FPU_PRESENT=1
+    )
+endif()
+target_link_libraries(CMSISDSP PRIVATE
+    ${TOOLCHAIN_LINK_LIBRARIES}
+    stm32cubemx
 )
