@@ -21,7 +21,7 @@
 | 逆矩阵 | `inverse()` | 仅方阵，底层调用 CMSIS-DSP |
 | 转置 | `transpose()` | 返回 `(Cols×Rows)` 新矩阵 |
 | 范数 | `norm()` | Frobenius 范数 $\|\mathbf{A}\|_F = \sqrt{\sum a_{ij}^2}$ |
-| 归一化 | `normalized()` | 返回 `this / norm()` 的新矩阵（按 Frobenius 范数归一化），norm > 0 时有效 |
+| 归一化 | `normalized()` | 返回 `this / norm()` 的新矩阵（按 Frobenius 范数归一化），`norm() > epsilon` 时执行除法，否则返回原矩阵副本 |
 | 单位矩阵 | `identity()` | 静态方法，仅方阵 |
 | 元素访问 | `operator[](i, j)` | C++23 多维下标（行，列），零起始 |
 | 原始指针 | `get()` | 返回行优先存储的数据指针 |

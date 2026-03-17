@@ -347,7 +347,9 @@ protected:
     arm_status status = arm_mat_inverse_f32(&a, &c);
     assert(status == ARM_MATH_SUCCESS &&
            "Matrix inversion failed - matrix may be singular");
-    (void)status;
+    if (status != ARM_MATH_SUCCESS) {
+      return matrix{};
+    }
     return res;
   }
 
@@ -452,7 +454,9 @@ protected:
     arm_status status = arm_mat_inverse_f64(&a, &c);
     assert(status == ARM_MATH_SUCCESS &&
            "Matrix inversion failed - matrix may be singular");
-    (void)status;
+    if (status != ARM_MATH_SUCCESS) {
+      return matrix{};
+    }
     return res;
   }
 

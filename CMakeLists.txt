@@ -80,10 +80,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 )
 
 # Set compiler options for the CMSISDSP target
+# Note: -mcpu/-mfpu/-mfloat-abi are already set globally by the toolchain file
 target_compile_options(CMSISDSP PRIVATE
-    -mcpu=cortex-m4
-    -mfpu=fpv4-sp-d16
-    -mfloat-abi=hard
     $<$<CONFIG:Debug>:-O0>
     $<$<CONFIG:Debug>:-g3>
     $<$<CONFIG:Release>:-O3>
