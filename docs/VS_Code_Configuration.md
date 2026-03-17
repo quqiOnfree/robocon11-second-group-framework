@@ -72,13 +72,13 @@ code --install-extension xaver.clang-format
 - **launch.json** - 如果使用 Cortex-Debug，需要在配置中指定：
   ```json
   {
-      "name": "Cortex Debug",
+      "name": "STM32 Debug",
       "type": "cortex-debug",
       "request": "launch",
       "servertype": "openocd",
-      "cwd": "${workspaceRoot}",
-      "executable": "${workspaceRoot}/build/robocon11-second-group-framework.elf",
-      "svdFile": "${workspaceRoot}/debug/stm32f407.svd",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/build/robocon11-second-group-framework.elf",
+      "svdFile": "${workspaceFolder}/debug/stm32f407.svd",
       "device": "STM32F407VE",
       "interface": "swd",
       "configFiles": [
@@ -238,9 +238,10 @@ openocd.exe --version
    ```
 
 2. **检查配置**：打开 `.vscode/launch.json`，检查以下参数是否正确：
-   - `program`: ELF 文件路径
-   - `MIMode`: 调试器类型
-   - OpenOCD 连接参数
+   - `executable`: ELF 文件路径
+   - `servertype`: 调试服务器类型（应为 `openocd`）
+   - `configFiles`: OpenOCD 配置文件路径
+   - `runToEntryPoint`: 启动后停止的入口函数
 
 ### launch.json 关键配置说明
 
@@ -248,25 +249,23 @@ openocd.exe --version
 
 | 参数 | 说明 | 示例值 |
 |------|------|--------|
-| `name` | 配置名称，显示在调试菜单中 | `Debug with OpenOCD` |
-| `type` | 调试器类型 | `cppdbg` (C++ 调试) |
-| `program` | ELF 文件路径（编译后生成） | `${workspaceFolder}/build/robocon11-second-group-framework.elf` |
-| `MIMode` | GDB 接口类型 | `gdb` |
-| `preLaunchTask` | 调试前自动执行的任务 | `build` (自动编译) |
-| `stopAtEntry` | 调试器是否在 `main()` 处停止 | `true` |
-| `miDebuggerPath` | GDB 可执行文件路径（若需自定义） | `arm-none-eabi-gdb.exe` |
+| `name` | 配置名称，显示在调试菜单中 | `STM32 Debug` |
+| `type` | 调试器类型，固定为 Cortex-Debug 插件 | `cortex-debug` |
+| `servertype` | 调试服务器类型 | `openocd` |
+| `executable` | ELF 文件路径（编译后生成） | `${workspaceFolder}/build/robocon11-second-group-framework.elf` |
+| `svdFile` | SVD 文件路径，提供外设寄存器视图 | `${workspaceFolder}/debug/stm32f407.svd` |
+| `configFiles` | OpenOCD 配置文件（调试器 + 目标芯片） | `["interface/stlink.cfg", "target/stm32f4x.cfg"]` |
+| `runToEntryPoint` | 启动后自动运行到指定函数 | `main` |
 
 具体的配置内容请查看 [debug/launch.json](../debug/launch.json) 文件。
 
 ### settings.json 编辑器配置
 
-[debug/settings.json](../debug/settings.json) 包含推荐的 VS Code 编辑器设置，包括：
-- **代码格式化**配置（clang-format）
-- **智能感知**和 **Pylance** 设置
-- **C++ 扩展**配置
-- **文件关联**设置
+[debug/settings.json](../debug/settings.json) 目前主要包含对 C/C++ 语言服务器（`clangd`）的参数配置（例如 `clangd.arguments`），用于优化代码补全和跳转体验。
 
-使用此配置可获得更好的代码提示和自动格式化体验。
+你可以在此基础上根据个人需求，手动补充 clang-format、Pylance、文件关联等其他 VS Code 设置。
+
+使用此配置可获得更好的代码提示和编辑体验。
 
 ### 调试工作流
 
