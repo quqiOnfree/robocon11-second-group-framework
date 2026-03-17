@@ -79,28 +79,20 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     # Add user defined libraries
 )
 
-# Set compiler options for the executable target
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(CMSISDSP PRIVATE
+# Set compiler options for the CMSISDSP target
+target_compile_options(CMSISDSP PRIVATE
     -mcpu=cortex-m4
     -mfpu=fpv4-sp-d16
     -mfloat-abi=hard
-    -O0
-    -g3
-    -DARM_MATH_CM4
-    -D__FPU_PRESENT=1
-    )
-elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_options(CMSISDSP PRIVATE
-    -mcpu=cortex-m4
-    -mfpu=fpv4-sp-d16
-    -mfloat-abi=hard
-    -O3
-    -ffast-math
-    -DARM_MATH_CM4
-    -D__FPU_PRESENT=1
-    )
-endif()
+    $<$<CONFIG:Debug>:-O0>
+    $<$<CONFIG:Debug>:-g3>
+    $<$<CONFIG:Release>:-O3>
+    $<$<CONFIG:Release>:-ffast-math>
+)
+target_compile_definitions(CMSISDSP PRIVATE
+    ARM_MATH_CM4
+    __FPU_PRESENT=1
+)
 target_link_libraries(CMSISDSP PRIVATE
     ${TOOLCHAIN_LINK_LIBRARIES}
     stm32cubemx

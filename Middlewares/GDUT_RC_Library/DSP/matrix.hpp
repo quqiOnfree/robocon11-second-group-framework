@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <arm_math.h>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
@@ -273,11 +274,10 @@ Mat operator*(
 template <typename T, std::size_t Rows, std::size_t Cols> class matrix {};
 
 template <std::size_t Rows, std::size_t Cols>
-class matrix<std::float_t, Rows, Cols>
-    : public base_matrix<matrix<std::float_t, Rows, Cols>, std::float_t, Rows,
-                         Cols> {
+class matrix<float, Rows, Cols>
+    : public base_matrix<matrix<float, Rows, Cols>, float, Rows, Cols> {
 public:
-  using value_type = std::float_t;
+  using value_type = float;
 
   constexpr matrix() = default;
   constexpr ~matrix() noexcept = default;
@@ -287,11 +287,13 @@ public:
   }
 
   explicit constexpr matrix(std::initializer_list<value_type> list) {
-    if (list.size() > Rows * Cols) {
-      return;
-    }
+    assert(list.size() <= Rows * Cols &&
+           "Initializer list size exceeds matrix capacity");
     std::size_t iter = 0;
     for (const value_type &d : list) {
+      if (iter >= Rows * Cols) {
+        break;
+      }
       m_data[iter++] = d;
     }
   }
@@ -342,7 +344,10 @@ protected:
     matrix res;
     auto a = tmp.get_handle();
     auto c = res.get_handle();
-    arm_mat_inverse_f32(&a, &c);
+    arm_status status = arm_mat_inverse_f32(&a, &c);
+    assert(status == ARM_MATH_SUCCESS &&
+           "Matrix inversion failed - matrix may be singular");
+    (void)status;
     return res;
   }
 
@@ -375,11 +380,10 @@ private:
 };
 
 template <std::size_t Rows, std::size_t Cols>
-class matrix<std::double_t, Rows, Cols>
-    : public base_matrix<matrix<std::double_t, Rows, Cols>, std::double_t, Rows,
-                         Cols> {
+class matrix<double, Rows, Cols>
+    : public base_matrix<matrix<double, Rows, Cols>, double, Rows, Cols> {
 public:
-  using value_type = std::double_t;
+  using value_type = double;
   constexpr matrix() = default;
   constexpr ~matrix() noexcept = default;
 
@@ -388,11 +392,13 @@ public:
   }
 
   explicit constexpr matrix(std::initializer_list<value_type> list) {
-    if (list.size() > Rows * Cols) {
-      return;
-    }
+    assert(list.size() <= Rows * Cols &&
+           "Initializer list size exceeds matrix capacity");
     std::size_t iter = 0;
     for (const value_type &d : list) {
+      if (iter >= Rows * Cols) {
+        break;
+      }
       m_data[iter++] = d;
     }
   }
@@ -439,10 +445,14 @@ protected:
   }
 
   matrix inverse_impl() const {
+    matrix tmp{*this};
     matrix res;
-    auto a = this->get_handle();
+    auto a = tmp.get_handle();
     auto c = res.get_handle();
-    arm_mat_inverse_f64(&a, &c);
+    arm_status status = arm_mat_inverse_f64(&a, &c);
+    assert(status == ARM_MATH_SUCCESS &&
+           "Matrix inversion failed - matrix may be singular");
+    (void)status;
     return res;
   }
 

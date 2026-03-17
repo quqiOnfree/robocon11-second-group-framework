@@ -21,7 +21,7 @@
 | 逆矩阵 | `inverse()` | 仅方阵，底层调用 CMSIS-DSP |
 | 转置 | `transpose()` | 返回 `(Cols×Rows)` 新矩阵 |
 | 范数 | `norm()` | Frobenius 范数 $\|\mathbf{A}\|_F = \sqrt{\sum a_{ij}^2}$ |
-| 归一化 | `normalized()` | 返回 `this / norm()` 的新矩阵，仅适用向量且 norm > 0 |
+| 归一化 | `normalized()` | 返回 `this / norm()` 的新矩阵（按 Frobenius 范数归一化），norm > 0 时有效 |
 | 单位矩阵 | `identity()` | 静态方法，仅方阵 |
 | 元素访问 | `operator[](i, j)` | C++23 多维下标（行，列），零起始 |
 | 原始指针 | `get()` | 返回行优先存储的数据指针 |
@@ -31,8 +31,8 @@
 
 具体矩阵类，目前特化了两种浮点类型：
 
-- `matrix<float, Rows, Cols>`（即 `matrix<std::float_t, ...>`）：底层调用 `arm_mat_*_f32`
-- `matrix<double, Rows, Cols>`（即 `matrix<std::double_t, ...>`）：底层调用 `arm_mat_*_f64`
+- `matrix<float, Rows, Cols>`：底层调用 `arm_mat_*_f32`
+- `matrix<double, Rows, Cols>`：底层调用 `arm_mat_*_f64`
 
 数据以行优先（row-major）顺序存储于栈上数组 `m_data[Rows * Cols]`，零初始化。
 
@@ -158,6 +158,7 @@ float norm = a.norm();  // 1.0f
 ### 3D 变换
 
 ```cpp
+#include <numbers>
 using namespace gdut::dsp;
 
 // 缩放 5 倍
@@ -168,7 +169,7 @@ auto t = make_translate(vector<float, 3>{1.0f, 2.0f, 3.0f});
 
 // 绕 Y 轴旋转 π/2 弧度（轴向量无需预先归一化）
 auto r = make_rotate(vector<float, 3>{0.0f, 1.0f, 0.0f},
-                     static_cast<float>(M_PI) / 2.0f);
+                     std::numbers::pi_v<float> / 2.0f);
 
 // 组合变换：先缩放，再旋转，再平移
 vector<float, 4> v{1.0f, 1.0f, 1.0f, 1.0f};
@@ -197,7 +198,7 @@ auto dinv = dm.inverse();  // 调用 arm_mat_inverse_f64
 
 ## 实现注意事项
 
-- **支持类型**：目前仅特化 `float`（`std::float_t`）和 `double`（`std::double_t`）。对其他类型实例化会得到空的 `matrix<T, R, C>` 类（无任何成员）。
+- **支持类型**：目前仅特化 `float` 和 `double`。对其他类型实例化会得到空的 `matrix<T, R, C>` 类（无任何成员）。
 - **维度检查**：矩阵乘法 `operator*` 在编译期通过 `static_assert` 检查 `A.cols == B.rows` 及两矩阵元素类型一致。
 - **内存布局**：行优先（row-major）存储，与 CMSIS-DSP 约定一致。
 - **`make_rotate` 轴向量自动归一化**：函数内部会调用 `normalized()` 对传入的 `axis` 进行归一化，因此传入任意非零方向向量均可，但传入零向量将导致除以零（结果未定义）。
