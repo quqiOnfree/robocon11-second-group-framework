@@ -542,15 +542,16 @@ inline constexpr matrix<T, 4, 4> make_rotate(const vector<T, 3> &vec,
   vector<T, 3> temp = vec.normalized();
   T c = std::cos(angle);
   T s = std::sin(angle);
-  res[0, 0] = c + temp[0] * temp[0] * (1 - c);
-  res[0, 1] = temp[0] * temp[1] * (1 - c) - temp[2] * s;
-  res[0, 2] = temp[0] * temp[2] * (1 - c) + temp[1] * s;
-  res[1, 0] = temp[1] * temp[0] * (1 - c) + temp[2] * s;
-  res[1, 1] = c + temp[1] * temp[1] * (1 - c);
-  res[1, 2] = temp[1] * temp[2] * (1 - c) - temp[0] * s;
-  res[2, 0] = temp[2] * temp[0] * (1 - c) - temp[1] * s;
-  res[2, 1] = temp[2] * temp[1] * (1 - c) + temp[0] * s;
-  res[2, 2] = c + temp[2] * temp[2] * (1 - c);
+  T osc = 1 - c;
+  res[0, 0] = c + temp[0] * temp[0] * osc;
+  res[0, 1] = temp[0] * temp[1] * osc - temp[2] * s;
+  res[0, 2] = temp[0] * temp[2] * osc + temp[1] * s;
+  res[1, 0] = temp[1] * temp[0] * osc + temp[2] * s;
+  res[1, 1] = c + temp[1] * temp[1] * osc;
+  res[1, 2] = temp[1] * temp[2] * osc - temp[0] * s;
+  res[2, 0] = temp[2] * temp[0] * osc - temp[1] * s;
+  res[2, 1] = temp[2] * temp[1] * osc + temp[0] * s;
+  res[2, 2] = c + temp[2] * temp[2] * osc;
   res[3, 3] = 1;
   return res;
 }
