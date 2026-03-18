@@ -27,13 +27,13 @@ inline T cos(T x) {
   return std::cos(x);
 }
 
-template <> inline float cos(float x) { return arm_cos_f32(x); }
+inline float cos(float x) { return arm_cos_f32(x); }
 
 template <typename T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
 inline T sin(T x) {
   return std::sin(x);
 }
-template <> inline float sin(float x) { return arm_sin_f32(x); }
+inline float sin(float x) { return arm_sin_f32(x); }
 
 } // namespace gdut::dsp
 
