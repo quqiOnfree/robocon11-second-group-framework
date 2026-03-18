@@ -555,10 +555,10 @@ inline constexpr matrix<T, 4, 4> make_translate(const vector<T, 3> &vec) {
 }
 
 template <typename T>
-inline constexpr matrix<T, 4, 4> make_rotate(const vector<T, 3> &vec,
+inline constexpr matrix<T, 4, 4> make_rotate(const vector<T, 3> &axis,
                                              std::type_identity_t<T> angle) {
   matrix<T, 4, 4> res;
-  vector<T, 3> temp = vec.normalized();
+  vector<T, 3> temp = axis.normalized();
   T c = cos(angle * std::numbers::pi_v<T> / static_cast<T>(180));
   T s = sin(angle * std::numbers::pi_v<T> / static_cast<T>(180));
   T osc = 1 - c;

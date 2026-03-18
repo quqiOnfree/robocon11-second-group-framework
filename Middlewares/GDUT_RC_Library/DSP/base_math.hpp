@@ -1,6 +1,7 @@
 #ifndef BASE_MATH_HPP
 #define BASE_MATH_HPP
 
+#include <cmath>
 #include <arm_math.h>
 
 namespace gdut::dsp {
