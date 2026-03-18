@@ -540,7 +540,7 @@ inline constexpr matrix<T, 4, 4> make_scale(std::type_identity_t<T> scale) {
   for (std::size_t i = 0; i < 3; ++i) {
     res[i, i] = scale;
   }
-  res[3, 3] = 1;
+  res[3, 3] = static_cast<T>(1);
   return res;
 }
 
@@ -550,18 +550,26 @@ inline constexpr matrix<T, 4, 4> make_translate(const vector<T, 3> &vec) {
   res[0, 3] = vec[0];
   res[1, 3] = vec[1];
   res[2, 3] = vec[2];
-  res[3, 3] = 1;
+  res[3, 3] = static_cast<T>(1);
   return res;
 }
 
-template <typename T>
-inline constexpr matrix<T, 4, 4> make_rotate(const vector<T, 3> &axis,
-                                             std::type_identity_t<T> angle) {
+template <typename T, typename UseType,
+          typename = std::enable_if_t<is_use_angle_type_v<UseType>>>
+inline constexpr matrix<T, 4, 4>
+make_rotate(const vector<T, 3> &axis, std::type_identity_t<T> angle, UseType) {
   matrix<T, 4, 4> res;
   vector<T, 3> temp = axis.normalized();
-  T c = cos(angle * std::numbers::pi_v<T> / static_cast<T>(180));
-  T s = sin(angle * std::numbers::pi_v<T> / static_cast<T>(180));
-  T osc = 1 - c;
+  T c{};
+  T s{};
+  if constexpr (std::is_same_v<use_angle_t, UseType>) {
+    c = cos(angle * std::numbers::pi_v<T> / static_cast<T>(180));
+    s = sin(angle * std::numbers::pi_v<T> / static_cast<T>(180));
+  } else {
+    c = cos(angle);
+    s = sin(angle);
+  }
+  T osc = static_cast<T>(1) - c;
   res[0, 0] = c + temp[0] * temp[0] * osc;
   res[0, 1] = temp[0] * temp[1] * osc - temp[2] * s;
   res[0, 2] = temp[0] * temp[2] * osc + temp[1] * s;
@@ -571,7 +579,7 @@ inline constexpr matrix<T, 4, 4> make_rotate(const vector<T, 3> &axis,
   res[2, 0] = temp[2] * temp[0] * osc - temp[1] * s;
   res[2, 1] = temp[2] * temp[1] * osc + temp[0] * s;
   res[2, 2] = c + temp[2] * temp[2] * osc;
-  res[3, 3] = 1;
+  res[3, 3] = static_cast<T>(1);
   return res;
 }
 
