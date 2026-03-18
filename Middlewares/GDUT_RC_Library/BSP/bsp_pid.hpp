@@ -1,122 +1,140 @@
 #ifndef BSP_PID_HPP
 #define BSP_PID_HPP
 
-#include "bsp_timer.hpp"
+
+#include <limits>
+#include <print>
+#include <type_traits>
+#include <algorithm>
 #include <cmath>
 namespace gdut {
 
-struct pid 
-{
-private:
-    float ki, kp, kd;                                        //ki积分系数，kp比例系数，kd微分系数
-    float last_error,current_error;                          //last_error上次误差，current_error当前误差
-    float PID_MAX, PID_MIN;                                  //PID最大输出，PID最小输出
-    float pid_output,last_pid_output;                        //PID输出,上次PID输出
-    float error_integral,integral_limit,dead_zone;           //error_integral误差积分，integral_limit积分限幅，dead_zone死区
+template<typename T>
+class pid_controller {
+  static_assert(std::is_floating_point_v<T>, "Template parameter T must be a floating-point type");
 public:
-    pid(float kp, float ki, float kd, float PID_MAX, float PID_MIN, float integral_limit, 
-         float dead_zone)
-    {
-        this->ki = ki;
-        this->kp = kp;
-        this->kd = kd;
-        this->PID_MAX = PID_MAX;
-        this->PID_MIN = PID_MIN;
-        this->integral_limit = integral_limit;
-        this->last_error = 0;
-        this->current_error = 0;
-        this->pid_output = 0;
-        this->error_integral = 0;
-        this->last_pid_output = 0;
-        this->dead_zone =dead_zone;
+  pid_controller(T Kp, T Ki, T Kd, T DeadZone = T{}, T IntegralWindupLimit = T{}, T MinOutput = std::numeric_limits<T>::lowest(), T MaxOutput = std::numeric_limits<T>::max(), T Alpha = static_cast<T>(0.1)) {
+    (void)set_parameters(Kp, Ki, Kd, DeadZone, IntegralWindupLimit, MinOutput, MaxOutput);
+  }
+  ~pid_controller() = default;
+
+  [[nodiscard]] bool set_Kp(T Kp) {
+    if (Kp < T{}) {
+      return false; // Proportional gain must be non-negative
     }
-    ~pid() = default;
-    float pid_calculate(float error)
-    {
-        this->current_error = error;
-        //死区处理
-        if(dead_zone != 0 && fabs(current_error) < dead_zone)
-        {
-            pid_output = last_pid_output;
-            return pid_output;
-        }
-        
-        //计算PID输出
-        float P_out = kp * current_error;
-
-        error_integral += current_error;
-        if(error_integral > integral_limit) error_integral = integral_limit;
-        if(error_integral < -integral_limit) error_integral = -integral_limit;
-        float I_out = ki * error_integral;
-        
-        float D_out = kd * (current_error - last_error);
-        
-        //pid输出总和
-        pid_output = P_out + I_out + D_out;
-
-        //输出限幅
-        if(pid_output > PID_MAX) pid_output = PID_MAX;
-        if(pid_output < PID_MIN) pid_output = PID_MIN;
-
-        //更新历史状态
-        last_error = current_error;
-        last_pid_output = pid_output;
-
-        return pid_output;
+    this->Kp = Kp;
+    return true;
+  }
+  [[nodiscard]] bool set_Ki(T Ki) {
+    if (Ki < T{}) {
+      return false; // Integral gain must be non-negative
     }
-
-    //公开current_error接口
-    float get_current_error() 
-    {
-        return current_error;
+    this->Ki = Ki;
+    return true;
+  }
+  [[nodiscard]] bool set_Kd(T Kd) {
+    if (Kd < T{}) {
+      return false; // Derivative gain must be non-negative
     }
-
-    //公开pid_output接口
-    void set_pid(float new_kp, float new_ki, float new_kd)
-    {
-        this->kp = new_kp;
-        this->ki = new_ki;
-        this->kd = new_kd;
+    this->Kd = Kd;
+    return true;
+  }
+  [[nodiscard]] bool set_dead_zone(T DeadZone) {
+    if (DeadZone < T{}) {
+      return false; // Dead zone must be non-negative
     }
-
-    //设计current_error接口
-    void  set_current_error(float error)
-    {
-        this->current_error = error;
+    this->DeadZone = DeadZone;
+    return true;
+  }
+  [[nodiscard]] bool set_integral_windup_limit(T IntegralWindupLimit) {
+    if (IntegralWindupLimit < T{}) {
+      return false; // Integral windup limit must be non-negative
     }
-
-    //积分项上限
-    void reset_integral()
-    {
-        this->error_integral = 0;
+    this->IntegralWindupLimit = IntegralWindupLimit;
+    return true;
+  }
+  [[nodiscard]] bool reset_integral_windup_limit(T IntegralWindupLimit) {
+    if (IntegralWindupLimit < T{}) {
+      return false; // Integral windup limit must be non-negative
     }
-
-    float get_pid_output()
-    {
-        return pid_output;
+    this->IntegralWindupLimit = 0;
+    return true;
+  }
+  [[nodiscard]] bool set_output_limits(T MinOutput, T MaxOutput) {
+    if (MinOutput >= MaxOutput) {
+      return false; // Minimum output must be less than maximum output
     }
+    this->MinOutput = MinOutput;
+    this->MaxOutput = MaxOutput;
+    return true;
+  }
 
-    float get_integral()
-    {
-        return error_integral;
-    }   
-
-    void set_output_limits(float new_max, float new_min) {
-        if (new_max > new_min) {
-            PID_MAX = new_max;
-            PID_MIN = new_min;
-        }
+  [[nodiscard]] bool set_alpha(T Alpha) {
+    if (Alpha < T{} || Alpha > static_cast<T>(1)) {
+      return false; // Alpha must be in the range [0, 1]
     }
+    this->Alpha = Alpha;
+    return true;
+  }
 
-    // 动态设置积分限幅和死区
-    void set_integral_limits(float new_integral_limit, float new_dead_zone) {
-        if (new_integral_limit >= 0 && new_dead_zone >= 0) {
-            integral_limit = new_integral_limit;
-            dead_zone = new_dead_zone;
-        }
+  [[nodiscard]] bool set_parameters(T Kp, T Ki, T Kd, T DeadZone = T{}, T IntegralWindupLimit = T{}, T MinOutput = std::numeric_limits<T>::lowest(), T MaxOutput = std::numeric_limits<T>::max(), T Alpha = static_cast<T>(0.1)) {
+    bool result = true;
+    result = result && set_Kp(Kp);
+    result = result && set_Ki(Ki);
+    result = result && set_Kd(Kd);
+    result = result && set_dead_zone(DeadZone);
+    result = result && set_integral_windup_limit(IntegralWindupLimit);
+    result = result && set_output_limits(MinOutput, MaxOutput);
+    result = result && set_alpha(Alpha);
+    return result;
+  }
+
+  // error = target - current
+  [[nodiscard]] T update(T error, T dt) {
+    if (DeadZone > T{} && std::abs(error) < DeadZone) {
+      m_prev_error = error; // Reset previous error to prevent derivative kick
+      return m_output; // No change in output if within dead zone
     }
+    if (IntegralWindupLimit > T{}) {
+      m_integral = std::clamp(m_integral + error * dt, -IntegralWindupLimit, IntegralWindupLimit);
+    } else {
+      m_integral += error * dt;
+    }
+    T derivative = (error - m_prev_error) / dt;
+    // 滤波处理：使用指数移动平均滤波器来平滑导数项
+    m_deriv_filter = Alpha * derivative + (1-Alpha) * m_deriv_filter;
+    m_prev_error = error;
+    return m_output = std::clamp(Kp * error + Ki * m_integral + Kd * m_deriv_filter, MinOutput, MaxOutput);
+  }
+
+private:
+  T Kp{};
+  T Ki{};
+  T Kd{};
+  T DeadZone{};
+  T IntegralWindupLimit{};
+  T MinOutput = std::numeric_limits<T>::lowest();
+  T MaxOutput = std::numeric_limits<T>::max();
+  T Alpha{}; // 滤波系数
+  
+  T m_integral{};
+  T m_prev_error{};
+  T m_output{};
+  T m_deriv_filter{}; // 用于滤波的变量
 };
 
+template<typename T, T Kp, T Ki, T Kd, T DeadZone = T{}, T IntegralWindupLimit = T{}, T MinOutput = std::numeric_limits<T>::lowest(), T MaxOutput = std::numeric_limits<T>::max(), T Alpha = static_cast<T>(0.1)>
+pid_controller<T> make_pid_controller() {
+  static_assert(Kp >= 0, "Proportional gain must be non-negative");
+  static_assert(Ki >= 0, "Integral gain must be non-negative");
+  static_assert(Kd >= 0, "Derivative gain must be non-negative");
+  static_assert(Kp > 0 || Ki > 0 || Kd > 0, "At least one gain must be positive");
+  static_assert(DeadZone >= T{}, "Dead zone must be non-negative");
+  static_assert(IntegralWindupLimit >= T{}, "Integral windup limit must be non-negative");
+  static_assert(MinOutput < MaxOutput, "Minimum output must be less than maximum output");
+  static_assert(std::is_floating_point_v<T>, "Template parameter T must be a floating-point type");
+  return pid_controller<T>{Kp, Ki, Kd, DeadZone, IntegralWindupLimit, MinOutput, MaxOutput, Alpha};
+}
 } // namespace gdut
 
 #endif // BSP_PID_HPP
